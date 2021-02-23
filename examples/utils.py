@@ -3,13 +3,16 @@ utils.py
 """
 import jax
 import jax.numpy as jnp
+import logging
 
 from jax.experimental import optimizers
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-def parse_args():
+logging.getLogger('absl').setLevel('ERROR')
+
+def parse_args(description):
     parser = ArgumentParser(
-        description=__doc__, 
+        description=description, 
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('-e', '--error', metavar='ERR', type=float,

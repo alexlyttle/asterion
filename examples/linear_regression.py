@@ -11,10 +11,7 @@ def model(params, inputs):
     return params[0] + jnp.dot(params[1], inputs)
 
 def main():
-    import logging
-    logging.getLogger('absl').setLevel('ERROR')
-
-    args = parse_args()
+    args = parse_args(__doc__)
     fmt = args.format
 
     a_true, b_true = params_true = (-5., 2.)

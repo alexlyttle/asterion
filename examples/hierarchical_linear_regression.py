@@ -13,10 +13,7 @@ def model(params, inputs):
     return prediction
 
 def main():
-    import logging
-    logging.getLogger('absl').setLevel('ERROR')
-
-    args = parse_args()
+    args = parse_args(__doc__)
     fmt = args.format
 
     n_obj = 100
