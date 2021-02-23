@@ -1,5 +1,5 @@
 """
-Basic linear model.
+Hierarchical linear regression.
 """
 import jax
 import jax.numpy as jnp
@@ -8,7 +8,9 @@ from utils import parse_args, init_optimizer, loss_fn, make_targets, \
     get_update_fn, make_plot
 
 def model(params, inputs):
-    return params[0] + jnp.dot(params[1], inputs)
+    b = inputs[0]**params[1]  # b is related to beta via power law
+    prediction = params[0] + b * inputs[1]
+    return prediction
 
 def main():
     import logging
@@ -17,21 +19,31 @@ def main():
     args = parse_args()
     fmt = args.format
 
-    a_true, b_true = params_true = (-5., 2.)
+    n_obj = 100
+    
+    a_true = jnp.linspace(0, 1, n_obj)
+    b_true = -1.0
+    params_true = (a_true, b_true)
     print('True parameters\n---------------')
-    print(f'a_true = {a_true:{fmt}}, b_true = {b_true:{fmt}}\n')
+    print(f'a_true =\n{a_true},\nb_true = {b_true:{fmt}}\n')
 
-    n_data = 100
+    n_data = 10
     x = jnp.linspace(0, 1, n_data)
-    y_obs = make_targets(jax.random.PRNGKey(42),
-                         params_true, x, model, scale=args.error)
+    x = jnp.stack([x for _ in range(n_obj)], axis=1)
+    print(x.shape)
+    beta = jnp.linspace(1, 2, n_obj)
+    key = jax.random.PRNGKey(42)
+    y_obs = make_targets(key, params_true, (beta, x), model, scale=args.error)
 
-    a_init, b_init = params_init = (-3., 1.)
+    a_init, b_init = params_init = (
+        jax.random.uniform(key, (n_obj,)),
+        0.0
+    )
     print('Initial parameters\n------------------')
-    print(f'a_init = {a_init:{fmt}}, b_init = {b_init:{fmt}}\n')   
+    print(f'a_init =\n{a_init},\nb_init = {b_init:{fmt}}\n')   
 
     opt_state, opt_update, get_params = init_optimizer(params_init, args.lrate)
-    update = get_update_fn(opt_update, get_params, x, y_obs, model)
+    update = get_update_fn(opt_update, get_params, (beta, x), y_obs, model)
     
     print('Fitting\n-------')
     for i in range(args.numsteps):
@@ -42,19 +54,7 @@ def main():
 
     a_fit, b_fit = params_fit = get_params(opt_state)
     print('Fit parameters\n--------------')
-    print(f'a_fit  = {a_fit:{fmt}}, b_fit  = {b_fit:{fmt}}')   
-
-    if args.showplots:
-        from matplotlib import pyplot as plt
-
-        y_true = predict(params_true, x, model)
-        y_fit = predict(params_fit, x, model)
-        
-        fig, ax = plt.subplots()
-        ax = make_plot(ax, x, y_obs, y_true, y_fit)
-
-        plt.show()
-
+    print(f'a_fit  =\n{a_fit},\nb_fit  = {b_fit:{fmt}}')   
 
 if __name__ == '__main__':
     main()

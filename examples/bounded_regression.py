@@ -1,5 +1,5 @@
 """
-Basic linear model.
+Bounded linear regression.
 """
 import jax
 import jax.numpy as jnp
@@ -7,8 +7,13 @@ import jax.numpy as jnp
 from utils import parse_args, init_optimizer, loss_fn, make_targets, \
     get_update_fn, make_plot
 
+def bounded(low, high):
+    return lambda x: low + (high - low) * jax.nn.sigmoid(x)
+
 def model(params, inputs):
-    return params[0] + jnp.dot(params[1], inputs)
+    a = bounded(-6., -2.)(params[0])
+    prediction = a + jnp.dot(params[1], inputs)
+    return prediction
 
 def main():
     import logging
@@ -26,7 +31,7 @@ def main():
     y_obs = make_targets(jax.random.PRNGKey(42),
                          params_true, x, model, scale=args.error)
 
-    a_init, b_init = params_init = (-3., 1.)
+    a_init, b_init = params_init = (-4., 1.)
     print('Initial parameters\n------------------')
     print(f'a_init = {a_init:{fmt}}, b_init = {b_init:{fmt}}\n')   
 
@@ -47,8 +52,8 @@ def main():
     if args.showplots:
         from matplotlib import pyplot as plt
 
-        y_true = predict(params_true, x, model)
-        y_fit = predict(params_fit, x, model)
+        y_true = model(params_true, x)
+        y_fit = model(params_fit, x)
         
         fig, ax = plt.subplots()
         ax = make_plot(ax, x, y_obs, y_true, y_fit)
