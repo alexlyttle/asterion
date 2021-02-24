@@ -1,41 +1,22 @@
 """
-utils.py
+regression.py
 """
 import jax
 import jax.numpy as jnp
 import logging
 
 from jax.experimental import optimizers
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 logging.getLogger('absl').setLevel('ERROR')
-
-def parse_args(description):
-    parser = ArgumentParser(
-        description=description, 
-        formatter_class=ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument('-e', '--error', metavar='ERR', type=float,
-                        default=0.1, help='error (noise) applied to targets')
-    parser.add_argument('-f', '--format', metavar='FMT', type=str,
-                        default='.3f', help='output float format ')
-    parser.add_argument('-l', '--lrate', metavar='LRT', type=float,
-                        default=0.1, help='learning rate')
-    parser.add_argument('-n', '--numsteps', metavar='N', type=int,
-                        default=100, help='number of steps to train')
-    parser.add_argument('-p', '--showplots', action='store_true',
-                        help='show plots (requires matplotlib)')
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help='enable verbose output')
-    args = parser.parse_args()
-    return args
 
 def loss_fn(params, inputs, targets, model):
     prediction = model(params, inputs)
     return jnp.mean((targets - prediction)**2)
 
-def make_plot(ax, x, y_obs, y_true=None, y_fit=None):
+def make_plot(ax, x, y_obs, y_true=None, y_fit=None, y_init=None):
     ax.plot(x, y_obs, '.', label='obs')
+    if y_init is not None:
+        ax.plot(x, y_init, label=f'init')
     if y_true is not None:
         ax.plot(x, y_true, label=f'true')
     if y_fit is not None:

@@ -4,8 +4,9 @@ Hierarchical linear regression.
 import jax
 import jax.numpy as jnp
 
-from utils import parse_args, init_optimizer, loss_fn, make_targets, \
-    get_update_fn, make_plot
+from regression import init_optimizer, loss_fn, make_targets, get_update_fn, \
+    make_plot
+from parser import parse_args
 
 def model(params, inputs):
     b = inputs[0]**params[1]  # b is related to beta via power law

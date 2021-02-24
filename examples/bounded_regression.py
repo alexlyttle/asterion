@@ -4,8 +4,9 @@ Bounded linear regression.
 import jax
 import jax.numpy as jnp
 
-from utils import parse_args, init_optimizer, loss_fn, make_targets, \
-    get_update_fn, make_plot
+from regression import init_optimizer, loss_fn, make_targets, get_update_fn, \
+    make_plot
+from parser import parse_args
 
 def bounded(low, high):
     return lambda x: low + (high - low) * jax.nn.sigmoid(x)
