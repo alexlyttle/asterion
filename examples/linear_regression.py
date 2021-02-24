@@ -45,8 +45,8 @@ def main():
     if args.showplots:
         from matplotlib import pyplot as plt
 
-        y_true = predict(params_true, x, model)
-        y_fit = predict(params_fit, x, model)
+        y_true = model(params_true, x)
+        y_fit = model(params_fit, x)
         
         fig, ax = plt.subplots()
         ax = make_plot(ax, x, y_obs, y_true, y_fit)
