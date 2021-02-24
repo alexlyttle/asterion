@@ -32,7 +32,8 @@ def make_targets(key, params, inputs, model, scale=0.1):
     return targets
 
 def init_optimizer(params, learning_rate):
-    opt_init, opt_update, get_params = optimizers.sgd(learning_rate)
+    # opt_init, opt_update, get_params = optimizers.sgd(learning_rate)
+    opt_init, opt_update, get_params = optimizers.adam(learning_rate)
     opt_state = opt_init(params) 
     return opt_state, opt_update, get_params
 

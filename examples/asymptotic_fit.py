@@ -9,23 +9,42 @@ from regression import init_optimizer, loss_fn, make_targets, get_update_fn, \
     make_plot
 from parser import parse_args
 
-def bounded(low, high):
+def bounded(x, low, high):
     """
     Returns a function which bounds an input between `low` and `high`.
     """
-    return lambda x: low + (high - low) * jax.nn.sigmoid(x)
+    return low + (high - low) * jax.nn.sigmoid(x)
 
-def unbounded(low, high):
+def unbounded(x, low, high):
     """
     Returns a function which unbounds an input between `low` and `high`.
     """
-    return lambda y: jnp.log(y - low) - jnp.log(high - y)
+    return jnp.log(x - low) - jnp.log(high - x)
 
 def exp(x):
     return jnp.exp(x)
 
-def log(y):
-    return jnp.log(y)
+def log(x):
+    return jnp.log(x)
+
+class Epsilon:
+    low = 0.
+    high = 2.
+    def forward(self, x):
+        return bounded(x, self.low, self.high)
+    def inverse(self, x):
+        return unbounded(x, self.low, self.high)
+
+class Alpha:
+    low = log(1e-4)
+    high = log(1)
+    def forward(self, x):
+        return exp(bounded(x, self.low, self.high))
+    def inverse(self, x):
+        return unbounded(log(x), self.low, self.high)
+
+epsilon = Epsilon()
+alpha = Alpha()
 
 def model(params, inputs):
     """
@@ -38,13 +57,15 @@ def model(params, inputs):
     inputs[1]: Δν    (N)    [1e0, 1e3]   μHz
     inputs[2]: ν_max (N)    [1e1, 1e4]   μHz
     """
-    eps = bounded(0., 2.0)(params[0])
-    alpha =  exp(bounded(log(1e-4), log(1))(params[1]))
+    # eps = bounded(params[0], 0., 2.0)
+    # alp =  exp(bounded(params[1], log(1e-4), log(1)))
+    eps = epsilon.forward(params[0])
+    alp = alpha.forward(params[1])
     n_max = inputs[2] / inputs[1] - eps
 
-    a0 = eps + 0.5*alpha*n_max**2
-    a1 = 1 - alpha*n_max
-    a2 = 0.5*alpha
+    a0 = eps + 0.5 * alp * n_max**2
+    a1 = 1 - alp * n_max
+    a2 = 0.5 * alp
 
     nu = (a0 + a1 * inputs[0] + a2 * inputs[0]**2) * inputs[1]
     return nu
@@ -77,7 +98,7 @@ def plot(params_init, params_fit, inputs, targets):
     plt.show()
 
 def main():
-    args = parse_args(__doc__, defaults={'l': 0.0001, 'n': 10000})
+    args = parse_args(__doc__, defaults={'l': 0.1, 'n': 1000})
     fmt = args.format
 
     data = load_data('data/modes.csv')
@@ -96,11 +117,12 @@ def main():
     n = n[idx]
 
     eps_init = 1.5
-    alpha_init = 1e-3
+    alp_init = 1e-3
 
-    params_init = (unbounded(0., 2.0)(1.5), unbounded(log(1e-4), log(1))(log(5e-4)))
+    # params_init = (unbounded(eps_init, 0., 2.0), unbounded(log(alpha_init), log(1e-4), log(1)))
+    params_init = (epsilon.inverse(eps_init), alpha.inverse(alp_init))
     print('Initial parameters\n------------------')
-    print(params_init)
+    print(f'ε = {eps_init:{fmt}}, α = {alp_init:{fmt}}\n')
 
     inputs = (n, delta_nu, nu_max)
     targets = nu
@@ -116,8 +138,9 @@ def main():
     print(f'mean squared error = {value:{fmt}}\n')
 
     params_fit = get_params(opt_state)
+    eps_fit, alp_fit = (epsilon.forward(params_fit[0]), alpha.forward(params_fit[1]))
     print('Fit parameters\n--------------')
-    print(params_fit)   
+    print(f'ε = {eps_fit:{fmt}}, α = {alp_fit:{fmt}}')
 
     if args.showplots:
         plot(params_init, params_fit, inputs, targets)
