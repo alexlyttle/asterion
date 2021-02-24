@@ -8,54 +8,10 @@ import numpy as np
 from regression import init_optimizer, loss_fn, make_targets, get_update_fn, \
     make_plot
 from parser import parse_args
-
-def bounded(x, low, high):
-    """
-    Returns a function which bounds an input between `low` and `high`.
-    """
-    return low + (high - low) * jax.nn.sigmoid(x)
-
-def unbounded(x, low, high):
-    """
-    Returns a function which unbounds an input between `low` and `high`.
-    """
-    return jnp.log(x - low) - jnp.log(high - x)
-
-def exp(x):
-    return jnp.exp(x)
-
-def log(x):
-    return jnp.log(x)
-
-class Bounded:
-    def __init__(self, low, high):
-        self.low = low
-        self.high = high
-    def forward(self, x):
-        return self.low + (self.high - self.low) * jax.nn.sigmoid(x)
-    def inverse(self, x):
-        return jnp.log(x - self.low) - jnp.log(self.high - x)
-
-class Exponential:
-    def forward(self, x):
-        return jnp.exp(x)
-    def inverse(self, x):
-        return jnp.log(x)
-
-class Union:
-    def __init__(self, *transforms):
-        self.transforms = transforms
-    def forward(self, x):
-        for t in self.transforms:
-            x = t.forward(x)
-        return x
-    def inverse(self, x):
-        for t in self.transforms[::-1]:
-            x = t.inverse(x)
-        return x
+from transforms import Bounded, Exponential, Union
 
 epsilon = Bounded(0., 2.)
-alpha = Union(Bounded(log(1e-4), log(1)), Exponential())
+alpha = Union(Bounded(jnp.log(1e-4), jnp.log(1)), Exponential())
 a = Exponential()
 b = Exponential()
 tau = Exponential()
@@ -63,16 +19,11 @@ phi = Bounded(-jnp.pi, jnp.pi)
 
 def asy_fit(n, delta_nu, nu_max, epsilon, alpha):
     n_max = nu_max / delta_nu - epsilon
-
-    a0 = epsilon + 0.5 * alpha * n_max**2
-    a1 = 1 - alpha * n_max
-    a2 = 0.5 * alpha    
-    
-    nu_asy = (a0 + a1 * n + a2 * n**2) * delta_nu
-    return nu_asy
+    nu = (n + epsilon + 0.5*alpha*(n - n_max)**2) * delta_nu
+    return nu
 
 def he_amplitude(nu_asy, a, b):
-    return a * nu_asy * exp(- b * nu_asy**2)
+    return a * nu_asy * jnp.exp(- b * nu_asy**2)
 
 def he_glitch(nu_asy, a, b, tau, phi):
     return he_amplitude(nu_asy, a, b) * jnp.sin(4*jnp.pi*tau*nu_asy + phi)
@@ -94,20 +45,12 @@ def model(params, inputs):
     """
     _epsilon = epsilon.forward(params[0])
     _alpha = alpha.forward(params[1])
-    # n_max = inputs[2] / inputs[1] - eps
-
-    # a0 = eps + 0.5 * alp * n_max**2
-    # a1 = 1 - alp * n_max
-    # a2 = 0.5 * alp
-
-    # nu_asy = (a0 + a1 * inputs[0] + a2 * inputs[0]**2) * inputs[1]
     nu_asy = asy_fit(*inputs[:3], _epsilon, _alpha)
     
     _a = a.forward(params[2])
     _b = b.forward(params[3])
     _tau = tau.forward(params[4])
     _phi = phi.forward(params[5])
-
     nu = nu_asy + he_glitch(nu_asy, _a, _b, _tau, _phi)
 
     return nu
@@ -132,11 +75,13 @@ def plot(n, nu, delta_nu, nu_max, eps_fit, alp_fit, a_fit, b_fit, tau_fit, phi_f
     fig, ax = plt.subplots()
     ax.plot(nu, dnu, '.')
     ax.plot(nu_fit, dnu_fit)
+    ax.set_xlabel('ν (μHz)')
+    ax.set_ylabel('δν (μHz)')
 
     plt.show()
 
 def main():
-    args = parse_args(__doc__, defaults={'l': 0.05, 'n': 10000})
+    args = parse_args(__doc__, defaults={'l': 0.05, 'n': 1000, 'f': '.5f'})
     fmt = args.format
 
     data = load_data('data/modes.csv')
@@ -148,7 +93,7 @@ def main():
 
     idx_max = jnp.argmin(jnp.abs(nu - nu_max))
     n_max = n[idx_max]
-    n_modes = 16
+    n_modes = 18
     
     idx = jnp.arange(idx_max - jnp.floor(n_modes/2), idx_max + jnp.ceil(n_modes/2), dtype=int)
     nu = nu[idx]
@@ -188,7 +133,7 @@ def main():
     tau_fit, phi_fit = (tau.forward(params_fit[4]), phi.forward(params_fit[5]))
 
     print('Fit parameters\n--------------')
-    print(f'ε = {eps_fit:{fmt}}, α = {alp_fit:{fmt}}')
+    print(f'ε   = {eps_fit:{fmt}}, α   = {alp_fit:{fmt}}')
     print(f'a   = {a_fit:{fmt}}, b   = {b_fit:{fmt}}')
     print(f'tau = {tau_fit:{fmt}}, phi = {phi_fit:{fmt}}')
 
