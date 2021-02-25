@@ -9,27 +9,26 @@ from regression import init_optimizer, loss_fn, make_targets, get_update_fn, \
     make_plot
 from parser import parse_args
 from transforms import Bounded, Exponential, Union
+from matplotlib import pyplot as plt
 
 epsilon = Bounded(0., 2.)
 alpha = Union(Bounded(jnp.log(1e-4), jnp.log(1)), Exponential())
 a = Exponential()
 b = Exponential()
-tau = Exponential()
+# tau = Exponential()
+m = Exponential()
 phi = Bounded(-jnp.pi/2., jnp.pi/2.)
 
 def asy_fit(n, delta_nu, nu_max, epsilon, alpha):
     n_max = nu_max / delta_nu - epsilon
-    nu = (n + epsilon + 0.5*alpha*(n - n_max)**2) * delta_nu
+    nu = (n + epsilon[..., jnp.newaxis] + 0.5*alpha[..., jnp.newaxis]*(n - n_max[..., jnp.newaxis])**2) * delta_nu[..., jnp.newaxis]
     return nu
 
 def he_amplitude(nu_asy, a, b):
-    return a * nu_asy * jnp.exp(- b * nu_asy**2)
-
-# def he_amplitude(nu_asy, a, b):
-#     return a[..., jnp.newaxis] + b[..., jnp.newaxis] / nu_asy**2
+    return a[..., jnp.newaxis] * nu_asy * jnp.exp(- b[..., jnp.newaxis] * nu_asy**2)
 
 def he_glitch(nu_asy, a, b, tau, phi):
-    return he_amplitude(nu_asy, a, b) * jnp.sin(4*jnp.pi*tau*nu_asy + phi)
+    return he_amplitude(nu_asy, a, b) * jnp.sin(4*jnp.pi*tau[..., jnp.newaxis]*nu_asy + phi[..., jnp.newaxis])
 
 def model(params, inputs):
     """
@@ -39,7 +38,7 @@ def model(params, inputs):
     params[1]: α     (N)    [1e-4, 1]    ---   exp(bounded)
     params[2]: a     (N)    [~ 1e-2]     μHz   exp
     params[3]: b     (N)    [~ 1e-6]     Ms2   exp
-    params[4]: tau   (N)    [~ 1e-3]     Ms    exp
+    params[4]: m     (N)    [~ 1]        ---   exp
     params[5]: phi   (N)    [-pi, +pi]   ---   bounded
 
     inputs[0]: n     (N, M) [1, 40]      ---
@@ -48,11 +47,12 @@ def model(params, inputs):
     """
     _epsilon = epsilon.forward(params[0])
     _alpha = alpha.forward(params[1])
-    nu_asy = asy_fit(*inputs[:3], _epsilon, _alpha)
+    nu_asy = asy_fit(*inputs, _epsilon, _alpha)
     
     _a = a.forward(params[2])
     _b = b.forward(params[3])
-    _tau = tau.forward(params[4])
+    # _tau = tau.forward(params[4])
+    _tau = params[6] * inputs[2]**(- m.forward(params[4]))
     _phi = phi.forward(params[5])
     nu = nu_asy + he_glitch(nu_asy, _a, _b, _tau, _phi)
 
@@ -62,10 +62,10 @@ def load_data(filename):
     data = np.loadtxt(filename, delimiter=',', skiprows=1)
     return jnp.array(data)
 
-def plot(n, nu, delta_nu, nu_max, eps_fit, alp_fit, a_fit, b_fit, tau_fit, phi_fit):
-    from matplotlib import pyplot as plt
+def plot(n, nu, delta_nu, nu_max, eps_fit, alp_fit, a_fit, b_fit, m_fit, phi_fit, d_fit):
 
     n_fit = jnp.linspace(n[0], n[-1], 200)
+    tau_fit = d_fit * nu_max**(- m_fit)
 
     nu_asy = asy_fit(n, delta_nu, nu_max, eps_fit, alp_fit)
     nu_asy_fit = asy_fit(n_fit, delta_nu, nu_max, eps_fit, alp_fit)
@@ -81,42 +81,58 @@ def plot(n, nu, delta_nu, nu_max, eps_fit, alp_fit, a_fit, b_fit, tau_fit, phi_f
     ax.set_xlabel('ν (μHz)')
     ax.set_ylabel('δν (μHz)')
 
-    plt.show()
+    # plt.show() 
 
 def main():
     args = parse_args(__doc__, defaults={'l': 0.05, 'n': 1000, 'f': '.5f'})
     fmt = args.format
 
     data = load_data('data/modes.csv')
-    star = data[data.shape[0]//2].flatten()
-    delta_nu = star[1]
-    nu_max = star[2]
-    nu = star[3:]
-    n = jnp.arange(nu.shape[0]) + 1
+    # star = data[data.shape[0]//2].flatten()
+    key = jax.random.PRNGKey(42)
 
-    idx_max = jnp.argmin(jnp.abs(nu - nu_max))
-    n_max = n[idx_max]
-    n_modes = 20
+    n_stars = 10
+    star = data[jax.random.randint(key, (n_stars,), 0, data.shape[0])]
+    delta_nu = star[..., 1]
+    nu_max = star[..., 2]
+    nu = star[..., 3:]
+    n = jnp.ones(nu.shape) * jnp.arange(nu.shape[-1]) + 1
+    helium = star[..., -1]
+
+    idx_max = jnp.argmin(jnp.abs(nu - nu_max[..., jnp.newaxis]), axis=-1)
+    n_max = jnp.array([n[i, idx] for i, idx in enumerate(idx_max)])
+    n_modes = 16
     
-    idx = jnp.arange(idx_max - jnp.floor(n_modes/2), idx_max + jnp.ceil(n_modes/2), dtype=int)
-    nu = nu[idx]
-    n = n[idx]
+    idx = jnp.linspace(
+        idx_max - jnp.floor(n_modes/2), idx_max + jnp.ceil(n_modes/2), 
+        n_modes, axis=-1, dtype=int
+    )
+    nu = jnp.array([nu[i, id] for i, id in enumerate(idx)])
+    n = jnp.array([n[i, id] for i, id in enumerate(idx)])
 
-    eps_init, alp_init = (1.5, 1e-3)
-    a_init, b_init = (1e-2, 1e-6)
-    # a_init, b_init = (1e-5, 1e6)
-    tau_init, phi_init = (1e-3, 0.0)
+    _param = jnp.ones(nu.shape[0])
+    eps_init = 1.5 * _param
+    alp_init = 1e-3 * _param
+    a_init = 1e-2 * _param
+    b_init = 1e-6 * _param
+    # tau_init = 1e-3 * _param
+    m_init = 0.7
+    phi_init = 0. * _param
+    d_init = 1.
 
     params_init = (
         epsilon.inverse(eps_init), alpha.inverse(alp_init),
         a.inverse(a_init), b.inverse(b_init),
-        tau.inverse(tau_init), phi.inverse(phi_init),
+        # tau.inverse(tau_init), phi.inverse(phi_init),
+        m.inverse(m_init), phi.inverse(phi_init),
+        d_init,
     )
-
+    j = 0
     print('Initial parameters\n------------------')
-    print(f'ε   = {eps_init:{fmt}}, α   = {alp_init:{fmt}}')
-    print(f'a   = {a_init:{fmt}}, b   = {b_init:{fmt}}')
-    print(f'tau = {tau_init:{fmt}}, phi = {phi_init:{fmt}}\n')
+    print(f'ε   = {eps_init[j]:{fmt}}, α   = {alp_init[j]:{fmt}}')
+    print(f'a   = {a_init[j]:{fmt}}, b   = {b_init[j]:{fmt}}')
+    # print(f'tau = {tau_init[j]:{fmt}}, phi = {phi_init[j]:{fmt}}\n')
+    print(f'm   = {m_init:{fmt}}, phi = {phi_init[j]:{fmt}}\n')
 
     inputs = (n, delta_nu, nu_max)
     targets = nu
@@ -134,16 +150,27 @@ def main():
     params_fit = get_params(opt_state)
     eps_fit, alp_fit = (epsilon.forward(params_fit[0]), alpha.forward(params_fit[1]))
     a_fit, b_fit = (a.forward(params_fit[2]), b.forward(params_fit[3]))
-    tau_fit, phi_fit = (tau.forward(params_fit[4]), phi.forward(params_fit[5]))
+    # tau_fit, phi_fit = (tau.forward(params_fit[4]), phi.forward(params_fit[5]))
+    m_fit, phi_fit = (m.forward(params_fit[4]), phi.forward(params_fit[5]))
+    d_fit = params_fit[6]
 
     print('Fit parameters\n--------------')
-    print(f'ε   = {eps_fit:{fmt}}, α   = {alp_fit:{fmt}}')
-    print(f'a   = {a_fit:{fmt}}, b   = {b_fit:{fmt}}')
-    print(f'tau = {tau_fit:{fmt}}, phi = {phi_fit:{fmt}}')
+    print(f'ε   = {eps_fit[j]:{fmt}}, α   = {alp_fit[j]:{fmt}}')
+    print(f'a   = {a_fit[j]:{fmt}}, b   = {b_fit[j]:{fmt}}')
+    # print(f'tau = {tau_fit[j]:{fmt}}, phi = {phi_fit[j]:{fmt}}')
+    print(f'm   = {m_fit:{fmt}}, phi = {phi_fit[j]:{fmt}}')
 
+    amp = a_fit * nu_max * jnp.exp(- b_fit * nu_max**2)
+    fig, ax = plt.subplots()
+    ax.plot(helium, amp, 'o')
+    # plt.show()
+    # print(amp)
     if args.showplots:
-        plot(n, nu, delta_nu, nu_max, eps_fit, alp_fit, a_fit, b_fit, tau_fit, phi_fit)
+        # plot(n[j], nu[j], delta_nu[j], nu_max[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], tau_fit[j], phi_fit[j])
+        for j in range(n_stars):
+            plot(n[j], nu[j], delta_nu[j], nu_max[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], m_fit, phi_fit[j], d_fit)
 
+        plt.show()
 
 if __name__ == '__main__':
     main()
