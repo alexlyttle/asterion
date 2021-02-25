@@ -1,10 +1,12 @@
 import jax.numpy as jnp
 
+
 class Transform:
     def forward(self, x) -> jnp.DeviceArray:
         ...
     def inverse(self, x) -> jnp.DeviceArray:
         ...
+
 
 class Bounded(Transform):
     def __init__(self, low, high):
@@ -15,11 +17,13 @@ class Bounded(Transform):
     def inverse(self, x):
         return jnp.log(x - self.low) - jnp.log(self.high - x)
 
+
 class Exponential(Transform):
     def forward(self, x):
         return jnp.exp(x)
     def inverse(self, x):
         return jnp.log(x)
+
 
 class Union(Transform):
     def __init__(self, *transforms):
@@ -32,3 +36,21 @@ class Union(Transform):
         for t in self.transforms[::-1]:
             x = t.inverse(x)
         return x
+
+
+class Scale(Transform):
+    def __init__(self, scale):
+        self.scale = scale
+    def forward(self, x):
+        return self.scale * x
+    def inverse(self, x):
+        return x / self.scale
+
+
+class Shift(Transform):
+    def __init__(self, shift):
+        self.shift = shift
+    def forward(self, x):
+        return x + self.shift
+    def inverse(self, x):
+        return x - self.shift
