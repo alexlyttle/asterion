@@ -65,7 +65,7 @@ def main():
     star = data[data.shape[0]//2].flatten()
     delta_nu = star[1]
     nu_max = star[2]
-    nu = star[3:]
+    nu = star[3:-1]
     n = jnp.arange(nu.shape[0]) + 1
 
     idx_max = jnp.argmin(jnp.abs(nu - nu_max))
