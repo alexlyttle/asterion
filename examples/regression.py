@@ -37,12 +37,12 @@ def init_optimizer(params, learning_rate):
     opt_state = opt_init(params) 
     return opt_state, opt_update, get_params
 
-def get_update_fn(opt_update, get_params, inputs, targets, model):
+def get_update_fn(opt_update, get_params, inputs, targets, model, loss=loss_fn):
 
     @jax.jit
     def update(i, opt_state):
         params = get_params(opt_state)
-        value, grads = jax.value_and_grad(loss_fn)(params, inputs, targets, model)
+        value, grads = jax.value_and_grad(loss)(params, inputs, targets, model)
         opt_state = opt_update(i, grads, opt_state)
         return value, opt_state
     
