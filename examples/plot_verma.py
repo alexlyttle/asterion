@@ -34,8 +34,9 @@ def make_figures(n_modes, a0, a1, a2, a3, a4, b0, b1, tau, phi):
     nu = star[nu_cols][idx]
     nu_asy = polynomial(n[idx], a0, a1, a2, a3, a4)
     nu_fit = np.linspace(nu[0], nu[-1], 200)
-    
-    dnu = he_glitch(nu_fit, b0, b1, tau, phi)
+    n_fit = np.linspace(n[idx][0], n[idx][-1], 200)
+    # dnu = he_glitch(nu_fit, b0, b1, tau, phi)
+    dnu = he_glitch(n_fit*star['delta_nu_fit'], b0, b1, tau, phi)
 
     fig0 = go.Figure()
     # fig1 = px.scatter(x=star[nu_cols], y=star[nu_cols]%delta_nu)
@@ -89,7 +90,7 @@ app.layout = html.Div([
                             id='a0',
                             min=10,
                             max=1000,
-                            value=213.2,
+                            value=2e2,
                             step=0.1,
                             # marks={
                             #     0: '1',
@@ -104,7 +105,7 @@ app.layout = html.Div([
                             id='a1',
                             min=10,
                             max=1000,
-                            value=142.9,
+                            value=1e2,
                             step=0.01,
                             # marks={
                             #     2: '100',
@@ -116,9 +117,9 @@ app.layout = html.Div([
                         html.Div(f'a2 = {a2:.3e} μHz', id='a2-output'),
                         dcc.Slider(
                             id='a2',
-                            min=1e-3,
-                            max=1e-1,
-                            value=0.038,
+                            min=1e-2,
+                            max=1e0,
+                            value=1e-1,
                             step=1e-4,
                             # marks={
                             #     0.5: '0.5',

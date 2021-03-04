@@ -54,3 +54,11 @@ class Shift(Transform):
         return x + self.shift
     def inverse(self, x):
         return x - self.shift
+
+class Sin(Transform):
+    def __init__(self, amplitude):
+        self.amplitude = amplitude
+    def forward(self, x):
+        return self.amplitude * jnp.sin(x)
+    def inverse(self, x):
+        return jnp.arcsin(x) / self.amplitude   

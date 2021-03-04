@@ -8,14 +8,16 @@ import numpy as np
 from regression import init_optimizer, loss_fn, make_targets, get_update_fn, \
     make_plot
 from parser import parse_args
-from transforms import Bounded, Exponential, Union
+from transforms import Bounded, Exponential, Union, Sin
 
 epsilon = Bounded(0., 2.)
 alpha = Union(Bounded(jnp.log(1e-4), jnp.log(1)), Exponential())
 a = Exponential()
 b = Exponential()
 tau = Exponential()
-phi = Bounded(-jnp.pi, jnp.pi)
+# phi = Bounded(-jnp.pi, jnp.pi)
+phi = Sin(jnp.pi)
+
 
 def asy_fit(n, delta_nu, nu_max, epsilon, alpha):
     n_max = nu_max / delta_nu - epsilon
@@ -79,6 +81,12 @@ def plot(n, nu, delta_nu, nu_max, eps_fit, alp_fit, a_fit, b_fit, tau_fit, phi_f
     nu_fit = nu_asy_fit + dnu_fit
 
     fig, ax = plt.subplots()
+    ax.plot(nu, nu%delta_nu, '.')
+    ax.plot(nu_asy, nu_asy%delta_nu)
+    ax.set_xlabel('ν (μHz)')
+    ax.set_ylabel('ν mod Dν (μHz)')
+
+    fig, ax = plt.subplots()
     ax.plot(nu, dnu, '.')
     ax.plot(nu_fit, dnu_fit)
     ax.set_xlabel('ν (μHz)')
@@ -91,9 +99,13 @@ def main():
     fmt = args.format
 
     data = load_data('data/modes.csv')
-    star = data[data.shape[0]//2].flatten()
+    data = data[(data[:, 0] > 0.01) & (data[:, 0] < 1.0)]
+    # star = data[data.shape[0]//2].flatten()
+    star = data[2*data.shape[0]//3].flatten()
+    # star = data[data.shape[0]//4].flatten()
     delta_nu = star[1]
     nu_max = star[2]
+    helium = star[-1]
     nu = star[3:-1]
     n = jnp.arange(nu.shape[0]) + 1
 
@@ -105,10 +117,10 @@ def main():
     nu = nu[idx]
     n = n[idx]
 
-    eps_init, alp_init = (1.5, 1e-3)
+    eps_init, alp_init = (1.3, 1e-3)
     a_init, b_init = (1e-2, 1e-6)
     # a_init, b_init = (1e-5, 1e6)
-    tau_init, phi_init = (5e-4, 0.0)
+    tau_init, phi_init = (nu_max**(-0.9), 0.0)
     delta_nu_init, nu_max_init = (delta_nu, nu_max)
 
     params_init = (
@@ -149,6 +161,9 @@ def main():
     print(f'tau = {tau_fit:{fmt}}, phi = {phi_fit:{fmt}}')
     print(f'delta_nu = {delta_nu_fit:{fmt}}, nu_max = {nu_max_fit:{fmt}}')
 
+    amp = he_amplitude(nu_max, a_fit, b_fit)
+    print(helium)
+    print(amp)
     if args.showplots:
         plot(n, nu, delta_nu_fit, nu_max_fit, eps_fit, alp_fit, a_fit, b_fit, tau_fit, phi_fit)
 
