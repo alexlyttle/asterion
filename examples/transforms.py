@@ -55,6 +55,7 @@ class Shift(Transform):
     def inverse(self, x):
         return x - self.shift
 
+
 class Sin(Transform):
     def __init__(self, amplitude):
         self.amplitude = amplitude

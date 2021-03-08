@@ -1,5 +1,8 @@
 """
-Asymptotic fit
+Glitch fit 2
+
+Fits a helium-II ionisation zone glitch to the radial oscillation modes
+assuming a background governed by a 4th order polynomial in n.
 """
 import jax
 import jax.numpy as jnp

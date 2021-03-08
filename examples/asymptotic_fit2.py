@@ -1,5 +1,8 @@
 """
-Asymptotic fit
+Asymptotic fit 2
+
+Fits a 2nd order polynomial to the radial oscillation modes scaled by the model
+delta_nu.
 """
 import jax
 import jax.numpy as jnp

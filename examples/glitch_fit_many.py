@@ -97,7 +97,7 @@ def main():
     # star = data[data.shape[0]//2].flatten()
     key = jax.random.PRNGKey(42)
 
-    n_stars = 10
+    n_stars = 100
     star = data[jax.random.randint(key, (n_stars,), 0, data.shape[0])]
     delta_nu = star[..., 1]
     nu_max = star[..., 2]
@@ -107,7 +107,7 @@ def main():
 
     idx_max = jnp.argmin(jnp.abs(nu - nu_max[..., jnp.newaxis]), axis=-1)
     n_max = jnp.array([n[i, idx] for i, idx in enumerate(idx_max)])
-    n_modes = 18
+    n_modes = 12
     
     idx = jnp.linspace(
         idx_max - jnp.floor(n_modes/2), idx_max + jnp.ceil(n_modes/2), 
@@ -181,14 +181,49 @@ def main():
         print(f'm   = {m_fit:{fmt}}, phi = {phi_fit[j]:{fmt}}')
         print(f'd   = {d_fit:{fmt}}')
     
-    amp = a_fit * nu_max * jnp.exp(- b_fit * nu_max**2)
+    # amp = a_fit * nu_max * jnp.exp(- b_fit * nu_max**2)
+    w = 2
+    # nu0 = nu_max_fit - w * delta_nu_fit
+    nu0 = nu[:, 0]
+    nu1 = nu[:, -1]
+    # nu1 = nu_max_fit + w * delta_nu_fit
+    # print(nu1 - nu0)
+    # print(b_fit)
+    # print((nu1 - nu0).shape)
+    amp = a_fit / (2 * b_fit * (nu1 - nu0)) * (jnp.exp(-b_fit * nu0**2) - \
+        jnp.exp(-b_fit * nu1**2))
+    # print(amp.shape)
+    # amp = a_fit / (2 * b_fit) * (jnp.exp(-b_fit * nu0**2) - \
+    #     jnp.exp(-b_fit * nu1**2))
     fig, ax = plt.subplots()
     ax.plot(helium, amp, 'o')
+    ax.set_xlabel('surface helium abundance')
+    ax.set_ylabel('glitch amplitude (uHz)')
+
+    fig, ax = plt.subplots()
+    ax.plot(nu_max, amp, 'o')
+    ax.set_xlabel('nu_max (uHz)')
+    ax.set_ylabel('glitch amplitude (uHz)')
+
+    fig, ax = plt.subplots()
+    ax.plot(star[:, 0], amp, 'o') 
+    ax.set_xlabel('fractional MS lifetime')
+    ax.set_ylabel('glitch amplitude (uHz)')
+
+    fig, ax = plt.subplots()
+    ax.plot(star[:, 0], helium, 'o') 
+    ax.set_xlabel('fractional MS lifetime')
+    ax.set_ylabel('surface helium abundance')
+
+    fig, ax = plt.subplots()
+    ax.plot(star[:, 0], d_fit * nu_max_fit**(- m_fit), 'o') 
+    ax.set_xlabel('fractional MS lifetime')
+    ax.set_ylabel('acoustic depth (Ms)')
     # plt.show()
     # print(amp)
     if args.showplots:
         # plot(n[j], nu[j], delta_nu[j], nu_max[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], tau_fit[j], phi_fit[j])
-        for j in range(5):
+        for j in range(1):
             # plot(n[j], nu[j], delta_nu_fit[j], nu_max_fit[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], tau_fit[j], phi_fit[j])
             plot(n[j], nu[j], delta_nu_fit[j], nu_max_fit[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], m_fit, phi_fit[j], d_fit)
 

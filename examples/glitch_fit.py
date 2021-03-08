@@ -1,5 +1,9 @@
 """
-Asymptotic fit
+Glitch fit
+
+Fits a helium-II ionisation zone glitch to the radial oscillation modes
+assuming a background governed by a parametrised asymptotic relation to 2nd
+order in n.
 """
 import jax
 import jax.numpy as jnp
@@ -100,8 +104,8 @@ def main():
 
     data = load_data('data/modes.csv')
     data = data[(data[:, 0] > 0.01) & (data[:, 0] < 1.0)]
-    # star = data[data.shape[0]//2].flatten()
-    star = data[2*data.shape[0]//3].flatten()
+    star = data[data.shape[0]//2].flatten()
+    # star = data[2*data.shape[0]//3].flatten()
     # star = data[data.shape[0]//4].flatten()
     delta_nu = star[1]
     nu_max = star[2]
@@ -111,7 +115,7 @@ def main():
 
     idx_max = jnp.argmin(jnp.abs(nu - nu_max))
     n_max = n[idx_max]
-    n_modes = 16
+    n_modes = 12
     
     idx = jnp.arange(idx_max - jnp.floor(n_modes/2), idx_max + jnp.ceil(n_modes/2), dtype=int)
     nu = nu[idx]

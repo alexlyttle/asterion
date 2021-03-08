@@ -1,5 +1,7 @@
 """
-Asymptotic fit
+Asymptotic fit 3
+
+Fits a 4th order polynomial to the radial oscillation modes.
 """
 import jax
 import jax.numpy as jnp

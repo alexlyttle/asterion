@@ -1,5 +1,8 @@
 """
 Asymptotic fit
+
+Fits a parametrised asymptotic relation to the radial oscillation modes to 2nd
+order in n.
 """
 import jax
 import jax.numpy as jnp

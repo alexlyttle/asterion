@@ -1,3 +1,8 @@
+"""
+Plot
+
+An interactive
+"""
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -15,28 +20,24 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 df = pd.read_csv('data/modes.csv')
-star = df.loc[500]
+df_ms = df.loc[(df['frac_age'] > 0.01) & (df['frac_age'] < 1.0)]
+star = df_ms.iloc[len(df_ms)//2]
 nu_cols = [f'nu_0_{i+1}' for i in range(40)]
 # nu = star[nu_cols]
 n = np.linspace(1, 40, 40, dtype=int)
 
 idx_max = np.argmin(np.abs(star[nu_cols] - star['nu_max']))
 
-def polynomial(x, a0, a1, a2, a3, a4):
-    return a0 + a1 * x + a2 * x**2 + a3 * x**3 + a4 * x**4
-
 def get_idx(n_modes):
     idx = np.arange(idx_max - np.floor(n_modes/2), idx_max + np.ceil(n_modes/2), dtype=int)
     return idx
 
-def make_figures(n_modes, a0, a1, a2, a3, a4, b0, b1, tau, phi):
+def make_figures(n_modes, delta_nu, nu_max, epsilon, alpha, a, b, tau, phi):
     idx = get_idx(n_modes)
     nu = star[nu_cols][idx]
-    nu_asy = polynomial(n[idx], a0, a1, a2, a3, a4)
+    nu_asy = asy_fit(n[idx], delta_nu, nu_max, epsilon, alpha)
     nu_fit = np.linspace(nu[0], nu[-1], 200)
-    n_fit = np.linspace(n[idx][0], n[idx][-1], 200)
-    # dnu = he_glitch(nu_fit, b0, b1, tau, phi)
-    dnu = he_glitch(n_fit*star['delta_nu_fit'], b0, b1, tau, phi)
+    dnu = he_glitch(nu_fit, a, b, tau, phi)
 
     fig0 = go.Figure()
     # fig1 = px.scatter(x=star[nu_cols], y=star[nu_cols]%delta_nu)
@@ -49,111 +50,80 @@ def make_figures(n_modes, a0, a1, a2, a3, a4, b0, b1, tau, phi):
     fig1.add_trace(go.Scatter(x=nu_fit, y=dnu, mode='lines', name='glitch fit'))
     return fig0, fig1
 
-n_modes = 20
-delta_nu = star['delta_nu_fit']
+n_modes = 18
+delta_nu = star['delta_nu_fit']*0.9991
 nu_max = star['nu_max']
-epsilon = 0.3 * np.log10(nu_max) + 0.4
-alpha = nu_max**(-0.9)
-n_max = nu_max / delta_nu + epsilon
+# epsilon = 0.3 * np.log10(nu_max) + 0.4
+epsilon = 1.31
+# alpha = nu_max**(-0.9)
+alpha = 2.24e-3
+a = 8.14e-3
+b = 5e-7
+# tau = nu_max**(-0.9)
+tau = 6.7e-4
+phi = 2.02
 
-a0 = delta_nu * (epsilon + 0.5*alpha*n_max**2)
-a1 = delta_nu * (1 - alpha)
-a2 = 0.5 * delta_nu * alpha
-a3 = 0.0
-a4 = 0.0
-
-b0 = 5e-3
-b1 = 5e-7
-tau = nu_max**(-0.9)
-phi = 0.
-
-fig1, fig2 = make_figures(n_modes, a0, a1, a2, a3, a4, b0, b1, tau, phi)
-
-# fig1 = go.Figure()
-# # fig1 = px.scatter(x=star[nu_cols], y=star[nu_cols]%delta_nu)
-# fig1.add_trace(go.Scatter(x=star[nu_cols], y=star[nu_cols]%delta_nu, mode='markers'))
-# fig1.add_trace(go.Scatter(x=nu_asy, y=nu_asy%delta_nu, mode='lines'))
-# # px.scatter()
-
-# fig2 = go.Figure()
-# fig2.add_trace(go.Scatter(x=star[nu_cols], y=star[nu_cols]-nu_asy, mode='markers'))
-
-
-# df['y'] = model(df['x'], a0, b0)
+fig1, fig2 = make_figures(n_modes, delta_nu, nu_max, epsilon, alpha, a, b, tau, phi)
 
 app.layout = html.Div([
         html.Div([
                 html.Div([
                         dcc.Graph(id='graph1', figure=fig1),
-                        html.Div(f'a0 = {a0:.3e} μHz', id='a0-output'),
+                        html.Div(f'delta_nu = {delta_nu:.3f} μHz', id='log_delta_nu-output'),
                         dcc.Slider(
-                            id='a0',
-                            min=10,
-                            max=1000,
-                            value=2e2,
-                            step=0.1,
-                            # marks={
-                            #     0: '1',
-                            #     1: '10',
-                            #     2: '100',
-                            #     3: '1000',
-                            # },
+                            id='log_delta_nu',
+                            min=0,
+                            max=3,
+                            value=np.log10(delta_nu),
+                            step=0.00001,
+                            marks={
+                                0: '1',
+                                1: '10',
+                                2: '100',
+                                3: '1000',
+                            },
                             updatemode='drag',
                         ),
-                        html.Div(f'a1 = {a1:.3e} μHz', id='a1-output'),
+                        html.Div(f'nu_max = {nu_max:.1f} μHz', id='log_nu_max-output'),
                         dcc.Slider(
-                            id='a1',
-                            min=10,
-                            max=1000,
-                            value=1e2,
+                            id='log_nu_max',
+                            min=2,
+                            max=4,
+                            value=np.log10(nu_max),
+                            step=0.0001,
+                            marks={
+                                2: '100',
+                                3: '1000',
+                                4: '10,000',
+                            },
+                            updatemode='drag',
+                        ),
+                        html.Div(f'epsilon = {epsilon:.2f}', id='epsilon-output'),
+                        dcc.Slider(
+                            id='epsilon',
+                            min=0.0,
+                            max=2.0,
+                            value=epsilon,
+                            step=0.001,
+                            marks={
+                                0.5: '0.5',
+                                1.0: '1.0',
+                                1.5: '1.5',
+                            },
+                            updatemode='drag',
+                        ),
+                        html.Div(f'alpha = {alpha:.3e}', id='log_alpha-output'),
+                        dcc.Slider(
+                            id='log_alpha',
+                            min=-3.5,
+                            max=-1,
+                            value=np.log10(alpha),
                             step=0.01,
-                            # marks={
-                            #     2: '100',
-                            #     3: '1000',
-                            #     4: '10,000',
-                            # },
-                            updatemode='drag',
-                        ),
-                        html.Div(f'a2 = {a2:.3e} μHz', id='a2-output'),
-                        dcc.Slider(
-                            id='a2',
-                            min=1e-2,
-                            max=1e0,
-                            value=1e-1,
-                            step=1e-4,
-                            # marks={
-                            #     0.5: '0.5',
-                            #     1.0: '1.0',
-                            #     1.5: '1.5',
-                            # },
-                            updatemode='drag',
-                        ),
-                        html.Div(f'a3 = {a3:.3e} μHz', id='a3-output'),
-                        dcc.Slider(
-                            id='a3',
-                            min=-1e-3,
-                            max=1e-3,
-                            value=a3,
-                            step=1e-6,
-                            # marks={
-                            #     -3: '0.001',
-                            #     -2: '0.01',
-                            #     -1: '0.1',
-                            # },
-                            updatemode='drag',
-                        ),
-                        html.Div(f'a4 = {a4:.3e} μHz', id='a4-output'),
-                        dcc.Slider(
-                            id='a4',
-                            min=-1e-4,
-                            max=1e-4,
-                            value=a4,
-                            step=1e-6,
-                            # marks={
-                            #     -3: '0.001',
-                            #     -2: '0.01',
-                            #     -1: '0.1',
-                            # },
+                            marks={
+                                -3: '0.001',
+                                -2: '0.01',
+                                -1: '0.1',
+                            },
                             updatemode='drag',
                         ),
                     ],
@@ -161,12 +131,12 @@ app.layout = html.Div([
                 ),
                 html.Div([
                         dcc.Graph(id='graph2', figure=fig2),
-                        html.Div(f'b0 = {b0:.3e}', id='log_b0-output'),
+                        html.Div(f'a = {a:.3e}', id='log_a-output'),
                         dcc.Slider(
-                            id='log_b0',
+                            id='log_a',
                             min=-3,
                             max=-1,
-                            value=np.log10(b0),
+                            value=np.log10(a),
                             step=0.001,
                             marks={
                                 -3: '0.001',
@@ -175,12 +145,12 @@ app.layout = html.Div([
                             },
                             updatemode='drag',
                         ),
-                        html.Div(f'b1 = {b1:.3e}', id='log_b1-output'),
+                        html.Div(f'b = {b:.3e}', id='log_b-output'),
                         dcc.Slider(
-                            id='log_b1',
+                            id='log_b',
                             min=-8,
                             max=-6,
-                            value=np.log10(b1),
+                            value=np.log10(b),
                             step=0.001,
                             marks={
                                 -8: '1e-8',
@@ -245,43 +215,43 @@ app.layout = html.Div([
     Output('graph1', 'figure'),
     Output('graph2', 'figure'),
     Output('n_modes-output', 'children'),
-    Output('a0-output', 'children'),
-    Output('a1-output', 'children'),
-    Output('a2-output', 'children'),
-    Output('a3-output', 'children'),
-    Output('a4-output', 'children'),
-    Output('log_b0-output', 'children'),
-    Output('log_b1-output', 'children'),
+    Output('log_delta_nu-output', 'children'),
+    Output('log_nu_max-output', 'children'),
+    Output('epsilon-output', 'children'),
+    Output('log_alpha-output', 'children'),
+    Output('log_a-output', 'children'),
+    Output('log_b-output', 'children'),
     Output('log_tau-output', 'children'),
     Output('phi-output', 'children'),
     Input('n_modes', 'value'),
-    Input('a0', 'value'),
-    Input('a1', 'value'),
-    Input('a2', 'value'),
-    Input('a3', 'value'),
-    Input('a4', 'value'),
-    Input('log_b0', 'value'),
-    Input('log_b1', 'value'),
+    Input('log_delta_nu', 'value'),
+    Input('log_nu_max', 'value'),
+    Input('epsilon', 'value'),
+    Input('log_alpha', 'value'),
+    Input('log_a', 'value'),
+    Input('log_b', 'value'),
     Input('log_tau', 'value'),
     Input('phi', 'value'),
 )
-def update(n_modes, a0, a1, a2, a3, a4, log_b0, log_b1, log_tau, phi):
-    b0 = 10**log_b0
-    b1 = 10**log_b1
+def update(n_modes, log_delta_nu, log_nu_max, epsilon, log_alpha, log_a, log_b, log_tau, phi):
+    delta_nu = 10**log_delta_nu
+    nu_max = 10**log_nu_max
+    alpha = 10**log_alpha
+    a = 10**log_a
+    b = 10**log_b
     tau = 10**log_tau
 
-    fig0, fig1 = make_figures(n_modes, a0, a1, a2, a3, a4, b0, b1, tau, phi)
+    fig0, fig1 = make_figures(n_modes, delta_nu, nu_max, epsilon, alpha, a, b, tau, phi)
     s0 = f'n_modes = {n_modes}'
-    s1 = f'a0 = {a0:.3e} μHz'
-    s2 = f'a1 = {a1:.3e} μHz'
-    s3 = f'a2 = {a2:.3e} μHz'
-    s4 = f'a3 = {a3:.3e} μHz'
-    s5 = f'a4 = {a4:.3e} μHz'
-    s6 = f'b0 = {b0:.3e} μHz'
-    s7 = f'b1 = {b1:.3e} Ms2'
-    s8 = f'tau = {tau:.3e} Ms'
-    s9 = f'phi = {phi:.2f}'
-    return fig0, fig1, s0, s1, s2, s3, s4, s5, s6, s7, s8, s9
+    s1 = f'delta_nu = {delta_nu:.3f} μHz'
+    s2 = f'nu_max = {nu_max:.1f} μHz'
+    s3 = f'epsilon = {epsilon:.3f}'
+    s4 = f'alpha = {alpha:.3e}'
+    s5 = f'a = {a:.3e}'
+    s6 = f'b = {b:.3e} Ms2'
+    s7 = f'tau = {tau:.3e} Ms'
+    s8 = f'phi = {phi:.2f}'
+    return fig0, fig1, s0, s1, s2, s3, s4, s5, s6, s7, s8
 
 
 
