@@ -1,5 +1,5 @@
 """
-Asymptotic fit
+Glitch fit for many stars
 """
 import jax
 import jax.numpy as jnp
@@ -137,7 +137,6 @@ def main():
     # d_init = 1.
     delta_nu_init = delta_nu
     nu_max_init = nu_max
-
 
     params_init = (
         epsilon.inverse(eps_init), alpha.inverse(alp_init),
