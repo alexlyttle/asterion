@@ -98,7 +98,7 @@ def main():
     fmt = args.format
 
     data = load_data('data/modes.csv')
-    data = data[(data[:, 0] > 0.01) & (data[:, 0] < 1.5)]
+    data = data[(data[:, 0] > 0.01) & (data[:, 0] < 1.)]
     # star = data[data.shape[0]//2].flatten()
     key = jax.random.PRNGKey(42)
 
@@ -175,6 +175,10 @@ def main():
     # m_fit, phi_fit, d_fit = (m.forward(params_fit[4]), phi.forward(params_fit[5]), params_fit[6])
     delta_nu_fit, nu_max_fit = params_fit[-2:]
 
+    predictions = model(params_fit, inputs)
+    error = (targets - predictions)**2
+    mse_per_star = jnp.mean(error, axis=-1)
+
     for j in range(3):
         print('Fit parameters\n--------------')
         print(f'ε   = {eps_fit[j]:{fmt}}, α   = {alp_fit[j]:{fmt}}')
@@ -224,7 +228,9 @@ def main():
     ax.set_ylabel('tau (uHz)')
 
     fig, ax = plt.subplots()
-    ax.plot(nu_max_fit, a_fit, 'o')
+    # ax.plot(nu_max_fit, a_fit, 'o')
+    s = ax.scatter(nu_max_fit, a_fit, c=mse_per_star, cmap='viridis')
+    plt.colorbar(s)
     ax.set_xlabel('nu_max (uHz)')
     ax.set_ylabel('a')
 
@@ -302,7 +308,7 @@ def main():
         for j in range(1):
             plot(n[j], nu[j], delta_nu_fit[j], nu_max_fit[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], tau_fit[j], phi_fit[j])
             # plot(n[j], nu[j], delta_nu_fit[j], nu_max_fit[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], m_fit, phi_fit[j], d_fit)
-
+            break
         plt.show()
 
 if __name__ == '__main__':
