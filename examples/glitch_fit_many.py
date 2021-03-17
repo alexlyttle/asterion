@@ -10,6 +10,9 @@ from regression import init_optimizer, loss_fn, make_targets, get_update_fn, \
 from parser import parse_args
 from transforms import Bounded, Exponential, Union, Sin
 from matplotlib import pyplot as plt
+from matplotlib import cm
+from matplotlib.collections import LineCollection
+
 
 epsilon = Bounded(0., 2.)
 alpha = Union(Bounded(jnp.log(1e-4), jnp.log(1)), Exponential())
@@ -70,27 +73,30 @@ def load_data(filename):
     data = np.loadtxt(filename, delimiter=',', skiprows=1)
     return jnp.array(data)
 
-def plot(n, nu, delta_nu, nu_max, eps_fit, alp_fit, a_fit, b_fit, tau_fit, phi_fit):
+def plot(n, nu, delta_nu, nu_max, eps_fit, alp_fit, a_fit, b_fit, tau_fit, phi_fit, ax=None, nu_low=500, nu_high=3000):
 # def plot(n, nu, delta_nu, nu_max, eps_fit, alp_fit, a_fit, b_fit, m_fit, phi_fit, d_fit):
 
     n_fit = jnp.linspace(n[0], n[-1], 200)
     # tau_fit = d_fit * nu_max**(- m_fit)
 
-    nu_asy = asy_fit(n, delta_nu, nu_max, eps_fit, alp_fit)
+    # nu_asy = asy_fit(n, delta_nu, nu_max, eps_fit, alp_fit)
     nu_asy_fit = asy_fit(n_fit, delta_nu, nu_max, eps_fit, alp_fit)
 
-    dnu = nu - nu_asy
+    # dnu = nu - nu_asy
     dnu_fit = he_glitch(nu_asy_fit, a_fit, b_fit, tau_fit, phi_fit)
     # dnu_fit = he_glitch(n_fit, a_fit*delta_nu, b_fit*delta_nu**2, tau_fit*delta_nu, phi_fit)
 
     nu_fit = nu_asy_fit + dnu_fit
 
-    fig, ax = plt.subplots()
-    ax.plot(nu, dnu, '.')
-    ax.plot(nu_fit, dnu_fit)
-    ax.set_xlabel('ν (μHz)')
-    ax.set_ylabel('δν (μHz)')
+    if ax is None:
+        fig, ax = plt.subplots()
 
+    c = (nu_max - nu_low) / (nu_high - nu_low)
+    # ax.plot(nu, dnu, '.')
+    ax.plot(nu_fit-nu_max, dnu_fit, c=cm.viridis(c), alpha=0.2)
+    # ax.set_xlabel('ν (μHz)')
+    # ax.set_ylabel('δν (μHz)')
+    return ax
     # plt.show() 
 
 def main():
@@ -195,12 +201,13 @@ def main():
     # nu0 = nu_max_fit - w * delta_nu_fit
     
     # nu0 = nu[:, 0]
-    nu0 = asy_fit(15, delta_nu_fit, nu_max_fit, eps_fit, alp_fit)
+    # nu0 = asy_fit(15, delta_nu_fit, nu_max_fit, eps_fit, alp_fit)
     # nu0 = asy_fit(n_max_fit-5, delta_nu_fit, nu_max_fit, eps_fit, alp_fit)
+    nu0 = nu_max_fit + delta_nu_fit * 5
     # nu1 = nu[:, -1]
-    nu1 = asy_fit(25, delta_nu_fit, nu_max_fit, eps_fit, alp_fit)
+    # nu1 = asy_fit(25, delta_nu_fit, nu_max_fit, eps_fit, alp_fit)
     # nu1 = asy_fit(n_max_fit+5, delta_nu_fit, nu_max_fit, eps_fit, alp_fit)
-
+    nu1 = nu_max_fit - delta_nu_fit * 5
     # nu1 = nu_max_fit + w * delta_nu_fit
     
     amp = a_fit / (2 * b_fit * (nu1 - nu0)) * (jnp.exp(-b_fit * nu0**2) - \
@@ -305,10 +312,34 @@ def main():
     # ax.set_ylabel('radial order, n')
 
     if args.showplots:
-        for j in range(1):
-            plot(n[j], nu[j], delta_nu_fit[j], nu_max_fit[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], tau_fit[j], phi_fit[j])
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        
+        n_fit = jnp.linspace(n[:, 0], n[:, -1], 200, axis=1)
+
+        nu_asy_fit = asy_fit(n_fit, delta_nu_fit[..., jnp.newaxis], nu_max_fit[..., jnp.newaxis], eps_fit[..., jnp.newaxis], alp_fit[..., jnp.newaxis])
+        dnu_fit = he_glitch(nu_asy_fit, a_fit[..., jnp.newaxis], b_fit[..., jnp.newaxis], tau_fit[..., jnp.newaxis], phi_fit[..., jnp.newaxis])
+
+        # nu_fit = nu_asy_fit + dnu_fit
+        # nu_fit = model(params_fit, n_fit)
+
+        # segs = np.stack([nu_asy_fit - nu_max_fit[..., jnp.newaxis], dnu_fit], axis=-1)
+        segs = np.stack([n_fit - n_max_fit[..., jnp.newaxis], dnu_fit], axis=-1)
+
+        lc = LineCollection(segs, cmap=cm.viridis, array=nu_max_fit, alpha=0.33)
+        ax.add_collection(lc)
+        ax.set_xlabel('n - n_max (μHz)')
+        ax.set_ylabel('δν (μHz)')
+        ax.autoscale()
+
+        cbar = fig.colorbar(lc)
+        cbar.set_label('ν_max')
+        # for j in range(n_stars):
+        #     ax = plot(n[j], nu[j], delta_nu_fit[j], nu_max_fit[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], tau_fit[j], phi_fit[j], ax=ax)
+        #     ax.set_xlabel('ν - ν_max (μHz)')
+        #     ax.set_ylabel('δν (μHz)')
+        #     fig.colorbar(ax.lines, ax=ax)
             # plot(n[j], nu[j], delta_nu_fit[j], nu_max_fit[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], m_fit, phi_fit[j], d_fit)
-            break
         plt.show()
 
 if __name__ == '__main__':
