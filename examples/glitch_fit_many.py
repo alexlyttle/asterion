@@ -26,6 +26,7 @@ tau = Exponential()
 m = Exponential()
 # phi = Sin(jnp.pi)
 phi = Bounded(-jnp.pi, jnp.pi)
+r = Exponential()
 
 def asy_fit(n, delta_nu, nu_max, epsilon, alpha):
     n_max = nu_max / delta_nu - epsilon
@@ -49,8 +50,9 @@ def model(params, inputs):
     params[4]: m     (N)    [~ 1]        ---   exp
     params[5]: phi   (N)    [-pi, +pi]   ---   bounded
     params[6]: d
-    params[7]: dnu
-    params[8]: numax
+    params[7]: f
+    params[8]: dnu
+    params[9]: numax
 
     inputs: n     (N, M) [1, 40]      ---
     # inputs[1]: Δν    (N)    [1e0, 1e3]   μHz
@@ -64,7 +66,10 @@ def model(params, inputs):
     nu_asy = asy_fit(inputs, _delta_nu, _nu_max, _epsilon, _alpha)
     
     _a = a.forward(params[2])[..., jnp.newaxis]
-    _b = b.forward(params[3])[..., jnp.newaxis]
+    
+    # _b = b.forward(params[3])[..., jnp.newaxis]
+    _b = params[7] * _nu_max**(- r.forward(params[3]))
+    
     # _tau = tau.forward(params[4])[..., jnp.newaxis]
     _tau = params[6] * _nu_max**(- m.forward(params[4]))
 
@@ -108,7 +113,7 @@ def main():
     fmt = args.format
 
     data = load_data('data/modes.csv')
-    data = data[(data[:, 0] > 0.01) & (data[:, 0] < 1.)]
+    data = data[(data[:, 0] > 0.01) & (data[:, 0] < 1.2)]
     # star = data[data.shape[0]//2].flatten()
     key = jax.random.PRNGKey(42)
 
@@ -141,10 +146,10 @@ def main():
     # alp_init = 1/nu_max
 
     a_init = 1e-2 * _param
-    b_init = 1e-6 * _param
-
-    # a_init = 1e-2 * _param
-    # b_init = 1e-3 * _param
+    # b_init = 1e-6 * _param
+    r_init = 1.71
+    f_init = 0.441
+    b_init = f_init * nu_max**(- r_init)
     
     # tau_init = nu_max**(-0.9)
     m_init = 0.9
@@ -155,9 +160,11 @@ def main():
 
     params_init = (
         epsilon.inverse(eps_init), alpha.inverse(alp_init),
-        a.inverse(a_init), b.inverse(b_init),
+        a.inverse(a_init), 
+        # b.inverse(b_init),
+        r.inverse(r_init),
         # tau.inverse(tau_init), phi.inverse(phi_init),
-        m.inverse(m_init), phi.inverse(phi_init), d_init,
+        m.inverse(m_init), phi.inverse(phi_init), d_init, f_init,
         delta_nu_init, nu_max_init
     )
 
@@ -166,6 +173,7 @@ def main():
         print('Initial parameters\n------------------')
         print(f'ε   = {eps_init[j]:{fmt}}, α   = {alp_init[j]:{fmt}}')
         print(f'a   = {a_init[j]:{fmt}}, b   = {b_init[j]:{fmt}}')
+        print(f'r   = {r_init:{fmt}}, f   = {f_init:{fmt}}')
         # print(f'tau = {tau_init[j]:{fmt}}, phi = {phi_init[j]:{fmt}}')
         print(f'm   = {m_init:{fmt}}, phi = {phi_init[j]:{fmt}}, d   = {d_init:{fmt}}')
         print(f'delta_nu = {delta_nu_init[j]:{fmt}}, nu_max = {nu_max_init[j]:{fmt}}\n')
@@ -185,10 +193,15 @@ def main():
 
     params_fit = get_params(opt_state)
     eps_fit, alp_fit = (epsilon.forward(params_fit[0]), alpha.forward(params_fit[1]))
-    a_fit, b_fit = (a.forward(params_fit[2]), b.forward(params_fit[3]))
+    a_fit = a.forward(params_fit[2])
+    # b_fit = b.forward(params_fit[3])
+    r_fit, f_fit = (r.forward(params_fit[3]), params_fit[7])
     # tau_fit, phi_fit = (tau.forward(params_fit[4]), phi.forward(params_fit[5]))
     m_fit, phi_fit, d_fit = (m.forward(params_fit[4]), phi.forward(params_fit[5]), params_fit[6])
     delta_nu_fit, nu_max_fit = params_fit[-2:]
+
+    b_fit = f_fit * nu_max_fit**(- r_fit)
+    tau_fit = d_fit * nu_max_fit**(- m_fit)
 
     predictions = model(params_fit, inputs)
     error = (targets - predictions)**2
@@ -198,11 +211,12 @@ def main():
         print('Fit parameters\n--------------')
         print(f'ε   = {eps_fit[j]:{fmt}}, α   = {alp_fit[j]:{fmt}}')
         print(f'a   = {a_fit[j]:{fmt}}, b   = {b_fit[j]:{fmt}}')
+        print(f'r   = {r_init:{fmt}}, f   = {f_init:{fmt}}')
         # print(f'tau = {tau_fit[j]:{fmt}}, phi = {phi_fit[j]:{fmt}}')
         print(f'm   = {m_fit:{fmt}}, phi = {phi_fit[j]:{fmt}}, d   = {d_fit:{fmt}}')
         print(f'delta_nu = {delta_nu_fit[j]:{fmt}}, nu_max = {nu_max_fit[j]:{fmt}}')
 
-    tau_fit = d_fit * nu_max_fit**(- m_fit)
+    
     n_max_fit = nu_max_fit/delta_nu_fit - eps_fit
 
     # amp = a_fit * nu_max * jnp.exp(- b_fit * nu_max**2)
@@ -328,18 +342,21 @@ def main():
         
         n_fit = jnp.linspace(n[:, 0], n[:, -1], 200, axis=1)
 
-        nu_asy_fit = asy_fit(n_fit, delta_nu_fit[..., jnp.newaxis], nu_max_fit[..., jnp.newaxis], eps_fit[..., jnp.newaxis], alp_fit[..., jnp.newaxis])
+        nu_asy_fit = jnp.linspace(jnp.zeros(n_stars), jnp.full(n_stars, 3000.), 1000, axis=1)
+        # nu_asy_fit = asy_fit(n_fit, delta_nu_fit[..., jnp.newaxis], nu_max_fit[..., jnp.newaxis], eps_fit[..., jnp.newaxis], alp_fit[..., jnp.newaxis])
         dnu_fit = he_glitch(nu_asy_fit, a_fit[..., jnp.newaxis], b_fit[..., jnp.newaxis], tau_fit[..., jnp.newaxis], phi_fit[..., jnp.newaxis], nu_max_fit[..., jnp.newaxis])
 
         # nu_fit = nu_asy_fit + dnu_fit
         # nu_fit = model(params_fit, n_fit)
 
         # segs = np.stack([nu_asy_fit - nu_max_fit[..., jnp.newaxis], dnu_fit], axis=-1)
-        segs = np.stack([n_fit - n_max_fit[..., jnp.newaxis], dnu_fit], axis=-1)
+        # segs = np.stack([n_fit - n_max_fit[..., jnp.newaxis], dnu_fit], axis=-1)
+        segs = np.stack([nu_asy_fit - nu_max_fit[..., jnp.newaxis], dnu_fit], axis=-1)
 
         lc = LineCollection(segs, cmap=cm.viridis, array=nu_max_fit, alpha=0.33)
         ax.add_collection(lc)
-        ax.set_xlabel('n - n_max (μHz)')
+        # ax.set_xlabel('n - n_max (μHz)')
+        ax.set_xlabel('nu (μHz)')
         ax.set_ylabel('δν (μHz)')
         ax.autoscale()
 
