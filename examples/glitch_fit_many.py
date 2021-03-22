@@ -1,5 +1,9 @@
 """
 Glitch fit for many stars
+
+TODO: 
+ - Power law for b and phi
+ - Base of convection zone - small amplitude.
 """
 import jax
 import jax.numpy as jnp
@@ -28,11 +32,11 @@ def asy_fit(n, delta_nu, nu_max, epsilon, alpha):
     nu = (n + epsilon + 0.5*alpha*(n - n_max)**2) * delta_nu
     return nu
 
-def he_amplitude(nu_asy, a, b):
+def he_amplitude(nu_asy, a, b, nu_max):
     return a * nu_asy * jnp.exp(- b * nu_asy**2)
 
-def he_glitch(nu_asy, a, b, tau, phi):
-    return he_amplitude(nu_asy, a, b) * jnp.sin(4*jnp.pi*tau*nu_asy + phi)
+def he_glitch(nu_asy, a, b, tau, phi, nu_max):
+    return he_amplitude(nu_asy, a, b, nu_max) * jnp.sin(4*jnp.pi*tau*nu_asy + phi)
 
 def model(params, inputs):
     """
@@ -61,11 +65,11 @@ def model(params, inputs):
     
     _a = a.forward(params[2])[..., jnp.newaxis]
     _b = b.forward(params[3])[..., jnp.newaxis]
-    _tau = tau.forward(params[4])[..., jnp.newaxis]
-    # _tau = params[6] * params[8]**(- m.forward(params[4]))
+    # _tau = tau.forward(params[4])[..., jnp.newaxis]
+    _tau = params[6] * _nu_max**(- m.forward(params[4]))
 
     _phi = phi.forward(params[5])[..., jnp.newaxis]
-    nu = nu_asy + he_glitch(nu_asy, _a, _b, _tau, _phi)
+    nu = nu_asy + he_glitch(nu_asy, _a, _b, _tau, _phi, _nu_max)
     # nu = nu_asy + he_glitch(inputs, _a*_delta_nu, _b*_delta_nu, _tau*_delta_nu, _phi)
     return nu
 
@@ -79,11 +83,11 @@ def plot(n, nu, delta_nu, nu_max, eps_fit, alp_fit, a_fit, b_fit, tau_fit, phi_f
     n_fit = jnp.linspace(n[0], n[-1], 200)
     # tau_fit = d_fit * nu_max**(- m_fit)
 
-    # nu_asy = asy_fit(n, delta_nu, nu_max, eps_fit, alp_fit)
+    nu_asy = asy_fit(n, delta_nu, nu_max, eps_fit, alp_fit)
     nu_asy_fit = asy_fit(n_fit, delta_nu, nu_max, eps_fit, alp_fit)
 
-    # dnu = nu - nu_asy
-    dnu_fit = he_glitch(nu_asy_fit, a_fit, b_fit, tau_fit, phi_fit)
+    dnu = nu - nu_asy
+    dnu_fit = he_glitch(nu_asy_fit, a_fit, b_fit, tau_fit, phi_fit, nu_max)
     # dnu_fit = he_glitch(n_fit, a_fit*delta_nu, b_fit*delta_nu**2, tau_fit*delta_nu, phi_fit)
 
     nu_fit = nu_asy_fit + dnu_fit
@@ -91,9 +95,9 @@ def plot(n, nu, delta_nu, nu_max, eps_fit, alp_fit, a_fit, b_fit, tau_fit, phi_f
     if ax is None:
         fig, ax = plt.subplots()
 
-    c = (nu_max - nu_low) / (nu_high - nu_low)
-    # ax.plot(nu, dnu, '.')
-    ax.plot(nu_fit-nu_max, dnu_fit, c=cm.viridis(c), alpha=0.2)
+    # c = (nu_max - nu_low) / (nu_high - nu_low)
+    ax.plot(nu, dnu, '.')
+    ax.plot(nu_fit, dnu_fit)
     # ax.set_xlabel('ν (μHz)')
     # ax.set_ylabel('δν (μHz)')
     return ax
@@ -135,20 +139,25 @@ def main():
     eps_init = 0.3 * jnp.log10(nu_max) + 0.3
     alp_init = 1e-3 * _param
     # alp_init = 1/nu_max
+
     a_init = 1e-2 * _param
     b_init = 1e-6 * _param
-    tau_init = nu_max**(-0.9)
-    # m_init = 0.9
+
+    # a_init = 1e-2 * _param
+    # b_init = 1e-3 * _param
+    
+    # tau_init = nu_max**(-0.9)
+    m_init = 0.9
     phi_init = 0. * _param
-    # d_init = 1.
+    d_init = 1.
     delta_nu_init = delta_nu
     nu_max_init = nu_max
 
     params_init = (
         epsilon.inverse(eps_init), alpha.inverse(alp_init),
         a.inverse(a_init), b.inverse(b_init),
-        tau.inverse(tau_init), phi.inverse(phi_init),
-        # m.inverse(m_init), phi.inverse(phi_init), d_init,
+        # tau.inverse(tau_init), phi.inverse(phi_init),
+        m.inverse(m_init), phi.inverse(phi_init), d_init,
         delta_nu_init, nu_max_init
     )
 
@@ -157,8 +166,8 @@ def main():
         print('Initial parameters\n------------------')
         print(f'ε   = {eps_init[j]:{fmt}}, α   = {alp_init[j]:{fmt}}')
         print(f'a   = {a_init[j]:{fmt}}, b   = {b_init[j]:{fmt}}')
-        print(f'tau = {tau_init[j]:{fmt}}, phi = {phi_init[j]:{fmt}}')
-        # print(f'm   = {m_init:{fmt}}, phi = {phi_init[j]:{fmt}}, d   = {d_init:{fmt}}')
+        # print(f'tau = {tau_init[j]:{fmt}}, phi = {phi_init[j]:{fmt}}')
+        print(f'm   = {m_init:{fmt}}, phi = {phi_init[j]:{fmt}}, d   = {d_init:{fmt}}')
         print(f'delta_nu = {delta_nu_init[j]:{fmt}}, nu_max = {nu_max_init[j]:{fmt}}\n')
 
     inputs = n
@@ -177,8 +186,8 @@ def main():
     params_fit = get_params(opt_state)
     eps_fit, alp_fit = (epsilon.forward(params_fit[0]), alpha.forward(params_fit[1]))
     a_fit, b_fit = (a.forward(params_fit[2]), b.forward(params_fit[3]))
-    tau_fit, phi_fit = (tau.forward(params_fit[4]), phi.forward(params_fit[5]))
-    # m_fit, phi_fit, d_fit = (m.forward(params_fit[4]), phi.forward(params_fit[5]), params_fit[6])
+    # tau_fit, phi_fit = (tau.forward(params_fit[4]), phi.forward(params_fit[5]))
+    m_fit, phi_fit, d_fit = (m.forward(params_fit[4]), phi.forward(params_fit[5]), params_fit[6])
     delta_nu_fit, nu_max_fit = params_fit[-2:]
 
     predictions = model(params_fit, inputs)
@@ -189,11 +198,11 @@ def main():
         print('Fit parameters\n--------------')
         print(f'ε   = {eps_fit[j]:{fmt}}, α   = {alp_fit[j]:{fmt}}')
         print(f'a   = {a_fit[j]:{fmt}}, b   = {b_fit[j]:{fmt}}')
-        print(f'tau = {tau_fit[j]:{fmt}}, phi = {phi_fit[j]:{fmt}}')
-        # print(f'm   = {m_fit:{fmt}}, phi = {phi_fit[j]:{fmt}}, d   = {d_fit:{fmt}}')
+        # print(f'tau = {tau_fit[j]:{fmt}}, phi = {phi_fit[j]:{fmt}}')
+        print(f'm   = {m_fit:{fmt}}, phi = {phi_fit[j]:{fmt}}, d   = {d_fit:{fmt}}')
         print(f'delta_nu = {delta_nu_fit[j]:{fmt}}, nu_max = {nu_max_fit[j]:{fmt}}')
 
-    # tau_fit = d_fit * nu_max_fit**(- m_fit)
+    tau_fit = d_fit * nu_max_fit**(- m_fit)
     n_max_fit = nu_max_fit/delta_nu_fit - eps_fit
 
     # amp = a_fit * nu_max * jnp.exp(- b_fit * nu_max**2)
@@ -212,6 +221,7 @@ def main():
     
     amp = a_fit / (2 * b_fit * (nu1 - nu0)) * (jnp.exp(-b_fit * nu0**2) - \
         jnp.exp(-b_fit * nu1**2))
+
     # amp = a_fit / (2 * b_fit) * (jnp.exp(-b_fit * nu0**2) - \
     #     jnp.exp(-b_fit * nu1**2))
     fig, ax = plt.subplots()
@@ -220,6 +230,7 @@ def main():
     ax.set_ylabel('glitch amplitude (uHz)')
 
     fig, ax = plt.subplots()
+    # ax.plot(helium, a_fit * nu_max_fit * jnp.exp(- b_fit * nu_max_fit), 'o')
     ax.plot(helium, a_fit * nu_max_fit * jnp.exp(- b_fit * nu_max_fit**2), 'o')
     # ax.plot(helium, a_fit * n_max_fit * delta_nu * jnp.exp(- b_fit * delta_nu**2 * n_max_fit**2), 'o')
 
@@ -270,7 +281,7 @@ def main():
 
     fig, ax = plt.subplots()
     nu_test = 2000.
-    ax.plot(helium, he_amplitude(nu_test, a_fit, b_fit), 'o')
+    ax.plot(helium, he_amplitude(nu_test, a_fit, b_fit, nu_max), 'o')
     ax.set_xlabel('surface helium abundance')
     ax.set_ylabel('glitch amplitude (uHz)')
     ax.set_title(f'amplitude at nu = {nu_test} uHz')
@@ -318,7 +329,7 @@ def main():
         n_fit = jnp.linspace(n[:, 0], n[:, -1], 200, axis=1)
 
         nu_asy_fit = asy_fit(n_fit, delta_nu_fit[..., jnp.newaxis], nu_max_fit[..., jnp.newaxis], eps_fit[..., jnp.newaxis], alp_fit[..., jnp.newaxis])
-        dnu_fit = he_glitch(nu_asy_fit, a_fit[..., jnp.newaxis], b_fit[..., jnp.newaxis], tau_fit[..., jnp.newaxis], phi_fit[..., jnp.newaxis])
+        dnu_fit = he_glitch(nu_asy_fit, a_fit[..., jnp.newaxis], b_fit[..., jnp.newaxis], tau_fit[..., jnp.newaxis], phi_fit[..., jnp.newaxis], nu_max_fit[..., jnp.newaxis])
 
         # nu_fit = nu_asy_fit + dnu_fit
         # nu_fit = model(params_fit, n_fit)
@@ -334,11 +345,12 @@ def main():
 
         cbar = fig.colorbar(lc)
         cbar.set_label('ν_max')
-        # for j in range(n_stars):
-        #     ax = plot(n[j], nu[j], delta_nu_fit[j], nu_max_fit[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], tau_fit[j], phi_fit[j], ax=ax)
-        #     ax.set_xlabel('ν - ν_max (μHz)')
-        #     ax.set_ylabel('δν (μHz)')
-        #     fig.colorbar(ax.lines, ax=ax)
+        
+        for j in range(5):
+            fig, ax = plt.subplots()
+            ax = plot(n[j], nu[j], delta_nu_fit[j], nu_max_fit[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], tau_fit[j], phi_fit[j], ax=ax)
+            ax.set_xlabel('ν - ν_max (μHz)')
+            ax.set_ylabel('δν (μHz)')
             # plot(n[j], nu[j], delta_nu_fit[j], nu_max_fit[j], eps_fit[j], alp_fit[j], a_fit[j], b_fit[j], m_fit, phi_fit[j], d_fit)
         plt.show()
 
