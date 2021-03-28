@@ -16,8 +16,6 @@ from jax.scipy.optimize import minimize
 
 from scipy.optimize import curve_fit
 
-
-
 b0 = Exponential()
 b1 = Union(Bounded(jnp.log(1e-7), jnp.log(1e-5)), Exponential())
 tau = Union(Bounded(jnp.log(1e-4), jnp.log(1e-2)), Exponential())
