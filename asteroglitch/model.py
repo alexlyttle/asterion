@@ -131,7 +131,7 @@ class Prior(_Model):
         @handlers.reparam(config={'phi_he': CircularReparam(), 'phi_cz': CircularReparam()})
         def _model():
             epsilon = numpyro.sample('epsilon', dist.Normal(*self.epsilon))
-            alpha = numpyro.sample('alpha', dist.LogNormal(*self.logalpha))
+            alpha = numpyro.sample('alpha', dist.LogNormal(*self.log_alpha))
 
             delta_nu = numpyro.sample('delta_nu', dist.Normal(*self.delta_nu))
             nu_max = numpyro.sample('nu_max', dist.Normal(*self.nu_max))
