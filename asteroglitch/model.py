@@ -152,10 +152,11 @@ class Prior(_Model):
             phi_cz = numpyro.sample('phi_cz', dist.VonMises(*self.phi_cz))
             
             nu_asy = numpyro.deterministic('nu_asy', asy_background(self.n, epsilon, alpha, delta_nu, nu_max))
+    
             dnu_he = he_glitch(nu_asy, b0, b1, tau_he, phi_he)
             dnu_cz = cz_glitch(nu_asy, c0, tau_cz, phi_cz)
 
-            # average_he = numpyro.deterministic('<he>', average_he_amplitude())
+            # average_he = numpyro.deterministic('<he>', average_he_amplitude(...))
             he_nu_max = numpyro.deterministic('he_nu_max', he_amplitude(nu_max, b0, b1))
 
             nu = numpyro.deterministic('nu', nu_asy + dnu_he + dnu_cz)
