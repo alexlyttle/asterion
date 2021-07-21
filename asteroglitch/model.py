@@ -372,6 +372,7 @@ class GlitchModel(_Model):
         s_tau = 3.0
         log_tau = - m_tau * jnp.log(self.nu_max[0])  # Approx form of log(tau_he)
 
+        # TODO: add reparam in inference module
         def _model():
             epsilon = numpyro.sample('epsilon', dist.Normal(*self.epsilon))
             alpha = numpyro.sample('alpha', dist.LogNormal(*self.log_alpha))
