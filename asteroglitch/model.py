@@ -47,49 +47,78 @@ def average_he_amplitude(b0, b1, low, high):
 
 
 class _Model:
-    def __init__(self):
-        self.mcmc = None
+    prior_reparam = {}
+    posterior_reparam = {}
+
+    def __init__(self, observed_data={}, constant_data={},
+                 predictions_constant_data={}):
+        self.observed_data = observed_data
+        self.constant_data = constant_data
+        self.predictions_constant_data = predictions_constant_data
+
+    def _prior(self):
+        raise NotImplementedError
+
+    def _predictions(self):
+        raise NotImplementedError
+    
+    def _likelihood(self):
+        raise NotImplementedError
+    
+    def _posterior(self):
+        raise NotImplementedError
 
     @property
-    def model(self):
-        raise NotImplementedError()
+    def prior(self):
+        return self._prior
 
-    def sample(self, num_warmup=1000, num_samples=1000, num_chains=5, seed=0, 
-               model_args=(), model_kwargs={}, kernel_kwargs={}, mcmc_kwargs={}):
-        """
-        Parameters
-        ----------
-        num_warmup : int
-        num_samples : int
-        num_chains : int
-        seed : int
-        model_args : tuple
-        model_kwargs : dict
-        kernel_kwargs : dict
-        mcmc_kwargs : dict
+    @property
+    def predictions(self):
+        return self._predictions
 
-        Returns
-        -------
-        samples : dict
+    @property
+    def likelihood(self):
+        return self._likelihood
 
-        """
+    @property
+    def posterior(self):
+        return self._posterior
+    # def sample(self, num_warmup=1000, num_samples=1000, num_chains=5, seed=0, 
+    #            model_args=(), model_kwargs={}, kernel_kwargs={}, mcmc_kwargs={}):
+    #     """
+    #     Parameters
+    #     ----------
+    #     num_warmup : int
+    #     num_samples : int
+    #     num_chains : int
+    #     seed : int
+    #     model_args : tuple
+    #     model_kwargs : dict
+    #     kernel_kwargs : dict
+    #     mcmc_kwargs : dict
+
+    #     Returns
+    #     -------
+    #     samples : dict
+
+    #     """
         
-        target_accept_prob = kernel_kwargs.pop('target_accept_prob', 0.99)
-        init_strategy = kernel_kwargs.pop('init_strategy', lambda site=None: init_to_median(site=site, num_samples=1000))
-        step_size = kernel_kwargs.pop('step_size', 0.1)
+    #     target_accept_prob = kernel_kwargs.pop('target_accept_prob', 0.99)
+    #     init_strategy = kernel_kwargs.pop('init_strategy', lambda site=None: init_to_median(site=site, num_samples=1000))
+    #     step_size = kernel_kwargs.pop('step_size', 0.1)
 
-        kernel = NUTS(self.model, target_accept_prob=target_accept_prob, init_strategy=init_strategy, 
-                      step_size=step_size, **kernel_kwargs)
+    #     kernel = NUTS(self.model, target_accept_prob=target_accept_prob, init_strategy=init_strategy, 
+    #                   step_size=step_size, **kernel_kwargs)
 
-        self.mcmc = MCMC(kernel, num_warmup=num_warmup, num_samples=num_samples, num_chains=num_chains, **mcmc_kwargs)
+    #     self.mcmc = MCMC(kernel, num_warmup=num_warmup, num_samples=num_samples, num_chains=num_chains, **mcmc_kwargs)
 
-        rng_key = random.PRNGKey(seed)
-        self.mcmc.run(rng_key, *model_args, **model_kwargs)
+    #     rng_key = random.PRNGKey(seed)
+    #     self.mcmc.run(rng_key, *model_args, **model_kwargs)
 
-        # TODO: warn diverging (and rhat if num_chains > 1)
+    #     # TODO: warn diverging (and rhat if num_chains > 1)
 
-        samples = self.mcmc.get_samples()
-        return samples
+    #     samples = self.mcmc.get_samples()
+    #     return samples
 
 
 # class Prior(_Model):
@@ -247,12 +276,12 @@ class _Model:
 
 #     @property
 #     def model(self):
-#         # @handlers.reparam(
-#         #     config={
-#         #         'phi_he': CircularReparam(), 
-#         #         'phi_cz': CircularReparam(),
-#         #     }
-#         # )
+#         @handlers.reparam(
+#             config={
+#                 'phi_he': CircularReparam(), 
+#                 'phi_cz': CircularReparam(),
+#             }
+#         )
 #         def _model():
 #             nu, nu_err = self.prior.model()
 #             self.observed.model(nu, nu_err)
@@ -313,24 +342,32 @@ class GlitchModel(_Model):
         The number of radial orders to model. The observers n is inferred from
         the priors for delta_nu, nu_max and epsilon. Default is None, and
         num_orders is inferred from the length of the final dimension of nu.
-
+    num_pred : int, optional
+        The number of predictions to make for nu as a function of n. Default is
+        501.
     """
+    posterior_reparam = {
+        'phi_he': CircularReparam(),
+        'phi_cz': CircularReparam(),
+    }
+
     def __init__(self, delta_nu, nu_max, epsilon=None, alpha=None, *,
-                 nu, nu_err=None, n=None, num_orders=None):
+                 nu, nu_err=None, n=None, num_orders=None, num_pred=501):
         
-        self.delta_nu = jnp.array(delta_nu)
-        self.nu_max = jnp.array(nu_max)
-        self.epsilon = jnp.array([1.3, 0.2]) if epsilon is None else jnp.array(epsilon)
+        self.delta_nu = np.array(delta_nu)
+        self.nu_max = np.array(nu_max)
+        self.epsilon = np.array([1.3, 0.2]) if epsilon is None else np.array(epsilon)
 
         if alpha is None:
-            self.log_alpha = jnp.array([-7.0, 1.0])  # natural logarithm
+            self.log_alpha = np.array([-7.0, 1.0])  # natural logarithm
         else:
-            self.log_alpha = jnp.array([
-                jnp.log(alpha[0]**2 / jnp.sqrt(alpha[0]**2 + alpha[1]**2)),  # loc
-                jnp.sqrt(jnp.log(1 + alpha[1]**2 / alpha[0]**2))             # scale
+            self.log_alpha = np.array([
+                np.log(alpha[0]**2 / np.sqrt(alpha[0]**2 + alpha[1]**2)),  # loc
+                np.sqrt(np.log(1 + alpha[1]**2 / alpha[0]**2))             # scale
             ])
 
         self.nu = self._validate_nu(nu)
+        self.obs_mask = ~np.isnan(self.nu)
         self.nu_err = self._validate_nu_err(nu_err)
         
         if n is None and num_orders is None:
@@ -341,13 +378,19 @@ class GlitchModel(_Model):
                           "dimension of 'nu'.", UserWarning)
 
         self.n = self._validate_n(n, num_orders)
-        self.obs_mask = jnp.isnan(self.nu)
+        self.n_pred = np.linspace(self.n[..., 0], self.n[..., 0], num_pred)
+        
+        super().__init__(
+            observed_data={'nu': self.nu}, 
+            constant_data={'n': self.n, 'nu_err': self.nu_err},
+            predictions_constant_data={'n': self.n_pred, 'nu_err': self.nu_err},
+        )
     
     def _validate_nu(self, nu):
-        return jnp.array(nu)
+        return np.array(nu)
     
     def _validate_nu_err(self, nu_err):
-        nu_err[jnp.isnan(nu_err)] = 0.0
+        nu_err[~self.obs_mask] = 0.0
         return nu_err
 
     def _validate_n(self, n, num_orders):
@@ -356,60 +399,91 @@ class GlitchModel(_Model):
     
         if n is None:
             n_max = estimate_n_max(self.epsilon[..., 0], self.delta_nu[..., 0], self.nu_max[..., 0])
-            start = jnp.floor(n_max - jnp.floor(num_orders/2))
-            stop = jnp.floor(n_max + jnp.ceil(num_orders/2)) - 1
-            n = jnp.linspace(start, stop, num_orders, dtype=int)
+            start = np.floor(n_max - np.floor(num_orders/2))
+            stop = np.floor(n_max + np.ceil(num_orders/2)) - 1
+            n = np.linspace(start, stop, num_orders, dtype=int)
         else:
-            n = jnp.array(n, dtype=int)
+            n = np.array(n, dtype=int)
             # TODO: check that the shape of n makes sense
             # TODO: warn if num_orders is also passed
 
         return n
 
-    @property
-    def model(self):
+    def _prior(self, pred=False):
         m_tau = 1.05
-        s_tau = 3.0
-        log_tau = - m_tau * jnp.log(self.nu_max[0])  # Approx form of log(tau_he)
+        # s_tau = 3.0
+        log_tau = - m_tau * np.log(self.nu_max[0])  # Approx form of log(tau_he)
 
-        # TODO: add reparam in inference module
-        def _model():
-            epsilon = numpyro.sample('epsilon', dist.Normal(*self.epsilon))
-            alpha = numpyro.sample('alpha', dist.LogNormal(*self.log_alpha))
+        epsilon = numpyro.sample('epsilon', dist.Normal(*self.epsilon))
+        alpha = numpyro.sample('alpha', dist.LogNormal(*self.log_alpha))
 
-            delta_nu = numpyro.sample('delta_nu', dist.Normal(*self.delta_nu))
-            nu_max = numpyro.sample('nu_max', dist.Normal(*self.nu_max))
-            
-            b0 = numpyro.sample('b0', dist.LogNormal(jnp.log(50/self.nu_max[0]), 1.0))
-            b1 = numpyro.sample('b1', dist.LogNormal(jnp.log(5/self.nu_max[0]**2), 1.0))
+        delta_nu = numpyro.sample('delta_nu', dist.Normal(*self.delta_nu))
+        nu_max = numpyro.sample('nu_max', dist.Normal(*self.nu_max))
+        
+        b0 = numpyro.sample('b0', dist.LogNormal(np.log(50/self.nu_max[0]), 1.0))
+        b1 = numpyro.sample('b1', dist.LogNormal(np.log(5/self.nu_max[0]**2), 1.0))
 
-            tau_he = numpyro.sample('tau_he', dist.LogNormal(log_tau, 0.8))
-            phi_he = numpyro.sample('phi_he', dist.VonMises(0.0, 0.1))
+        tau_he = numpyro.sample('tau_he', dist.LogNormal(log_tau, 0.8))
+        phi_he = numpyro.sample('phi_he', dist.VonMises(0.0, 0.1))
 
-            c0 = numpyro.sample('c0', dist.LogNormal(jnp.log(0.5*self.nu_max[0]**2), 1.0))
+        c0 = numpyro.sample('c0', dist.LogNormal(np.log(0.5*self.nu_max[0]**2), 1.0))
 
-            # Ensure that tau_cz > tau_he (more stable than tau_cz = tau_he + delta_tau)
-            delta_tau = numpyro.sample('delta_tau', dist.LogNormal(log_tau, 0.8))
-            tau_cz = numpyro.deterministic('tau_cz', tau_he + delta_tau)
+        # Ensure that tau_cz > tau_he (more stable than tau_cz = tau_he + delta_tau)
+        delta_tau = numpyro.sample('delta_tau', dist.LogNormal(log_tau, 0.8))
+        tau_cz = numpyro.deterministic('tau_cz', tau_he + delta_tau)
 
-            phi_cz = numpyro.sample('phi_cz', dist.VonMises(0.0, 0.1))
-            
-            nu_asy = numpyro.deterministic('nu_asy', asy_background(self.n, epsilon, alpha, delta_nu, nu_max))
+        phi_cz = numpyro.sample('phi_cz', dist.VonMises(0.0, 0.1))
+        
+        n = self.n_pred if pred else self.n
+        nu_asy = numpyro.deterministic('nu_asy', asy_background(n, epsilon, alpha, delta_nu, nu_max))
 
-            dnu_he = he_glitch(nu_asy, b0, b1, tau_he, phi_he)
-            dnu_cz = cz_glitch(nu_asy, c0, tau_cz, phi_cz)
+        dnu_he = he_glitch(nu_asy, b0, b1, tau_he, phi_he)
+        dnu_cz = cz_glitch(nu_asy, c0, tau_cz, phi_cz)
 
-            # average_he = numpyro.deterministic('<he>', average_he_amplitude(...))
-            he_nu_max = numpyro.deterministic('he_nu_max', he_amplitude(nu_max, b0, b1))
+        # average_he = numpyro.deterministic('<he>', average_he_amplitude(...))
+        he_nu_max = numpyro.deterministic('he_nu_max', he_amplitude(nu_max, b0, b1))
 
-            nu = numpyro.deterministic('nu', nu_asy + dnu_he + dnu_cz)
-            nu_err = numpyro.sample('nu_err', dist.HalfNormal(0.1))
+        nu = numpyro.deterministic('nu', nu_asy + dnu_he + dnu_cz)
+        err = numpyro.sample('err', dist.HalfNormal(0.1))
 
-            if self.nu_err is not None:
-                nu_err = jnp.sqrt(nu_err**2 + self.nu_err**2)
+        return nu, err
 
-            nu_obs = numpyro.sample('nu_obs', dist.Normal(nu, nu_err),
-                                    obs=self.nu, obs_mask=self.obs_mask)
+    def _likelihood(self, nu, err):
+        if self.nu_err is not None:
+            err = jnp.sqrt(err**2 + self.nu_err**2)
 
-        return _model
+        nu_obs = numpyro.sample('nu_obs', dist.Normal(nu, err),
+                                obs=self.nu, obs_mask=self.obs_mask)
 
+    # def _predictive(self, n=None):
+    #     self._likelihood(*self._prior(n=n))
+
+    # @property
+    # def predictive(self):
+    #     # def _predictive():
+    #     #     # nu, nu_err = self._prior()  # prior without reparam
+    #     #     self._likelihood(*self._prior(n=n))
+
+    #     return self._predictive
+
+    def _predictions(self):
+        self._prior(pred=True)
+    
+    def _posterior(self):
+        self._likelihood(*self._prior())
+    
+    # @property
+    # def prior(self):
+    #     return self._prior
+
+    # @property
+    # def predictions(self):
+    #     return self._predictions
+
+    # @property
+    # def likelihood(self):
+    #     return self._likelihood
+
+    # @property
+    # def posterior(self):
+    #     return self._posterior
