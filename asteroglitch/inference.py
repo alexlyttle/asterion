@@ -12,7 +12,7 @@ import numpyro.distributions as dist
 
 from numpyro.infer.reparam import CircularReparam, LocScaleReparam
 from numpyro import handlers
-from numpyro.infer import MCMC, NUTS, init_to_median
+from numpyro.infer import MCMC, NUTS, init_to_median, Predictive
 from numpyro.distributions import constraints
 
 from collections import namedtuple
@@ -22,34 +22,75 @@ import warnings
 import arviz as az
 
 
-class Inference:
-    def __init__(self, model):
-        self.model = model
-        self.data = az.from_dict(
-            observed_data=model.observed_data,
-            constant_data=model.constant_data,
-            predictions_constant_data=model.predictions_constant_data
-        )
+class Data:
+    def __init(self):
+        # self.observed = None
+        self.nu = None
+        self.nu_err = None
+        self.n = None
+        # self.constant = None
+        self.prior = None
+        self.prior_sample_stats = None
+        self.prior_predictive = None
+        self.posterior = None
+        self.posterior_sample_stats = None
+        self.posterior_predictive = None
     
-    def _sample(self, model, num_warmup=1000, num_samples=1000, num_chains=5, 
-                seed=0, kernel_kwargs={}, mcmc_kwargs={},
-                model_args=(), model_kwargs={}):
+    def to_arviz(self):
+        observed = {'nu', self.nu, 'nu_err': self.nu_err}
+        coords = {'n': self.n}
+        data = az.from_dict(
+            observed_data=observed,
+            # constant_data=self.constant,
+            prior=self.prior,
+            prior_sample_stats=self.prior_sample_stats,
+            prior_predictive=self.prior_predictive,
+            posterior=self.posterior,
+            sample_stats=self.posterior_sample_stats,
+            posterior_predictive=self.posterior_predictive
+            coords={'n': self.n},
+            dims={k: ['n'] for k in freq}
+        )
+
+
+class Inference:
+    def __init__(self, model, num_warmup=1000, num_samples=1000, num_chains=5, *, seed):
+        self.model = model
+        self.data = Data()
+
+        self.data.observed = {'nu', self.model.nu}
+        # self.data.constant = self.model.constant
+        
+        self._rng_key = random.PRNGKey(seed)
+        self._num_warmup = num_warmup
+        self._num_samples = num_samples
+        self._num_chains = num_chains
+    
+    def _sample(self, model, *args, extra_fields=(), init_params=None, 
+                kernel_kwargs={}, mcmc_kwargs={}, **kwargs):
         
         target_accept_prob = kernel_kwargs.pop('target_accept_prob', 0.99)
         init_strategy = kernel_kwargs.pop('init_strategy', lambda site=None: init_to_median(site=site, num_samples=1000))
         step_size = kernel_kwargs.pop('step_size', 0.1)
+        
+        forbidden_keys = ['num_warmup', 'num_samples', 'num_chains']
+        forbidden = [k for k in forbidden_keys if k in mcmc_kwargs.keys()]
+        if len(forbidden) > 0:
+            raise KeyError(f"Keys {forbidden} found in 'mcmc_kwargs' are already defined.")
 
         kernel = NUTS(self.model, target_accept_prob=target_accept_prob, init_strategy=init_strategy, 
-                    step_size=step_size, **kernel_kwargs)
+                      step_size=step_size, **kernel_kwargs)
 
-        mcmc = MCMC(kernel, num_warmup=num_warmup, num_samples=num_samples, num_chains=num_chains, **mcmc_kwargs)
+        mcmc = MCMC(kernel, num_warmup=self._num_warmup, num_samples=self._num_samples,
+                    num_chains=self._num_chains, **mcmc_kwargs)
 
-        rng_key = random.PRNGKey(seed)
-        mcmc.run(rng_key, *model_args, **model_kwargs)
+        rng_key, self._rng_key = random.split(self._rng_key)
+        mcmc.run(rng_key, *args, extra_fields=extra_fields,
+                 init_params=init_params, **kwargs)
 
         # TODO: warn diverging (and rhat if num_chains > 1)
-        samples = mcmc.get_samples(group_by_chain=True)
-        sample_stats = mcmc.get_extra_fields(group_by_chain=True)
+        # samples = mcmc.get_samples(group_by_chain=True)
+        # sample_stats = mcmc.get_extra_fields(group_by_chain=True)
         return mcmc
     
     def _get_samples(self, mcmc, group_by_chain=True):
@@ -59,34 +100,56 @@ class Inference:
 
     def sample_prior(self, *args, **kwargs):
         model = handlers.reparam(self.model.prior, self.model.prior_reparam)
-        mcmc = self._sample(model, *args, **kwargs)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning, module=r'/bnumpyro/b')
+            mcmc = self._sample(model, *args, **kwargs)
 
         samples, sample_stats = self._get_samples(mcmc)
 
-        self.data.add_groups(
-            {
-                'prior': samples,
-                'prior_sample_stats': sample_stats
-            }
-        ) 
-        return mcmc
+        self.data.prior = samples
+        self.data.prior_sample_stats = sample_stats
 
     def sample_posterior(self, *args, **kwargs):
         model = handlers.reparam(self.model.posterior, self.model.posterior_reparam)
         model = self.neural_transport.reparam(model)
 
-        mcmc = self._sample(model, *args, **kwargs)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning, module=r'/bnumpyro/b')
+            mcmc = self._sample(model, *args, **kwargs)
 
         samples, sample_stats = self._get_samples(mcmc)
 
-        self.data.add_groups(
-            {
-                'posterior': samples,
-                'sample_stats': sample_stats
-            }
-        )
-        return mcmc
+        self.data.posterior = samples
+        self.data.posterior_sample_stats = sample_stats
 
-    def _predictive(self):
-        pass
+    def _predictive(self, model, *args, predictive_kwargs={}, **kwargs):
+        posterior_samples = predictive_kwargs.pop('posterior_samples', None)
+        num_samples = predictive_kwargs.pop('num_samples', None)
+        batch_ndims = predictive_kwargs.pop('batch_ndims', 2)
 
+        if posterior_samples is None and num_samples is None:
+            num_samples = self._num_chains * self._num_samples
+
+        predictive = Predictive(model, posterior_samples=posterior_samples, 
+                                num_samples=num_samples, batch_ndims=batch_ndims,
+                                **predictive_kwargs)
+
+        rng_key, self._rng_key = random.split(self._rng_key, *args, **kwargs)
+        samples = predictive(rng_key)
+        return samples
+    
+    def prior_predictive(self, *args, **kwargs):
+        """
+        args and kwargs for model.prior
+        """
+        samples = self._predictive(self.model.prior, *args, **kwargs)
+        self.data.prior_predictive = samples
+    
+    def posterior_predictive(self, *args, **kwargs):
+        """
+        args and kwargs for model.posterior
+        """
+        predictive_kwargs = {'posterior_samples': self.data.posterior}
+        samples = self._predictive(self.model.posterior, *args, predictive_kwargs=predictive_kwargs, **kwargs)
+        self.data.posterior_predictive = samples
