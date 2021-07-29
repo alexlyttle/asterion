@@ -23,11 +23,13 @@ import arviz as az
 
 
 class Data:
-    def __init(self):
-        # self.observed = None
-        self.nu = None
-        self.nu_err = None
-        self.n = None
+    def __init__(self, observed=None, coords=None, dims=None):
+        self.observed = observed
+        self.coords = coords
+        self.dims = dims
+        # self.nu = None
+        # self.nu_err = None
+        # self.n = None
         # self.constant = None
         self.prior = None
         self.prior_sample_stats = None
@@ -37,37 +39,41 @@ class Data:
         self.posterior_predictive = None
     
     def to_arviz(self):
-        observed = {'nu', self.nu, 'nu_err': self.nu_err}
-        coords = {'n': self.n}
         data = az.from_dict(
-            observed_data=observed,
+            observed_data=self.observed,
             # constant_data=self.constant,
             prior=self.prior,
-            prior_sample_stats=self.prior_sample_stats,
+            sample_stats_prior=self.prior_sample_stats,
             prior_predictive=self.prior_predictive,
             posterior=self.posterior,
             sample_stats=self.posterior_sample_stats,
-            posterior_predictive=self.posterior_predictive
-            coords={'n': self.n},
-            dims={k: ['n'] for k in freq}
+            posterior_predictive=self.posterior_predictive,
+            coords=self.coords,
+            dims=self.dims,
         )
+        return data
 
 
 class Inference:
     def __init__(self, model, num_warmup=1000, num_samples=1000, num_chains=5, *, seed):
-        self.model = model
-        self.data = Data()
-
-        self.data.observed = {'nu', self.model.nu}
-        # self.data.constant = self.model.constant
-        
         self._rng_key = random.PRNGKey(seed)
+
+        self.model = model
+        observed = {'nu': self.model.nu, 'nu_err': self.model.nu_err}
+        coords = {k: v.coords for k, v in self.model.dimensions.items()}
+        dims = {}
+        trace = self.model.get_posterior_trace(self._rng_key)
+        for k, v in trace.items():
+            dims[k] = [dim.name for dim in v["cond_indep_stack"][::-1]]
+
+        self.data = Data(observed=observed, coords=coords, dims=dims)
+        
         self._num_warmup = num_warmup
         self._num_samples = num_samples
         self._num_chains = num_chains
     
-    def _sample(self, model, *args, extra_fields=(), init_params=None, 
-                kernel_kwargs={}, mcmc_kwargs={}, **kwargs):
+    def _sample(self, model, extra_fields=(), init_params=None, 
+                kernel_kwargs={}, mcmc_kwargs={}):
         
         target_accept_prob = kernel_kwargs.pop('target_accept_prob', 0.99)
         init_strategy = kernel_kwargs.pop('init_strategy', lambda site=None: init_to_median(site=site, num_samples=1000))
@@ -78,15 +84,14 @@ class Inference:
         if len(forbidden) > 0:
             raise KeyError(f"Keys {forbidden} found in 'mcmc_kwargs' are already defined.")
 
-        kernel = NUTS(self.model, target_accept_prob=target_accept_prob, init_strategy=init_strategy, 
+        kernel = NUTS(model, target_accept_prob=target_accept_prob, init_strategy=init_strategy, 
                       step_size=step_size, **kernel_kwargs)
 
         mcmc = MCMC(kernel, num_warmup=self._num_warmup, num_samples=self._num_samples,
                     num_chains=self._num_chains, **mcmc_kwargs)
 
         rng_key, self._rng_key = random.split(self._rng_key)
-        mcmc.run(rng_key, *args, extra_fields=extra_fields,
-                 init_params=init_params, **kwargs)
+        mcmc.run(rng_key, extra_fields=extra_fields, init_params=init_params)
 
         # TODO: warn diverging (and rhat if num_chains > 1)
         # samples = mcmc.get_samples(group_by_chain=True)
@@ -112,7 +117,7 @@ class Inference:
 
     def sample_posterior(self, *args, **kwargs):
         model = handlers.reparam(self.model.posterior, self.model.posterior_reparam)
-        model = self.neural_transport.reparam(model)
+        # model = self.neural_transport.reparam(model)
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning, module=r'/bnumpyro/b')
@@ -123,7 +128,7 @@ class Inference:
         self.data.posterior = samples
         self.data.posterior_sample_stats = sample_stats
 
-    def _predictive(self, model, *args, predictive_kwargs={}, **kwargs):
+    def _predictive(self, model, predictive_kwargs={}):
         posterior_samples = predictive_kwargs.pop('posterior_samples', None)
         num_samples = predictive_kwargs.pop('num_samples', None)
         batch_ndims = predictive_kwargs.pop('batch_ndims', 2)
@@ -135,7 +140,7 @@ class Inference:
                                 num_samples=num_samples, batch_ndims=batch_ndims,
                                 **predictive_kwargs)
 
-        rng_key, self._rng_key = random.split(self._rng_key, *args, **kwargs)
+        rng_key, self._rng_key = random.split(self._rng_key)
         samples = predictive(rng_key)
         return samples
     
