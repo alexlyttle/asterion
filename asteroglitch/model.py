@@ -10,7 +10,7 @@ from jax import random
 import numpyro
 import numpyro.distributions as dist
 
-from numpyro.infer.reparam import CircularReparam, LocScaleReparam
+from numpyro.infer.reparam import CircularReparam, LocScaleReparam, Reparam
 from numpyro import handlers
 from numpyro.infer import MCMC, NUTS, init_to_median
 from numpyro.distributions import constraints
@@ -21,15 +21,20 @@ import warnings
 
 from numpyro.primitives import CondIndepStackFrame, plate
 
+from typing import Union, TypeVar, Any, Optional, Sequence, Callable, Dict, ClassVar
+
 
 class dimension(plate):
-
+    """Context manager for variables along a given dimension with coordinates
+    given by `coords`. Based on `numpyro.plate` but includes
+    deterministics.
+    """
     def __init__(self, name, size, subsample_size=None, dim=None, coords=None):
         super().__init__(name, size, subsample_size=subsample_size, dim=dim)
         self.coords = coords
 
     def process_message(self, msg):
-        """ Modify process message """
+        """Modify process message to also include deterministics. """
         super().process_message(msg)
         if msg["type"] == "deterministic":
             if "cond_indep_stack" not in msg.keys():
@@ -39,7 +44,7 @@ class dimension(plate):
 
 
 def estimate_n(num_orders, delta_nu, nu_max, epsilon):
-    """ Estimates n from delta_nu, nu_max and epsilon, given num_orders about
+    """Estimates n from delta_nu, nu_max and epsilon, given num_orders about
     nu_max.
 
     E.g. to get n for num_orders about nu_max in a sample of model stars
@@ -78,32 +83,124 @@ def average_he_amplitude(b0, b1, low, high):
     return b0 * (jnp.exp(-b1*low**2) - jnp.exp(-b1*high**2)) / (2*b1*(high - low))
 
 
-class _Model:
-    prior_reparam = {}
-    posterior_reparam = {}
-    coords = {}
-    dims = {}
+T = TypeVar('T')
+S = TypeVar('S')
+Array = Union[S, np.ndarray]
+Array1D = Array[Sequence[T]]
+Array2D = Array[Sequence[Sequence[T]]]
+Array3D = Array[Sequence[Sequence[Sequence[T]]]]
 
-    def __init__(self, n, nu, nu_err=None, l=0):
+
+class Model:
+    """Base Model class for modelling asteroseismic oscillation modes. 
+    
+    All models must have a `name` (usually the name of the star), array of radial order
+    `n` and array of angular degree `l` (optional). The observed mode
+    frequencies `nu` must then be broadcastable to an array with shape
+    `num_stars` x `num_orders` (x `num_degrees`). Optionally, the
+    observed uncertainties may be passed with the same shape via `nu_err`.
+    Any unobserved or null data should be passed as NaN, and an `obs_mask`
+    will be made which can be used in the likelihood.
+    
+    Args:
+        name: [description]
+        n: [description]
+        nu: [description]
+        l: [description]. Defaults to None.
+        nu_err: [description]. Defaults to None.
+    """
+    name: np.ndarray                  #: [description]
+    n: np.ndarray                     #: [description]
+    l: Optional[np.ndarray]           #: [description]
+    num_stars: int                    #: [description]
+    num_orders: int                   #: [description]
+    num_degrees: Optional[int]        #: [description]
+    dimensions: Dict[str, dimension]  #: [description]
+    nu: np.ndarray                    #: [description]
+    obs_mask: np.ndarray              #: [description]
+    nu_err: np.ndarray                #: [description]
+    reparam: ClassVar[
+        Dict[str, Reparam]
+    ] = {}                            #: [description]
+
+    def __init__(
+        self,
+        name: Union[str, Array1D[str]],
+        n: Array1D[int],
+        l: Optional[Union[int, Array1D[int]]]=None, 
+        *,
+        nu: Union[Array1D[float], Array2D[float], Array3D[float]],
+        nu_err: Optional[
+            Union[Array1D[float], Array2D[float], Array3D[float]]
+        ]=None
+    ):              
+        self.name = self._validate_name(name)
+        self.n = self._validate_n(n)
+        self.l = self._validate_l(l)
+
+        self.num_stars = self.name.shape[0]
+        self.num_orders = self.n.shape[0]
+        self.num_degrees = None
+
+        self.dimensions = {
+            'name': dimension('name', self.num_stars, coords=self.name),
+            'n': dimension('n', self.num_orders, coords=self.n)
+        }
+        self._shape = (self.num_stars, self.num_orders)
+
+        if self.l is not None:
+            self.num_degrees = self.l.shape[0]
+            self._shape += (self.num_degrees,)
+            self.dimension['l'] = dimension('l', self.num_degrees, coords=self.l)
+        
         self.nu = self._validate_nu(nu)
         self.obs_mask = ~np.isnan(self.nu)
         self.nu_err = self._validate_nu_err(nu_err)
-        self.n = self._validate_n(n)
-        self.l = l
 
-    def _validate_nu(self, nu):
-        return np.array(nu)
+    def _validate_name(self, name: Union[str, Array1D[str]]) -> np.ndarray:
+        name = np.sqeeze(name)
+        if name.ndim == 0:
+            name = np.broadcast_to(name, (1,))
+        elif name.ndim > 1:
+            raise ValueError("Variable 'name' is greater than 1-D.")
+        assert name.astype(str)
+        assert name.ndim == 1
+        return name
+
+    def _validate_n(self, n: Array1D[int]) -> np.ndarray:
+        n = np.squeeze(n)
+        if n.ndim == 0 or n.ndim > 1:
+            raise ValueError("Variable 'n' must be 1-D.")
+        assert n.ndim == 1
+        return np.array(n)
     
-    def _validate_nu_err(self, nu_err):
+    def _validate_l(
+        self, 
+        l: Optional[Union[int, Array1D[int]]]
+    ) -> Optional[np.ndarray]:
+        if l is None:
+            return
+        l = np.squeeze(l)
+        if l.ndim == 0:
+            l = np.broadcast_to(l, (1,))
+        elif l.ndim > 1:
+            raise ValueError("Variable 'l' is greater than 1-D.")
+        assert l.ndim == 1
+        return np.array(l)
+    
+    def _broadcast(self, x) -> np.ndarray:
+        return np.broadcast_to(x, self._shape)
+
+    def _validate_nu(self, nu: Union[Array1D[float], Array2D[float], Array3D[float]]) -> np.ndarray:
+        return self._broadcast(nu)
+    
+    def _validate_nu_err(self, nu_err: Optional[Union[Array1D[float], Array2D[float], Array3D[float]]]) -> np.ndarray:
         if nu_err is None:
-            nu_err = np.zeros(self.nu)
+            nu_err = np.zeros(self._shape)
         else:
-            nu_err[~self.obs_mask] = 0.0
+            nu_err = self._broadcast(nu_err)
+        nu_err[~self.obs_mask] = 0.0
         return nu_err
-    
-    def _validate_n(self, n):
-        # TODO: n must be 1-D
-        return n
 
     def _prior(self):
         raise NotImplementedError
@@ -118,19 +215,39 @@ class _Model:
         raise NotImplementedError
 
     @property
-    def prior(self):
+    def prior(self) -> Callable:
+        """[summary]
+
+        Returns:
+            Callable: [description]
+        """        
         return self._prior
 
     @property
-    def predictions(self):
+    def predictions(self) -> Callable:
+        """[summary]
+
+        Returns:
+            Callable: [description]
+        """        
         return self._predictions
 
     @property
-    def likelihood(self):
+    def likelihood(self) -> Callable:
+        """[summary]
+
+        Returns:
+            Callable: [description]
+        """        
         return self._likelihood
 
     @property
-    def posterior(self):
+    def posterior(self) -> Callable:
+        """[summary]
+
+        Returns:
+            Callable: [description]
+        """        
         return self._posterior
 
     def _get_trace(self, rng_key, model):
@@ -142,14 +259,30 @@ class _Model:
         trace = model.get_trace()
         return trace
 
-    def get_prior_trace(self, rng_key):
+    def get_prior_trace(self, rng_key: Union[int, jax.random.PRNGKey]) -> dict:
+        """[summary]
+
+        Args:
+            rng_key: [description]
+
+        Returns:
+            dict: [description]
+        """        
         return self._get_trace(rng_key, self.prior)
     
-    def get_posterior_trace(self, rng_key):
+    def get_posterior_trace(self, rng_key: Union[int, jax.random.PRNGKey]) -> dict:
+        """[summary]
+
+        Args:
+            rng_key: [description]
+
+        Returns:
+            dict: [description]
+        """        
         return self._get_trace(rng_key, self.posterior)
 
 
-class GlitchModel(_Model):
+class GlitchModel(Model):
     """
     Parameters
     ----------
@@ -182,100 +315,77 @@ class GlitchModel(_Model):
         The number of radial orders to model. The observers n is inferred from
         the priors for delta_nu, nu_max and epsilon. Default is None, and
         num_orders is inferred from the length of the final dimension of nu.
-    num_pred : int, optional
-        The number of predictions to make for nu as a function of n. Default is
-        501.
     """
-    posterior_reparam = {
+    reparam = {
         'phi_he': CircularReparam(),
         'phi_cz': CircularReparam(),
     }
 
-    def __init__(self, name, delta_nu, nu_max, epsilon=None, alpha=None, *,
-                 nu, nu_err=None, n=None):
-        self.name = np.array(name)
-        self.delta_nu = np.array(delta_nu)
-        self.nu_max = np.array(nu_max)
-        self.epsilon = np.array([1.3, 0.2]) if epsilon is None else np.array(epsilon)
-        
-        # self.num_stars = 1 if len(np.shape(name)) == 0 else np.shape(name)[0]
-        # self.name = np.broadcast_to(name, (self.num_stars,))
+    def __init__(
+        self,
+        name: Union[str, Array1D[str]],
+        delta_nu: Array1D[float],
+        nu_max: Array1D[float],
+        epsilon: Array1D[float]=None,
+        alpha: Array1D[float]=None,
+        *,
+        nu: Union[Array1D[float], Array2D[float], Array3D[float]],
+        nu_err: Optional[Union[Array1D[float], Array2D[float], Array3D[float]]]=None, 
+        n: Optional[Array1D[int]]=None,
+        num_orders: Optional[int]=None
+    ):
+
+        self._delta_nu = np.array(delta_nu)
+        self._nu_max = np.array(nu_max)
+        self._epsilon = np.array([1.3, 0.2]) if epsilon is None else np.array(epsilon)
 
         if alpha is None:
-            self.log_alpha = np.array([-7.0, 1.0])  # natural logarithm
+            self._log_alpha = np.array([-7.0, 1.0])  # natural logarithm
         else:
-            self.log_alpha = np.array([
+            self._log_alpha = np.array([
                 np.log(alpha[0]**2 / np.sqrt(alpha[0]**2 + alpha[1]**2)),  # loc
                 np.sqrt(np.log(1 + alpha[1]**2 / alpha[0]**2))             # scale
             ])
-        # self.n = n
-        # if n is None and num_orders is None:
-        #     # Infer num_orders from final dimension of nu
-        #     num_orders = np.shape(nu)[-1]
-        #     warnings.warn("Neither argument 'n' nor 'num_orders' passed, " +
-        #                   f"inferring num_orders = {num_orders} from final " +
-        #                   "dimension of 'nu'.", UserWarning)
-
-        # n = self._estimate_n(n, num_orders)
-        # self.n_pred = np.linspace(self.n[..., 0], self.n[..., 0], num_pred)
         
         super().__init__(
-            n, nu, nu_err=nu_err
+            name, n, nu=nu, nu_err=nu_err,
         )
 
+        # self.num_stars = 1 if len(self.name.shape) == 0 else self.name.shape[0]
+        # self.num_orders = self.n.shape[0]
+        # self.name = np.broadcast_to(self.name, (self.num_stars,))
+        # self.n = np.broadcast_to(self.n, (self.num_orders,))
 
-
-        # self.observed = Observed()
-        self.num_stars = 1 if len(self.name.shape) == 0 else self.name.shape[0]
-        self.num_orders = self.n.shape[0]
-        self.name = np.broadcast_to(self.name, (self.num_stars,))
-        self.n = np.broadcast_to(self.n, (self.num_orders,))
-
-        shape = (self.num_stars, self.num_orders)
-        self.nu = np.broadcast_to(self.nu, shape)
-        self.nu_err = np.broadcast_to(self.nu_err, shape)
-        self.obs_mask = np.broadcast_to(self.obs_mask, shape)
+        # shape = (self.num_stars, self.num_orders)
+        # self.nu = np.broadcast_to(self.nu, shape)
+        # self.nu_err = np.broadcast_to(self.nu_err, shape)
+        # self.obs_mask = np.broadcast_to(self.obs_mask, shape)
     
-        self.dimensions = {
-            'name': dimension('name', self.num_stars, coords=self.name),
-            'n': dimension('n', self.num_orders, coords=self.n)
-        }
-
-    # def _estimate_n(self, n, num_orders):
-    #     if num_orders is None and n is None:
-    #         raise ValueError("One of either 'n' or 'num_orders' must be given.")
-    
-    #     if n is None:
-    #         n_max = get_n_max(self.epsilon[..., 0], self.delta_nu[..., 0], self.nu_max[..., 0])
-    #         start = np.floor(n_max - np.floor(num_orders/2))
-    #         stop = np.floor(n_max + np.ceil(num_orders/2)) - 1
-    #         n = np.linspace(start, stop, num_orders, dtype=int, axis=1)
-    #     else:
-    #         n = np.array(n, dtype=int)
-    #         # TODO: check that the shape of n makes sense
-    #         # TODO: warn if num_orders is also passed
-
-    #     return n
+        # self.dimensions = {
+        #     'name': dimension('name', self.num_stars, coords=self.name),
+        #     'n': dimension('n', self.num_orders, coords=self.n)
+        # }
 
     def _prior(self):
         m_tau = 1.05
         # s_tau = 3.0
-        log_tau = - m_tau * np.log(self.nu_max[0])  # Approx form of log(tau_he)
+        log_tau = - m_tau * np.log(self._nu_max[0])  # Approx form of log(tau_he)
 
         with self.dimensions['name']:
-            epsilon = numpyro.sample('epsilon', dist.Normal(*self.epsilon))
-            alpha = numpyro.sample('alpha', dist.LogNormal(*self.log_alpha))
+            epsilon = numpyro.sample('epsilon', dist.Normal(*self._epsilon))
+            alpha = numpyro.sample('alpha', dist.LogNormal(*self._log_alpha))
 
-            delta_nu = numpyro.sample('delta_nu', dist.Normal(*self.delta_nu))
-            nu_max = numpyro.sample('nu_max', dist.Normal(*self.nu_max))
+            delta_nu = numpyro.sample('delta_nu', dist.Normal(*self._delta_nu))
+            nu_max = numpyro.sample('nu_max', dist.Normal(*self._nu_max))
         
-            b0 = numpyro.sample('b0', dist.LogNormal(np.log(50/self.nu_max[0]), 1.0))
-            b1 = numpyro.sample('b1', dist.LogNormal(np.log(5/self.nu_max[0]**2), 1.0))
+            b0 = numpyro.sample('b0', dist.LogNormal(np.log(100/self._nu_max[0]), 1.0))
+            # b0 = numpyro.sample('b0', dist.HalfNormal(100/self._nu_max[0]))
+            b1 = numpyro.sample('b1', dist.LogNormal(np.log(10/self._nu_max[0]**2), 1.0))
 
             tau_he = numpyro.sample('tau_he', dist.LogNormal(log_tau, 0.8))
             phi_he = numpyro.sample('phi_he', dist.VonMises(0.0, 0.1))
 
-            c0 = numpyro.sample('c0', dist.LogNormal(np.log(0.5*self.nu_max[0]**2), 1.0))
+            c0 = numpyro.sample('c0', dist.LogNormal(np.log(0.5*self._nu_max[0]**2), 1.0))
 
             # Ensure that tau_cz > tau_he
             delta_tau = numpyro.sample('delta_tau', dist.LogNormal(log_tau, 0.8))
@@ -287,7 +397,8 @@ class GlitchModel(_Model):
 
             with self.dimensions['n']:
                 # n = self.n_pred if pred else self.n
-                nu_asy = numpyro.deterministic('nu_asy', asy_background(self.n[np.newaxis, ...], epsilon, alpha, delta_nu, nu_max))
+                n = np.broadcast_to(self.n, self._shape)  # Broadcast to the shape of output freq
+                nu_asy = numpyro.deterministic('nu_asy', asy_background(n, epsilon, alpha, delta_nu, nu_max))
 
                 dnu_he = he_glitch(nu_asy, b0, b1, tau_he, phi_he)
                 dnu_cz = cz_glitch(nu_asy, c0, tau_cz, phi_cz)
@@ -323,19 +434,3 @@ class GlitchModel(_Model):
     
     def _posterior(self):
         self._likelihood(*self._prior())
-    
-    # @property
-    # def prior(self):
-    #     return self._prior
-
-    # @property
-    # def predictions(self):
-    #     return self._predictions
-
-    # @property
-    # def likelihood(self):
-    #     return self._likelihood
-
-    # @property
-    # def posterior(self):
-    #     return self._posterior
