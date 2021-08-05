@@ -21,60 +21,113 @@ import warnings
 
 import arviz as az
 
+from .data import Data
+from .model import Model
 
-class Data:
-    def __init__(self, observed=None, coords=None, dims=None):
-        self.observed = observed
-        self.coords = coords
-        self.dims = dims
-        # self.nu = None
-        # self.nu_err = None
-        # self.n = None
-        # self.constant = None
-        self.prior = None
-        self.prior_sample_stats = None
-        self.prior_predictive = None
-        self.posterior = None
-        self.posterior_sample_stats = None
-        self.posterior_predictive = None
+from typing import Callable
+
+# class Data:
+#     def __init__(self, observed=None, constant=None, coords=None, dims=None):
+#         self.observed = observed
+#         self.coords = coords
+#         self.dims = dims
+#         # self.nu = None
+#         # self.nu_err = None
+#         # self.n = None
+#         self.constant = constant
+#         self.prior = None
+#         self.prior_sample_stats = None
+#         self.prior_predictive = None
+#         self.posterior = None
+#         self.posterior_sample_stats = None
+#         self.posterior_predictive = None
     
-    def to_arviz(self):
-        data = az.from_dict(
-            observed_data=self.observed,
-            # constant_data=self.constant,
-            prior=self.prior,
-            sample_stats_prior=self.prior_sample_stats,
-            prior_predictive=self.prior_predictive,
-            posterior=self.posterior,
-            sample_stats=self.posterior_sample_stats,
-            posterior_predictive=self.posterior_predictive,
-            coords=self.coords,
-            dims=self.dims,
-        )
-        return data
+#     def to_arviz(self):
+#         data = az.from_dict(
+#             observed_data=self.observed,
+#             constant_data=self.constant,
+#             prior=self.prior,
+#             sample_stats_prior=self.prior_sample_stats,
+#             prior_predictive=self.prior_predictive,
+#             posterior=self.posterior,
+#             sample_stats=self.posterior_sample_stats,
+#             posterior_predictive=self.posterior_predictive,
+#             coords=self.coords,
+#             dims=self.dims,
+#         )
+#         return data
 
 
 class Inference:
-    def __init__(self, model, num_warmup=1000, num_samples=1000, num_chains=5, *, seed):
-        self._rng_key = random.PRNGKey(seed)
+    """[summary]
 
+    Notes
+    -----
+    [notes]
+
+    Parameters
+    ----------
+    model : Model
+        [description]
+    seed : int
+        [description]
+    num_warmup : int, optional
+        [description], by default 1000
+    num_samples : int, optional
+        [description], by default 1000
+    num_chains : int, optional
+        [description], by default 5
+    
+    Attributes
+    ----------
+    model : Model
+    data : Data
+    """ 
+    def __init__(self, model: Model, num_warmup: int=1000,
+                 num_samples: int=1000, num_chains: int=5, *, seed: int):       
+        self._rng_key = random.PRNGKey(seed)        
         self.model = model
-        observed = {'nu': self.model.nu, 'nu_err': self.model.nu_err}
+        observed = {'nu': self.model.nu}
+        constant = {'nu_err': self.model.nu_err, 'obs_mask': self.model.obs_mask}
         coords = {k: v.coords for k, v in self.model.dimensions.items()}
         dims = {}
         trace = self.model.get_posterior_trace(self._rng_key)
         for k, v in trace.items():
             dims[k] = [dim.name for dim in v["cond_indep_stack"][::-1]]
 
-        self.data = Data(observed=observed, coords=coords, dims=dims)
+        self.data = Data(observed=observed, constant=constant, coords=coords, dims=dims)
         
         self._num_warmup = num_warmup
         self._num_samples = num_samples
         self._num_chains = num_chains
     
-    def _sample(self, model, extra_fields=(), init_params=None, 
-                kernel_kwargs={}, mcmc_kwargs={}):
-        
+    def _sample(self, model: Callable, extra_fields: tuple=(), init_params: dict=None, 
+                kernel_kwargs: dict={}, mcmc_kwargs: dict={}) -> numpyro.infer.MCMC:
+        """[summary]
+
+        Parameters
+        ----------
+        model : Callable
+            [description]
+        extra_fields : tuple, optional
+            [description], by default ()
+        init_params : dict, optional
+            [description], by default None
+        kernel_kwargs : dict, optional
+            [description], by default {}
+        mcmc_kwargs : dict, optional
+            [description], by default {}
+
+        Returns
+        -------
+        numpyro.infer.MCMC
+            [description]
+
+        Raises
+        ------
+        KeyError
+            [description]
+        """                     
         target_accept_prob = kernel_kwargs.pop('target_accept_prob', 0.99)
         init_strategy = kernel_kwargs.pop('init_strategy', lambda site=None: init_to_median(site=site, num_samples=1000))
         step_size = kernel_kwargs.pop('step_size', 0.1)
@@ -98,37 +151,77 @@ class Inference:
         # sample_stats = mcmc.get_extra_fields(group_by_chain=True)
         return mcmc
     
-    def _get_samples(self, mcmc, group_by_chain=True):
+    def _get_samples(self, mcmc: numpyro.infer.MCMC, group_by_chain: bool=True):
         samples = mcmc.get_samples(group_by_chain=True)
         sample_stats = mcmc.get_extra_fields(group_by_chain=True) 
         return samples, sample_stats
 
-    def sample_prior(self, *args, **kwargs):
-        model = handlers.reparam(self.model.prior, self.model.prior_reparam)
+    # def sample_prior(self, *args, **kwargs):
+    #     model = handlers.reparam(self.model.prior, self.model.prior_reparam)
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=UserWarning, module=r'/bnumpyro/b')
-            mcmc = self._sample(model, *args, **kwargs)
+    #     with warnings.catch_warnings():
+    #         warnings.filterwarnings("ignore", category=UserWarning, module=r'\bnumpyro\b')
+    #         mcmc = self._sample(model, *args, **kwargs)
 
-        samples, sample_stats = self._get_samples(mcmc)
+    #     samples, sample_stats = self._get_samples(mcmc)
 
-        self.data.prior = samples
-        self.data.prior_sample_stats = sample_stats
+    #     self.data.prior = samples
+    #     self.data.prior_sample_stats = sample_stats
 
-    def sample_posterior(self, *args, **kwargs):
-        model = handlers.reparam(self.model.posterior, self.model.posterior_reparam)
+    # def sample_posterior(self, *args, **kwargs):
+    #     model = handlers.reparam(self.model.posterior, self.model.posterior_reparam)
+    #     # model = self.neural_transport.reparam(model)
+
+    #     with warnings.catch_warnings():
+    #         warnings.filterwarnings("ignore", category=UserWarning, module=r'\bnumpyro\b')
+    #         mcmc = self._sample(model, *args, **kwargs)
+
+    #     samples, sample_stats = self._get_samples(mcmc)
+
+    #     self.data.posterior = samples
+    #     self.data.posterior_sample_stats = sample_stats
+
+    def sample(self, *args, **kwargs):
+        """[summary]
+
+        Parameters
+        ----------
+        extra_fields : tuple, optional
+            [description], by default ()
+        init_params : dict, optional
+            [description], by default None
+        kernel_kwargs : dict, optional
+            [description], by default {}
+        mcmc_kwargs : dict, optional
+            [description], by default {}
+        """  
+        model = handlers.reparam(self.model.posterior, self.model.reparam)
         # model = self.neural_transport.reparam(model)
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=UserWarning, module=r'/bnumpyro/b')
-            mcmc = self._sample(model, *args, **kwargs)
+        # with warnings.catch_warnings():
+            # warnings.filterwarnings("ignore", category=UserWarning, module=r'\bnumpyro\b')
+        mcmc = self._sample(model, *args, **kwargs)
 
         samples, sample_stats = self._get_samples(mcmc)
 
         self.data.posterior = samples
-        self.data.posterior_sample_stats = sample_stats
+        self.data.sample_stats = sample_stats
 
-    def _predictive(self, model, predictive_kwargs={}):
+    def _predictive(self, model: Callable, predictive_kwargs: dict={}):
+        """[summary]
+
+        Parameters
+        ----------
+        model : Callable
+            [description]
+        predictive_kwargs : dict, optional
+            [description], by default {}
+
+        Returns
+        -------
+        [type]
+            [description]
+        """
         posterior_samples = predictive_kwargs.pop('posterior_samples', None)
         num_samples = predictive_kwargs.pop('num_samples', None)
         batch_ndims = predictive_kwargs.pop('batch_ndims', 2)
@@ -144,17 +237,15 @@ class Inference:
         samples = predictive(rng_key)
         return samples
     
-    def prior_predictive(self, *args, **kwargs):
+    def prior_predictive(self):
+        """[summary]
         """
-        args and kwargs for model.prior
-        """
-        samples = self._predictive(self.model.prior, *args, **kwargs)
+        samples = self._predictive(self.model.prior)
         self.data.prior_predictive = samples
     
-    def posterior_predictive(self, *args, **kwargs):
-        """
-        args and kwargs for model.posterior
+    def posterior_predictive(self):
+        """[summary]
         """
         predictive_kwargs = {'posterior_samples': self.data.posterior}
-        samples = self._predictive(self.model.posterior, *args, predictive_kwargs=predictive_kwargs, **kwargs)
+        samples = self._predictive(self.model.posterior, predictive_kwargs=predictive_kwargs)
         self.data.posterior_predictive = samples
