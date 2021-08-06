@@ -7,7 +7,7 @@ Welcome to asteroglitch's documentation!
 ========================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: User Guide:
 
    guide/installation
@@ -16,7 +16,7 @@ Welcome to asteroglitch's documentation!
    guide/contributing
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Tutorials
 
    tutorials/example
