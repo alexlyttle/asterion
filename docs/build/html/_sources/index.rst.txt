@@ -8,9 +8,18 @@ Welcome to asteroglitch's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: User Guide:
 
+   guide/installation
+   guide/getting_started
+   guide/api
+   guide/contributing
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorials
+
+   tutorials/example
 
 Indices and tables
 ==================

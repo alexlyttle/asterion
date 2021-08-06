@@ -3,7 +3,7 @@ import setuptools
 name = 'asteroglitch'
 
 __version__ = None
-exec(open(f'{name}/version.py').read())
+exec(open(f'{name}/_version.py').read())
 
 description = 'Fits the asteroseismic helium-II ionisation zone glitch ' + \
               'present in the mode frequencies of solar-like oscillators.'

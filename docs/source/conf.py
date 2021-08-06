@@ -14,15 +14,18 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+# -- Imports -----------------------------------------------------------------
+from asteroglitch import __version__
+
 
 # -- Project information -----------------------------------------------------
 
-project = 'asteroglitch'
+project = 'Asteroglitch'
 copyright = '2021, Alex Lyttle'
 author = 'Alex Lyttle'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -56,7 +59,5 @@ html_theme = 'furo'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-autodoc_typehints = 'description'  # show type hints in doc body instead of signature
-autoclass_content = 'both'  # get docstring from class level and init simultaneously
-
-napoleon_attr_annotations = True
+# -- Autodoc options ---------------------------------------------------------
+autodoc_typehints = 'description'  # show type hints in doc body
