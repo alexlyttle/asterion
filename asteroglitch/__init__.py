@@ -1,7 +1,7 @@
 """[summary]
 
-Notes:
-    [notes]
+Warning:
+    This module is a work-in-progress, use with caution.
 """
 import numpyro
 

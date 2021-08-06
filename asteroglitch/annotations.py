@@ -1,7 +1,4 @@
 """[summary]
-
-Notes:
-    [notes]
 """
 import numpy as np
 from typing import Union, TypeVar, Sequence

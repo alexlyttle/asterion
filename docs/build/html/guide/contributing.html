@@ -112,7 +112,7 @@
 
 <div class="announcement">
   <aside class="announcement-content">
-     <em>Attention<em>! This project is an alpha build, please use with caution. 
+     <em>Attention</em>! This project is an alpha build, please use with caution. 
   </aside>
 </div>
 
@@ -160,7 +160,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="api.html">API documentation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="api.html">API reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="asteroglitch.html">asteroglitch</a></li>
 <li class="toctree-l2"><a class="reference internal" href="asteroglitch.html#module-asteroglitch.annotations">asteroglitch.annotations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="asteroglitch.html#module-asteroglitch.data">asteroglitch.data</a></li>
@@ -218,7 +218,7 @@ make html
 </pre></div>
 </div>
 <p><strong>Optional</strong>: If you have added a submodule or subpackage to <code class="docutils literal notranslate"><span class="pre">asteroglitch</span></code>, run the following command in the main project directory to update the API documentation:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sphinx-apidoc -f -M -H <span class="s2">"API documentation"</span> --tocfile api -t docs/source/_templates -o docs/source/guide asteroglitch
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sphinx-apidoc -f -M -H <span class="s2">"API reference"</span> --tocfile api -t docs/source/_templates -o docs/source/guide asteroglitch
 </pre></div>
 </div>
 <p>This recursively searches <code class="docutils literal notranslate"><span class="pre">asteroglitch</span></code> and generates a subsection for each submodule and subpackage. Then, update the HTML documentation.</p>

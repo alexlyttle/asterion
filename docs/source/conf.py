@@ -60,7 +60,7 @@ html_theme = 'furo'
 html_static_path = ['_static']
 
 html_theme_options = {
-    "announcement": "<em>Attention<em>! This project is an alpha build, " + \
+    "announcement": "<em>Attention</em>! This project is an alpha build, " + \
                     "please use with caution.",
 }
 

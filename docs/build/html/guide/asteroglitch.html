@@ -3,7 +3,7 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Contributing" href="contributing.html" /><link rel="prev" title="API documentation" href="api.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Contributing" href="contributing.html" /><link rel="prev" title="API reference" href="api.html" />
 
     <meta name="generator" content="sphinx-4.1.2, furo 2021.07.31.beta41"/>
         <title>asteroglitch - AsteroGlitch v0.1dev</title>
@@ -112,7 +112,7 @@
 
 <div class="announcement">
   <aside class="announcement-content">
-     <em>Attention<em>! This project is an alpha build, please use with caution. 
+     <em>Attention</em>! This project is an alpha build, please use with caution. 
   </aside>
 </div>
 
@@ -160,7 +160,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="api.html">API documentation</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="api.html">API reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">asteroglitch</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-asteroglitch.annotations">asteroglitch.annotations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-asteroglitch.data">asteroglitch.data</a></li>
@@ -207,8 +207,10 @@
 <section id="module-asteroglitch.annotations">
 <span id="asteroglitch-annotations"></span><h1>asteroglitch.annotations<a class="headerlink" href="#module-asteroglitch.annotations" title="Permalink to this headline">¶</a></h1>
 <p>[summary]</p>
-<p class="rubric">Notes</p>
-<p>[notes]</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>[note]</p>
+</div>
 <dl class="py data">
 <dt class="sig sig-object py" id="asteroglitch.annotations.Array1D">
 <span class="sig-prename descclassname"><span class="pre">asteroglitch.annotations.</span></span><span class="sig-name descname"><span class="pre">Array1D</span></span><a class="headerlink" href="#asteroglitch.annotations.Array1D" title="Permalink to this definition">¶</a></dt>
@@ -307,8 +309,10 @@
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.inference.</span></span><span class="sig-name descname"><span class="pre">Inference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_warmup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_chains</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asteroglitch.inference.Inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>[summary]</p>
-<p class="rubric">Notes</p>
-<p>[notes]</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>[note]</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -320,6 +324,18 @@
 </ul>
 </dd>
 </dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>[see also]</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>[warning]</p>
+</div>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>[hint]</p>
+</div>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="asteroglitch.inference.Inference.data">
 <span class="sig-name descname"><span class="pre">data</span></span><em class="property"><span class="pre">:</span> <a class="reference internal" href="#asteroglitch.data.Data" title="asteroglitch.data.Data"><span class="pre">asteroglitch.data.Data</span></a></em><a class="headerlink" href="#asteroglitch.inference.Inference.data" title="Permalink to this definition">¶</a></dt>
@@ -359,6 +375,11 @@
 </section>
 <section id="module-asteroglitch.model">
 <span id="asteroglitch-model"></span><h1>asteroglitch.model<a class="headerlink" href="#module-asteroglitch.model" title="Permalink to this headline">¶</a></h1>
+<p>[summary]</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>[note]</p>
+</div>
 <dl class="py class">
 <dt class="sig sig-object py" id="asteroglitch.model.GlitchModel">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.model.</span></span><span class="sig-name descname"><span class="pre">GlitchModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu_err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_orders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#asteroglitch.model.GlitchModel" title="Permalink to this definition">¶</a></dt>
@@ -647,7 +668,7 @@ nu_max.</p>
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">API documentation</div>
+                <div class="title">API reference</div>
                 
               </div>
             </a>

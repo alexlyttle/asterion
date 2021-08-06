@@ -1,3 +1,5 @@
+"""[summary]
+"""
 import math
 
 import numpy as np
@@ -35,8 +37,8 @@ __all__ = [
 class Inference:
     """[summary]
 
-    Notes:
-        [notes]
+    Note:
+        [note]
 
     Args:
         model: [description]
@@ -44,6 +46,15 @@ class Inference:
         num_warmup: [description], by default 1000.
         num_samples: [description], by default 1000.
         num_chains: [description], by default 5.
+
+    See Also:
+        [see also]
+    
+    Warning:
+        [warning]
+
+    Hint:
+        [hint]
     """ 
     def __init__(self, model: Model, num_warmup: int=1000,
                  num_samples: int=1000, num_chains: int=5, *, seed: int):       

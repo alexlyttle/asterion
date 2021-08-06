@@ -29,6 +29,6 @@ Once you have made changes to docstrings, run the following commands to update t
 
 .. code-block:: shell
 
-    sphinx-apidoc -f -M -H "API documentation" --tocfile api -t docs/source/_templates -o docs/source/guide asteroglitch
+    sphinx-apidoc -f -M -H "API reference" --tocfile api -t docs/source/_templates -o docs/source/guide asteroglitch
 
 This recursively searches ``asteroglitch`` and generates a subsection for each submodule and subpackage. Then, update the HTML documentation.

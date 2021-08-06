@@ -1,3 +1,5 @@
+"""[summary]
+"""
 import arviz as az
 import numpy as np
 from typing import List, Dict, Optional
