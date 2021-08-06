@@ -20,7 +20,7 @@ from asteroglitch import __version__
 
 # -- Project information -----------------------------------------------------
 
-project = 'Asteroglitch'
+project = 'AsteroGlitch'
 copyright = '2021, Alex Lyttle'
 author = 'Alex Lyttle'
 
@@ -58,6 +58,14 @@ html_theme = 'furo'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_theme_options = {
+    "announcement": "<em>Attention<em>! This project is an alpha build, " + \
+                    "please use with caution.",
+}
+
+html_title = f"{project} v{release}"
+html_short_title = project
 
 # -- Autodoc options ---------------------------------------------------------
 autodoc_typehints = 'description'  # show type hints in doc body
