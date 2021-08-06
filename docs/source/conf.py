@@ -4,6 +4,7 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -14,7 +15,10 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+
 # -- Imports -----------------------------------------------------------------
+
+import asteroglitch
 from asteroglitch import __version__
 
 
@@ -36,6 +40,9 @@ release = __version__
 extensions = [
     'sphinx.ext.napoleon',  # Add napoleon to the extensions list
     'sphinx.ext.autodoc',
+    # 'sphinx.ext.linkcode',  # Uncomment for links to source code on GitHub
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.viewcode',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -67,5 +74,44 @@ html_theme_options = {
 html_title = f"{project} v{release}"
 html_short_title = project
 
+
 # -- Autodoc options ---------------------------------------------------------
 autodoc_typehints = 'description'  # show type hints in doc body
+
+
+# -- Link code options -------------------------------------------------------
+
+# Uncomment the following for links to source in GitHub
+# def linkcode_resolve(domain, info):
+#     def find_source():
+#         # try to find the file and line number, based on code from numpy:
+#         # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
+#         obj = sys.modules[info['module']]
+#         for part in info['fullname'].split('.'):
+#             obj = getattr(obj, part)
+#         import inspect
+#         import os
+#         fn = inspect.getsourcefile(obj)
+#         fn = os.path.relpath(
+#             fn, 
+#             tart=os.path.dirname(asteroglitch.__file__)
+#         )
+#         source, lineno = inspect.getsourcelines(obj)
+#         return fn, lineno, lineno + len(source) - 1
+
+#     if domain != 'py' or not info['module']:
+#         return None
+#     try:
+#         filename = 'asteroglitch/%s#L%d-L%d' % find_source()
+#     except Exception:
+#         return None
+#     tag = 'main' if 'dev' in release else ('v' + release)
+#     return "https://github.com/alexlyttle/helium-glitch-fitter/blob/%s/%s" \
+#         % (tag, filename)
+
+
+# -- InterSphinx options -----------------------------------------------------
+
+intersphinx_mapping = {
+    "numpyro": ("https://num.pyro.ai/en/stable/", None),
+}
