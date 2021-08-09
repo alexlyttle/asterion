@@ -165,7 +165,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#module-asteroglitch.annotations">asteroglitch.annotations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-asteroglitch.data">asteroglitch.data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-asteroglitch.inference">asteroglitch.inference</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-asteroglitch.model">asteroglitch.model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-asteroglitch.models">asteroglitch.models</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
@@ -208,24 +208,37 @@
 </section>
 <section id="module-asteroglitch.annotations">
 <span id="asteroglitch-annotations"></span><h1>asteroglitch.annotations<a class="headerlink" href="#module-asteroglitch.annotations" title="Permalink to this headline">¶</a></h1>
-<p>[summary]</p>
-<dl class="py data">
+<p>Annotations for use in type hinting.</p>
+<dl class="py class">
 <dt class="sig sig-object py" id="asteroglitch.annotations.Array1D">
-<span class="sig-prename descclassname"><span class="pre">asteroglitch.annotations.</span></span><span class="sig-name descname"><span class="pre">Array1D</span></span><a class="headerlink" href="#asteroglitch.annotations.Array1D" title="Permalink to this definition">¶</a></dt>
-<dd><p>[description]</p>
-<p>alias of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">asteroglitch.annotations._T</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>]</p>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.annotations.</span></span><span class="sig-name descname"><span class="pre">Array1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/annotations.html#Array1D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.annotations.Array1D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<a class="reference internal" href="#asteroglitch.annotations.T" title="asteroglitch.annotations.T"><code class="xref py py-obj docutils literal notranslate"><span class="pre">asteroglitch.annotations.T</span></code></a>]</p>
+<p>A generic type for a 1-dimensional array-like object</p>
+<p>alias of Union[Sequence[<a class="reference external" href="#asteroglitch.annotations.T">T</a>],
+<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.ndarray.html#arrays-ndarray" title="(in NumPy v1.21)"><span class="xref std std-ref">numpy.ndarray</span></a>]</p>
 </dd></dl>
-<dl class="py data">
+<dl class="py class">
 <dt class="sig sig-object py" id="asteroglitch.annotations.Array2D">
-<span class="sig-prename descclassname"><span class="pre">asteroglitch.annotations.</span></span><span class="sig-name descname"><span class="pre">Array2D</span></span><a class="headerlink" href="#asteroglitch.annotations.Array2D" title="Permalink to this definition">¶</a></dt>
-<dd><p>[description]</p>
-<p>alias of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">asteroglitch.annotations._T</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>]</p>
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.annotations.</span></span><span class="sig-name descname"><span class="pre">Array2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/annotations.html#Array2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.annotations.Array2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<a class="reference internal" href="#asteroglitch.annotations.T" title="asteroglitch.annotations.T"><code class="xref py py-obj docutils literal notranslate"><span class="pre">asteroglitch.annotations.T</span></code></a>]</p>
+<p>A generic type for a 2-dimensional array-like object</p>
+<p>alias of Union[Sequence[Sequence[<a class="reference external" href="#asteroglitch.annotations.T">T</a>]],
+<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.ndarray.html#arrays-ndarray" title="(in NumPy v1.21)"><span class="xref std std-ref">numpy.ndarray</span></a>]</p>
+</dd></dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="asteroglitch.annotations.Array3D">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.annotations.</span></span><span class="sig-name descname"><span class="pre">Array3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/annotations.html#Array3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.annotations.Array3D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<a class="reference internal" href="#asteroglitch.annotations.T" title="asteroglitch.annotations.T"><code class="xref py py-obj docutils literal notranslate"><span class="pre">asteroglitch.annotations.T</span></code></a>]</p>
+<p>A generic type for a 3-dimensional array-like object</p>
+<p>alias of Union[Sequence[Sequence[
+Sequence[<a class="reference external" href="#asteroglitch.annotations.T">T</a>]]],
+<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.ndarray.html#arrays-ndarray" title="(in NumPy v1.21)"><span class="xref std std-ref">numpy.ndarray</span></a>]</p>
 </dd></dl>
 <dl class="py data">
-<dt class="sig sig-object py" id="asteroglitch.annotations.Array3D">
-<span class="sig-prename descclassname"><span class="pre">asteroglitch.annotations.</span></span><span class="sig-name descname"><span class="pre">Array3D</span></span><a class="headerlink" href="#asteroglitch.annotations.Array3D" title="Permalink to this definition">¶</a></dt>
-<dd><p>[description]</p>
-<p>alias of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">asteroglitch.annotations._T</span></code>]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>]</p>
+<dt class="sig sig-object py" id="asteroglitch.annotations.T">
+<span class="sig-prename descclassname"><span class="pre">asteroglitch.annotations.</span></span><span class="sig-name descname"><span class="pre">T</span></span><a class="headerlink" href="#asteroglitch.annotations.T" title="Permalink to this definition">¶</a></dt>
+<dd><p id="type-variable">A generic type variable</p>
+<p>alias of TypeVar(‘T’)</p>
 </dd></dl>
 </section>
 <section id="module-asteroglitch.data">
@@ -234,15 +247,15 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="asteroglitch.data.Data">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.data.</span></span><span class="sig-name descname"><span class="pre">Data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/data.html#Data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.data.Data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>[summary]</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>observed</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>numpy.ndarray</em><em>]</em><em>]</em>) – [description]. Defaults to None.</p></li>
-<li><p><strong>constant</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>numpy.ndarray</em><em>]</em><em>]</em>) – [description]. Defaults to None.</p></li>
-<li><p><strong>coords</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>numpy.ndarray</em><em>]</em><em>]</em>) – [description]. Defaults to None.</p></li>
-<li><p><strong>dims</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em><em>]</em>) – [description]. Defaults to None.</p></li>
+<li><p><strong>observed</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><em>numpy.ndarray</em></a><em>]</em><em>]</em>) – [description]. Defaults to None.</p></li>
+<li><p><strong>constant</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><em>numpy.ndarray</em></a><em>]</em><em>]</em>) – [description]. Defaults to None.</p></li>
+<li><p><strong>coords</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><em>numpy.ndarray</em></a><em>]</em><em>]</em>) – [description]. Defaults to None.</p></li>
+<li><p><strong>dims</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>]</em><em>]</em><em>]</em>) – [description]. Defaults to None.</p></li>
 </ul>
 </dd>
 </dl>
@@ -294,9 +307,6 @@
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>[description]</p>
 </dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>az.InferenceData</p>
-</dd>
 </dl>
 </dd></dl>
 </dd></dl>
@@ -307,7 +317,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="asteroglitch.inference.Inference">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.inference.</span></span><span class="sig-name descname"><span class="pre">Inference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_warmup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_chains</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/inference.html#Inference"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.inference.Inference" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>[summary]</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -316,11 +326,11 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<a class="reference internal" href="#asteroglitch.model.Model" title="asteroglitch.model.Model"><em>asteroglitch.model.Model</em></a>) – [description]</p></li>
-<li><p><strong>seed</strong> (<em>int</em>) – [description]</p></li>
-<li><p><strong>num_warmup</strong> (<em>int</em>) – [description], by default 1000.</p></li>
-<li><p><strong>num_samples</strong> (<em>int</em>) – [description], by default 1000.</p></li>
-<li><p><strong>num_chains</strong> (<em>int</em>) – [description], by default 5.</p></li>
+<li><p><strong>model</strong> (<a class="reference internal" href="#asteroglitch.models.Model" title="asteroglitch.models.Model"><em>asteroglitch.models.Model</em></a>) – [description]</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – [description]</p></li>
+<li><p><strong>num_warmup</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – [description], by default 1000.</p></li>
+<li><p><strong>num_samples</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – [description], by default 1000.</p></li>
+<li><p><strong>num_chains</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – [description], by default 5.</p></li>
 </ul>
 </dd>
 </dl>
@@ -343,7 +353,7 @@
 </dd></dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="asteroglitch.inference.Inference.model">
-<span class="sig-name descname"><span class="pre">model</span></span><em class="property"><span class="pre">:</span> <a class="reference internal" href="#asteroglitch.model.Model" title="asteroglitch.model.Model"><span class="pre">asteroglitch.model.Model</span></a></em><a class="headerlink" href="#asteroglitch.inference.Inference.model" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">model</span></span><em class="property"><span class="pre">:</span> <a class="reference internal" href="#asteroglitch.models.Model" title="asteroglitch.models.Model"><span class="pre">asteroglitch.models.Model</span></a></em><a class="headerlink" href="#asteroglitch.inference.Inference.model" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 <dl class="py method">
@@ -363,61 +373,60 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>extra_fields</strong> (<em>Optional</em><em>[</em><em>tuple</em><em>]</em>) – [description], by default ().</p></li>
-<li><p><strong>init_params</strong> (<em>Optional</em><em>[</em><em>dict</em><em>]</em>) – [description], by default None.</p></li>
-<li><p><strong>kernel_kwargs</strong> (<em>Optional</em><em>[</em><em>dict</em><em>]</em>) – [description], by default {}.</p></li>
-<li><p><strong>mcmc_kwargs</strong> (<em>Optional</em><em>[</em><em>dict</em><em>]</em>) – [description], by default {}.</p></li>
+<li><p><strong>extra_fields</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.9)"><em>tuple</em></a><em>]</em>) – [description], by default ().</p></li>
+<li><p><strong>init_params</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a><em>]</em>) – [description], by default None.</p></li>
+<li><p><strong>kernel_kwargs</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a><em>]</em>) – [description], by default {}.</p></li>
+<li><p><strong>mcmc_kwargs</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a><em>]</em>) – [description], by default {}.</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 </dd></dl>
 </section>
-<section id="module-asteroglitch.model">
-<span id="asteroglitch-model"></span><h1>asteroglitch.model<a class="headerlink" href="#module-asteroglitch.model" title="Permalink to this headline">¶</a></h1>
-<p>[summary]</p>
+<section id="module-asteroglitch.models">
+<span id="asteroglitch-models"></span><h1>asteroglitch.models<a class="headerlink" href="#module-asteroglitch.models" title="Permalink to this headline">¶</a></h1>
+<p>Probabilistic models for asteroseismic oscillation mode frequencies.</p>
 <dl class="py class">
-<dt class="sig sig-object py" id="asteroglitch.model.GlitchModel">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.model.</span></span><span class="sig-name descname"><span class="pre">GlitchModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu_err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_orders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/model.html#GlitchModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.model.GlitchModel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#asteroglitch.model.Model" title="asteroglitch.model.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">asteroglitch.model.Model</span></code></a></p>
+<dt class="sig sig-object py" id="asteroglitch.models.GlitchModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.models.</span></span><span class="sig-name descname"><span class="pre">GlitchModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu_err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_orders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/models.html#GlitchModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.models.GlitchModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#asteroglitch.models.Model" title="asteroglitch.models.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">asteroglitch.models.Model</span></code></a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>delta_nu</strong> (<em>Union</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – Two elements containing the respective prior mean and standard
+<li><p><strong>delta_nu</strong> (<a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em>) – Two elements containing the respective prior mean and standard
 deviation for the large frequency separation.</p></li>
-<li><p><strong>nu_max</strong> (<em>Union</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – Two elements containing the respective prior mean and standard
+<li><p><strong>nu_max</strong> (<a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em>) – Two elements containing the respective prior mean and standard
 deviation for the frequency at maximum power.</p></li>
-<li><p><strong>epsilon</strong> (<em>Union</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – Two elements containing the respective prior mean and standard
+<li><p><strong>epsilon</strong> (<a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em>) – Two elements containing the respective prior mean and standard
 deviation for the asymptotic phase term. Default is [1.3, 0.2] which is
 suitable for main sequence solar-like oscillators.</p></li>
-<li><p><strong>alpha</strong> (<em>Union</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – Two elements containing the respective prior mean and standard
+<li><p><strong>alpha</strong> (<a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em>) – Two elements containing the respective prior mean and standard
 deviation for the asymptotic curvature term. Default is [0.0015, 0.002]
 which is suitable for most solar-like oscillators.</p></li>
-<li><p><strong>nu</strong> (<em>Union</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>, </em><em>Sequence</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>]</em><em>, </em><em>Sequence</em><em>[</em><em>Sequence</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>]</em><em>]</em><em>]</em>) – Locations of the l=0 (radial) stellar pulsation modes. Null data may be
+<li><p><strong>nu</strong> (<em>Union</em><em>[</em><a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>, </em><a class="reference internal" href="#asteroglitch.annotations.Array2D" title="asteroglitch.annotations.Array2D"><em>Array2D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>]</em>) – Locations of the l=0 (radial) stellar pulsation modes. Null data may be
 passed as NaN. The shape of nu should be (num_orders,) or
 (N, num_orders) for N stars in the model.</p></li>
-<li><p><strong>nu_err</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>, </em><em>Sequence</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>]</em><em>, </em><em>Sequence</em><em>[</em><em>Sequence</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>]</em><em>]</em><em>]</em><em>]</em>) – The observational uncertainty for each element of nu. Null data may be
+<li><p><strong>nu_err</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>, </em><a class="reference internal" href="#asteroglitch.annotations.Array2D" title="asteroglitch.annotations.Array2D"><em>Array2D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>]</em><em>]</em>) – The observational uncertainty for each element of nu. Null data may be
 passed as NaN. Default is None, for which only a star-by-star model
 error is inferred and observational uncertainty is assumed to be zero.</p></li>
-<li><p><strong>n</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>Sequence</em><em>[</em><em>int</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em><em>]</em>) – The observers radial order of each mode in nu. Default is None and n is
+<li><p><strong>n</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>]</em><em>]</em>) – The observers radial order of each mode in nu. Default is None and n is
 inferred from num_orders.</p></li>
-<li><p><strong>num_orders</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – The number of radial orders to model. The observers n is inferred from
+<li><p><strong>num_orders</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>]</em>) – The number of radial orders to model. The observers n is inferred from
 the priors for delta_nu, nu_max and epsilon. Default is None, and
 num_orders is inferred from the length of the final dimension of nu.</p></li>
-<li><p><strong>name</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – </p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.GlitchModel.reparam">
-<span class="sig-name descname"><span class="pre">reparam</span></span><em class="property"><span class="pre">:</span> <span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://num.pyro.ai/en/stable/reparam.html#numpyro.infer.reparam.Reparam" title="(in NumPyro)"><span class="pre">numpyro.infer.reparam.Reparam</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">{'phi_cz':</span> <span class="pre">&lt;numpyro.infer.reparam.CircularReparam</span> <span class="pre">object&gt;,</span> <span class="pre">'phi_he':</span> <span class="pre">&lt;numpyro.infer.reparam.CircularReparam</span> <span class="pre">object&gt;}</span></em><a class="headerlink" href="#asteroglitch.model.GlitchModel.reparam" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.GlitchModel.reparam">
+<span class="sig-name descname"><span class="pre">reparam</span></span><em class="property"><span class="pre">:</span> <span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://num.pyro.ai/en/stable/reparam.html#numpyro.infer.reparam.Reparam" title="(in NumPyro)"><span class="pre">numpyro.infer.reparam.Reparam</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">{'phi_cz':</span> <span class="pre">&lt;numpyro.infer.reparam.CircularReparam</span> <span class="pre">object&gt;,</span> <span class="pre">'phi_he':</span> <span class="pre">&lt;numpyro.infer.reparam.CircularReparam</span> <span class="pre">object&gt;}</span></em><a class="headerlink" href="#asteroglitch.models.GlitchModel.reparam" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 </dd></dl>
 <dl class="py class">
-<dt class="sig sig-object py" id="asteroglitch.model.Model">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.model.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu_err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/model.html#Model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.model.Model" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dt class="sig sig-object py" id="asteroglitch.models.Model">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.models.</span></span><span class="sig-name descname"><span class="pre">Model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu_err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/models.html#Model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.models.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Base Model class for modelling asteroseismic oscillation modes.</p>
 <p>All models must have a <cite>name</cite> (usually the name of the star), array of radial order
 <cite>n</cite> and array of angular degree <cite>l</cite> (optional). The observed mode
@@ -429,120 +438,114 @@ will be made which can be used in the likelihood.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – [description]</p></li>
-<li><p><strong>n</strong> (<em>Union</em><em>[</em><em>Sequence</em><em>[</em><em>int</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – [description]</p></li>
-<li><p><strong>nu</strong> (<em>Union</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>, </em><em>Sequence</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>]</em><em>, </em><em>Sequence</em><em>[</em><em>Sequence</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>]</em><em>]</em><em>]</em>) – [description]</p></li>
-<li><p><strong>l</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>int</em><em>, </em><em>Sequence</em><em>[</em><em>int</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em><em>]</em>) – [description]. Defaults to None.</p></li>
-<li><p><strong>nu_err</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>, </em><em>Sequence</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>]</em><em>, </em><em>Sequence</em><em>[</em><em>Sequence</em><em>[</em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>]</em><em>]</em><em>]</em><em>]</em>) – [description]. Defaults to None.</p></li>
+<li><p><strong>name</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>]</em><em>]</em>) – [description]</p></li>
+<li><p><strong>n</strong> (<a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>]</em>) – [description]</p></li>
+<li><p><strong>nu</strong> (<em>Union</em><em>[</em><a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>, </em><a class="reference internal" href="#asteroglitch.annotations.Array2D" title="asteroglitch.annotations.Array2D"><em>Array2D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>, </em><a class="reference internal" href="#asteroglitch.annotations.Array3D" title="asteroglitch.annotations.Array3D"><em>Array3D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>]</em>) – [description]</p></li>
+<li><p><strong>l</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>]</em><em>]</em><em>]</em>) – [description]. Defaults to None.</p></li>
+<li><p><strong>nu_err</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>, </em><a class="reference internal" href="#asteroglitch.annotations.Array2D" title="asteroglitch.annotations.Array2D"><em>Array2D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>, </em><a class="reference internal" href="#asteroglitch.annotations.Array3D" title="asteroglitch.annotations.Array3D"><em>Array3D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>]</em><em>]</em>) – [description]. Defaults to None.</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.dimensions">
-<span class="sig-name descname"><span class="pre">dimensions</span></span><em class="property"><span class="pre">:</span> <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#asteroglitch.model.dimension" title="asteroglitch.model.dimension"><span class="pre">asteroglitch.model.dimension</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#asteroglitch.model.Model.dimensions" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.dimensions">
+<span class="sig-name descname"><span class="pre">dimensions</span></span><em class="property"><span class="pre">:</span> <span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="#asteroglitch.models.dimension" title="asteroglitch.models.dimension"><span class="pre">asteroglitch.models.dimension</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#asteroglitch.models.Model.dimensions" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.get_posterior_trace">
-<span class="sig-name descname"><span class="pre">get_posterior_trace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng_key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/model.html#Model.get_posterior_trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.model.Model.get_posterior_trace" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.get_posterior_trace">
+<span class="sig-name descname"><span class="pre">get_posterior_trace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng_key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/models.html#Model.get_posterior_trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.models.Model.get_posterior_trace" title="Permalink to this definition">¶</a></dt>
 <dd><p>[summary]</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>rng_key</strong> (<em>Union</em><em>[</em><em>int</em><em>, </em><em>jax._src.random.PRNGKey</em><em>]</em>) – [description]</p>
+<dd class="field-odd"><p><strong>rng_key</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>jax._src.numpy.lax_numpy.ndarray</em><em>]</em>) – [description]</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>[description]</p>
 </dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dict</p>
-</dd>
 </dl>
 </dd></dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.get_prior_trace">
-<span class="sig-name descname"><span class="pre">get_prior_trace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng_key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/model.html#Model.get_prior_trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.model.Model.get_prior_trace" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.get_prior_trace">
+<span class="sig-name descname"><span class="pre">get_prior_trace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng_key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/models.html#Model.get_prior_trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.models.Model.get_prior_trace" title="Permalink to this definition">¶</a></dt>
 <dd><p>[summary]</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>rng_key</strong> (<em>Union</em><em>[</em><em>int</em><em>, </em><em>jax._src.random.PRNGKey</em><em>]</em>) – [description]</p>
+<dd class="field-odd"><p><strong>rng_key</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>jax._src.numpy.lax_numpy.ndarray</em><em>]</em>) – [description]</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>[description]</p>
 </dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dict</p>
-</dd>
 </dl>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.l">
-<span class="sig-name descname"><span class="pre">l</span></span><em class="property"><span class="pre">:</span> <span class="pre">numpy.ndarray</span></em><a class="headerlink" href="#asteroglitch.model.Model.l" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.l">
+<span class="sig-name descname"><span class="pre">l</span></span><em class="property"><span class="pre">:</span> <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></em><a class="headerlink" href="#asteroglitch.models.Model.l" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 <dl class="py property">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.likelihood">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">likelihood</span></span><em class="property"><span class="pre">:</span> <span class="pre">Callable</span></em><a class="headerlink" href="#asteroglitch.model.Model.likelihood" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.likelihood">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">likelihood</span></span><em class="property"><span class="pre">:</span> <span class="pre">Callable</span></em><a class="headerlink" href="#asteroglitch.models.Model.likelihood" title="Permalink to this definition">¶</a></dt>
 <dd><p>[summary]</p>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.n">
-<span class="sig-name descname"><span class="pre">n</span></span><em class="property"><span class="pre">:</span> <span class="pre">numpy.ndarray</span></em><a class="headerlink" href="#asteroglitch.model.Model.n" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.n">
+<span class="sig-name descname"><span class="pre">n</span></span><em class="property"><span class="pre">:</span> <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></em><a class="headerlink" href="#asteroglitch.models.Model.n" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.name">
-<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="pre">:</span> <span class="pre">numpy.ndarray</span></em><a class="headerlink" href="#asteroglitch.model.Model.name" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="pre">:</span> <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></em><a class="headerlink" href="#asteroglitch.models.Model.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.nu">
-<span class="sig-name descname"><span class="pre">nu</span></span><em class="property"><span class="pre">:</span> <span class="pre">numpy.ndarray</span></em><a class="headerlink" href="#asteroglitch.model.Model.nu" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.nu">
+<span class="sig-name descname"><span class="pre">nu</span></span><em class="property"><span class="pre">:</span> <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></em><a class="headerlink" href="#asteroglitch.models.Model.nu" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.nu_err">
-<span class="sig-name descname"><span class="pre">nu_err</span></span><em class="property"><span class="pre">:</span> <span class="pre">numpy.ndarray</span></em><a class="headerlink" href="#asteroglitch.model.Model.nu_err" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.nu_err">
+<span class="sig-name descname"><span class="pre">nu_err</span></span><em class="property"><span class="pre">:</span> <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></em><a class="headerlink" href="#asteroglitch.models.Model.nu_err" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.num_orders">
-<span class="sig-name descname"><span class="pre">num_orders</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#asteroglitch.model.Model.num_orders" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.num_orders">
+<span class="sig-name descname"><span class="pre">num_orders</span></span><em class="property"><span class="pre">:</span> <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></em><a class="headerlink" href="#asteroglitch.models.Model.num_orders" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.num_stars">
-<span class="sig-name descname"><span class="pre">num_stars</span></span><em class="property"><span class="pre">:</span> <span class="pre">int</span></em><a class="headerlink" href="#asteroglitch.model.Model.num_stars" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.num_stars">
+<span class="sig-name descname"><span class="pre">num_stars</span></span><em class="property"><span class="pre">:</span> <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></em><a class="headerlink" href="#asteroglitch.models.Model.num_stars" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.obs_mask">
-<span class="sig-name descname"><span class="pre">obs_mask</span></span><em class="property"><span class="pre">:</span> <span class="pre">numpy.ndarray</span></em><a class="headerlink" href="#asteroglitch.model.Model.obs_mask" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.obs_mask">
+<span class="sig-name descname"><span class="pre">obs_mask</span></span><em class="property"><span class="pre">:</span> <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></em><a class="headerlink" href="#asteroglitch.models.Model.obs_mask" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 <dl class="py property">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.posterior">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">posterior</span></span><em class="property"><span class="pre">:</span> <span class="pre">Callable</span></em><a class="headerlink" href="#asteroglitch.model.Model.posterior" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.posterior">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">posterior</span></span><em class="property"><span class="pre">:</span> <span class="pre">Callable</span></em><a class="headerlink" href="#asteroglitch.models.Model.posterior" title="Permalink to this definition">¶</a></dt>
 <dd><p>[summary]</p>
 </dd></dl>
 <dl class="py property">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.predictions">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">predictions</span></span><em class="property"><span class="pre">:</span> <span class="pre">Callable</span></em><a class="headerlink" href="#asteroglitch.model.Model.predictions" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.predictions">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">predictions</span></span><em class="property"><span class="pre">:</span> <span class="pre">Callable</span></em><a class="headerlink" href="#asteroglitch.models.Model.predictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>[summary]</p>
 </dd></dl>
 <dl class="py property">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.prior">
-<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">prior</span></span><em class="property"><span class="pre">:</span> <span class="pre">Callable</span></em><a class="headerlink" href="#asteroglitch.model.Model.prior" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.prior">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">prior</span></span><em class="property"><span class="pre">:</span> <span class="pre">Callable</span></em><a class="headerlink" href="#asteroglitch.models.Model.prior" title="Permalink to this definition">¶</a></dt>
 <dd><p>[summary]</p>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.Model.reparam">
-<span class="sig-name descname"><span class="pre">reparam</span></span><em class="property"><span class="pre">:</span> <span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://num.pyro.ai/en/stable/reparam.html#numpyro.infer.reparam.Reparam" title="(in NumPyro)"><span class="pre">numpyro.infer.reparam.Reparam</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#asteroglitch.model.Model.reparam" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.Model.reparam">
+<span class="sig-name descname"><span class="pre">reparam</span></span><em class="property"><span class="pre">:</span> <span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><a class="reference external" href="https://num.pyro.ai/en/stable/reparam.html#numpyro.infer.reparam.Reparam" title="(in NumPyro)"><span class="pre">numpyro.infer.reparam.Reparam</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#asteroglitch.models.Model.reparam" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 </dd></dl>
 <dl class="py class">
-<dt class="sig sig-object py" id="asteroglitch.model.dimension">
-<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.model.</span></span><span class="sig-name descname"><span class="pre">dimension</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsample_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/model.html#dimension"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.model.dimension" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.dimension">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">asteroglitch.models.</span></span><span class="sig-name descname"><span class="pre">dimension</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsample_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/models.html#dimension"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.models.dimension" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://num.pyro.ai/en/stable/primitives.html#numpyro.primitives.plate" title="(in NumPyro)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpyro.primitives.plate</span></code></a></p>
 <p>Context manager for variables along a given dimension with coordinates.</p>
 <p>Based on <cite>numpyro.plate</cite> but includes deterministics defined within the
@@ -550,95 +553,92 @@ context.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> (<em>str</em>) – Name of the dimension.</p></li>
-<li><p><strong>size</strong> (<em>int</em>) – Size of the dimension.</p></li>
-<li><p><strong>subsample_size</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Optional argument denoting the size of the mini-batch.
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – Name of the dimension.</p></li>
+<li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Size of the dimension.</p></li>
+<li><p><strong>subsample_size</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>]</em>) – Optional argument denoting the size of the mini-batch.
 This can be used to apply a scaling factor by inference algorithms.
 e.g. when computing ELBO using a mini-batch.</p></li>
-<li><p><strong>dim</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Optional argument to specify which dimension in the tensor
+<li><p><strong>dim</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>]</em>) – Optional argument to specify which dimension in the tensor
 is used as the plate dim. If <cite>None</cite> (default), the rightmost
 available dim is allocated.</p></li>
-<li><p><strong>coords</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>Sequence</em><em>[</em><em>Any</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em><em>]</em>) – Optional coordinates for each point in the dimension. If <cite>None</cite>
+<li><p><strong>coords</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>Array1D</em></a><em>[</em><em>Any</em><em>]</em><em>]</em>) – Optional coordinates for each point in the dimension. If <cite>None</cite>
 (default), the coords are <cite>np.arange(size)</cite>.</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.dimension.name">
-<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#asteroglitch.model.dimension.name" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.dimension.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#asteroglitch.models.dimension.name" title="Permalink to this definition">¶</a></dt>
 <dd><p>Name of the dimension</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>str</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)">str</a></p>
 </dd>
 </dl>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.dimension.size">
-<span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#asteroglitch.model.dimension.size" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.dimension.size">
+<span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#asteroglitch.models.dimension.size" title="Permalink to this definition">¶</a></dt>
 <dd><p>Size of the dimension</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>int</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a></p>
 </dd>
 </dl>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.dimension.subsample_size">
-<span class="sig-name descname"><span class="pre">subsample_size</span></span><a class="headerlink" href="#asteroglitch.model.dimension.subsample_size" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.dimension.subsample_size">
+<span class="sig-name descname"><span class="pre">subsample_size</span></span><a class="headerlink" href="#asteroglitch.models.dimension.subsample_size" title="Permalink to this definition">¶</a></dt>
 <dd><p>Size of the mini-batch.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>int or None</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)">None</a></p>
 </dd>
 </dl>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.dimension.dim">
-<span class="sig-name descname"><span class="pre">dim</span></span><a class="headerlink" href="#asteroglitch.model.dimension.dim" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.dimension.dim">
+<span class="sig-name descname"><span class="pre">dim</span></span><a class="headerlink" href="#asteroglitch.models.dimension.dim" title="Permalink to this definition">¶</a></dt>
 <dd><p>The dimension in the tensor which is used as the
 plate dim.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>int or None</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)">int</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)">None</a></p>
 </dd>
 </dl>
 </dd></dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="asteroglitch.model.dimension.coords">
-<span class="sig-name descname"><span class="pre">coords</span></span><em class="property"><span class="pre">:</span> <span class="pre">numpy.ndarray</span></em><a class="headerlink" href="#asteroglitch.model.dimension.coords" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.dimension.coords">
+<span class="sig-name descname"><span class="pre">coords</span></span><em class="property"><span class="pre">:</span> <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></em><a class="headerlink" href="#asteroglitch.models.dimension.coords" title="Permalink to this definition">¶</a></dt>
 <dd><p>[description]</p>
 </dd></dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="asteroglitch.model.dimension.process_message">
-<span class="sig-name descname"><span class="pre">process_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/model.html#dimension.process_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.model.dimension.process_message" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.dimension.process_message">
+<span class="sig-name descname"><span class="pre">process_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/models.html#dimension.process_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.models.dimension.process_message" title="Permalink to this definition">¶</a></dt>
 <dd><p>Modified process message to also include deterministics.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>msg</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Process message</p>
+<dd class="field-odd"><p><strong>msg</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – Process message</p>
 </dd>
 </dl>
 </dd></dl>
 </dd></dl>
 <dl class="py function">
-<dt class="sig sig-object py" id="asteroglitch.model.estimate_n">
-<span class="sig-prename descclassname"><span class="pre">asteroglitch.model.</span></span><span class="sig-name descname"><span class="pre">estimate_n</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_orders</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/model.html#estimate_n"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.model.estimate_n" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="asteroglitch.models.estimate_n">
+<span class="sig-prename descclassname"><span class="pre">asteroglitch.models.</span></span><span class="sig-name descname"><span class="pre">estimate_n</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_orders</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/asteroglitch/models.html#estimate_n"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#asteroglitch.models.estimate_n" title="Permalink to this definition">¶</a></dt>
 <dd><p>Estimates n from delta_nu, nu_max and epsilon, given num_orders about
 nu_max.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>num_orders</strong> (<em>int</em>) – [description]</p></li>
-<li><p><strong>delta_nu</strong> (<em>Union</em><em>[</em><em>float</em><em>, </em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – [description]</p></li>
-<li><p><strong>nu_max</strong> (<em>Union</em><em>[</em><em>float</em><em>, </em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – [description]</p></li>
-<li><p><strong>epsilon</strong> (<em>Union</em><em>[</em><em>float</em><em>, </em><em>Sequence</em><em>[</em><em>float</em><em>]</em><em>, </em><em>numpy.ndarray</em><em>]</em>) – [description]</p></li>
+<li><p><strong>num_orders</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Number of radial orders to estimate n for.</p></li>
+<li><p><strong>delta_nu</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>, </em><a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>asteroglitch.annotations.Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>]</em>) – </p></li>
+<li><p><strong>nu_max</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>, </em><a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>asteroglitch.annotations.Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>]</em>) – [description]</p></li>
+<li><p><strong>epsilon</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>, </em><a class="reference internal" href="#asteroglitch.annotations.Array1D" title="asteroglitch.annotations.Array1D"><em>asteroglitch.annotations.Array1D</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>]</em>) – [description]</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>[description]</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>numpy.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -702,7 +702,7 @@ nu_max.</p>
 <li><a class="reference internal" href="#module-asteroglitch.annotations">asteroglitch.annotations</a></li>
 <li><a class="reference internal" href="#module-asteroglitch.data">asteroglitch.data</a></li>
 <li><a class="reference internal" href="#module-asteroglitch.inference">asteroglitch.inference</a></li>
-<li><a class="reference internal" href="#module-asteroglitch.model">asteroglitch.model</a></li>
+<li><a class="reference internal" href="#module-asteroglitch.models">asteroglitch.models</a></li>
 </ul>
 
           </div>

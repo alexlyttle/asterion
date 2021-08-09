@@ -1,4 +1,4 @@
-"""
+"""Probabilistic models for asteroseismic oscillation mode frequencies.
 """
 from __future__ import annotations
 
@@ -40,8 +40,8 @@ def estimate_n(
     nu_max.
 
     Args:
-        num_orders: [description]
-        delta_nu: [description]
+        num_orders: Number of radial orders to estimate n for.
+        delta_nu: 
         nu_max: [description]
         epsilon: [description]
 

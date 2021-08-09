@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <meta name="generator" content="sphinx-4.1.2, furo 2021.07.31.beta41"/>
-        <title>asteroglitch.model - AsteroGlitch v0.0.1dev</title>
+        <title>asteroglitch.models - AsteroGlitch v0.0.1dev</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=daa650a7760fac3eee23aa959745d2c866b74cb3" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?digest=93475b62d1c3bc01323a0eefdc14a62d77b12690" />
@@ -164,7 +164,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../guide/asteroglitch.html#module-asteroglitch.annotations">asteroglitch.annotations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../guide/asteroglitch.html#module-asteroglitch.data">asteroglitch.data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../guide/asteroglitch.html#module-asteroglitch.inference">asteroglitch.inference</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../guide/asteroglitch.html#module-asteroglitch.model">asteroglitch.model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide/asteroglitch.html#module-asteroglitch.models">asteroglitch.models</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../guide/contributing.html">Contributing</a></li>
@@ -197,9 +197,11 @@
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
-        <h1>Source code for asteroglitch.model</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""[summary]</span>
+        <h1>Source code for asteroglitch.models</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Probabilistic models for asteroseismic oscillation mode frequencies.</span>
 <span class="sd">"""</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
 <span class="kn">import</span> <span class="nn">math</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -228,7 +230,7 @@
 <span class="p">]</span>
 
 
-<div class="viewcode-block" id="estimate_n"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.model.estimate_n">[docs]</a><span class="k">def</span> <span class="nf">estimate_n</span><span class="p">(</span>
+<div class="viewcode-block" id="estimate_n"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.estimate_n">[docs]</a><span class="k">def</span> <span class="nf">estimate_n</span><span class="p">(</span>
     <span class="n">num_orders</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">delta_nu</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Array1D</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span> 
     <span class="n">nu_max</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Array1D</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span> 
@@ -238,8 +240,8 @@
 <span class="sd">    nu_max.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        num_orders: [description]</span>
-<span class="sd">        delta_nu: [description]</span>
+<span class="sd">        num_orders: Number of radial orders to estimate n for.</span>
+<span class="sd">        delta_nu: </span>
 <span class="sd">        nu_max: [description]</span>
 <span class="sd">        epsilon: [description]</span>
 
@@ -287,7 +289,7 @@
     <span class="k">return</span> <span class="n">b0</span> <span class="o">*</span> <span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">b1</span><span class="o">*</span><span class="n">low</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">b1</span><span class="o">*</span><span class="n">high</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">b1</span><span class="o">*</span><span class="p">(</span><span class="n">high</span> <span class="o">-</span> <span class="n">low</span><span class="p">))</span>
 
 
-<div class="viewcode-block" id="dimension"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.model.dimension">[docs]</a><span class="k">class</span> <span class="nc">dimension</span><span class="p">(</span><span class="n">plate</span><span class="p">):</span>
+<div class="viewcode-block" id="dimension"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.dimension">[docs]</a><span class="k">class</span> <span class="nc">dimension</span><span class="p">(</span><span class="n">plate</span><span class="p">):</span>
     <span class="sd">"""Context manager for variables along a given dimension with coordinates.</span>
 
 <span class="sd">    Based on `numpyro.plate` but includes deterministics defined within the</span>
@@ -322,7 +324,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
 
-<div class="viewcode-block" id="dimension.process_message"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.model.dimension.process_message">[docs]</a>    <span class="k">def</span> <span class="nf">process_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<div class="viewcode-block" id="dimension.process_message"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.dimension.process_message">[docs]</a>    <span class="k">def</span> <span class="nf">process_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
         <span class="sd">"""Modified process message to also include deterministics. </span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
@@ -336,7 +338,7 @@
             <span class="n">msg</span><span class="p">[</span><span class="s2">"cond_indep_stack"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="Model"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.model.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
+<div class="viewcode-block" id="Model"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
     <span class="sd">"""Base Model class for modelling asteroseismic oscillation modes. </span>
 <span class="sd">    </span>
 <span class="sd">    All models must have a `name` (usually the name of the star), array of radial order</span>
@@ -480,7 +482,7 @@
         <span class="n">trace</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_trace</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">trace</span>
 
-<div class="viewcode-block" id="Model.get_prior_trace"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.model.Model.get_prior_trace">[docs]</a>    <span class="k">def</span> <span class="nf">get_prior_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng_key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<div class="viewcode-block" id="Model.get_prior_trace"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.Model.get_prior_trace">[docs]</a>    <span class="k">def</span> <span class="nf">get_prior_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng_key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="sd">"""[summary]</span>
 
 <span class="sd">        Args:</span>
@@ -491,7 +493,7 @@
 <span class="sd">        """</span>        
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_trace</span><span class="p">(</span><span class="n">rng_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="Model.get_posterior_trace"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.model.Model.get_posterior_trace">[docs]</a>    <span class="k">def</span> <span class="nf">get_posterior_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng_key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<div class="viewcode-block" id="Model.get_posterior_trace"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.Model.get_posterior_trace">[docs]</a>    <span class="k">def</span> <span class="nf">get_posterior_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng_key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="sd">"""[summary]</span>
 
 <span class="sd">        Args:</span>
@@ -503,7 +505,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_trace</span><span class="p">(</span><span class="n">rng_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">posterior</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="GlitchModel"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.model.GlitchModel">[docs]</a><span class="k">class</span> <span class="nc">GlitchModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+<div class="viewcode-block" id="GlitchModel"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.GlitchModel">[docs]</a><span class="k">class</span> <span class="nc">GlitchModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
     <span class="sd">"""</span>
 <span class="sd">    Args:</span>
 <span class="sd">        delta_nu: Two elements containing the respective prior mean and standard </span>
@@ -541,8 +543,8 @@
         <span class="n">epsilon</span><span class="p">:</span> <span class="n">Array1D</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">alpha</span><span class="p">:</span> <span class="n">Array1D</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">nu</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Array1D</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Array2D</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Array3D</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
-        <span class="n">nu_err</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Array1D</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Array2D</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Array3D</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+        <span class="n">nu</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Array1D</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Array2D</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
+        <span class="n">nu_err</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Array1D</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Array2D</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
         <span class="n">n</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Array1D</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">num_orders</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">):</span>

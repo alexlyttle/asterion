@@ -1,25 +1,55 @@
-"""[summary]
+"""Annotations for use in type hinting.
 """
+from __future__ import annotations
+
 import numpy as np
-from typing import Union, TypeVar, Sequence
+from typing import Union, TypeVar, Sequence, Generic
 
 
 __all__ = [
+    "T",
     "Array1D",
     "Array2D",
     "Array3D",
 ]
 
 
-_T = TypeVar('_T')  # type
-_S = TypeVar('_S')  # sequence
-_Array = Union[_S, np.ndarray]
+T = TypeVar('T')  # type
+""".. _type-variable:
 
-Array1D = _Array[Sequence[_T]]
-"""[description]"""
+A generic type variable
+"""
 
-Array2D = _Array[Sequence[Sequence[_T]]]
-"""[description]"""
+S = TypeVar('S')  # sequence
+Array = Union[S, np.ndarray]
 
-Array3D = _Array[Sequence[Sequence[Sequence[_T]]]]
-"""[description]"""
+
+class Array1D(Generic[T]):
+    """A generic type for a 1-dimensional array-like object
+    
+    alias of Union\[Sequence\[`T <#asteroglitch.annotations.T>`_\],
+    :ref:`numpy.ndarray<numpy:arrays.ndarray>`\]
+    """
+    def __getitem__(self, T):
+        return Array[Sequence[T]]
+
+
+class Array2D(Generic[T]):
+    """A generic type for a 2-dimensional array-like object
+    
+    alias of Union\[Sequence\[Sequence\[`T <#asteroglitch.annotations.T>`_\]\],
+    :ref:`numpy.ndarray<numpy:arrays.ndarray>`\]
+    """
+    def __getitem__(self, T):
+        return Array[Sequence[Sequence[T]]]
+
+
+class Array3D(Generic[T]):
+    """A generic type for a 3-dimensional array-like object
+    
+    alias of Union\[Sequence\[Sequence\[
+    Sequence\[`T <#asteroglitch.annotations.T>`_\]\]\],
+    :ref:`numpy.ndarray<numpy:arrays.ndarray>`\]
+    """
+    def __getitem__(self, T):
+        return Array[Sequence[Sequence[Sequence[T]]]]

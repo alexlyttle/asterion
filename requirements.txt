@@ -1,4 +1,5 @@
 arviz
 jax
 jaxlib
+numpy
 numpyro

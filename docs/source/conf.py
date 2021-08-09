@@ -76,8 +76,9 @@ html_short_title = project
 
 
 # -- Autodoc options ---------------------------------------------------------
-autodoc_typehints = 'description'  # show type hints in doc body
 
+autodoc_typehints = 'description'  # show type hints in doc body
+autodoc_typehints_description_target = 'documented'
 
 # -- Link code options -------------------------------------------------------
 
@@ -113,5 +114,18 @@ autodoc_typehints = 'description'  # show type hints in doc body
 # -- InterSphinx options -----------------------------------------------------
 
 intersphinx_mapping = {
+    "arviz": ("https://arviz-devs.github.io/arviz", None),
+    "jax": ("https://jax.readthedocs.io/en/latest", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
     "numpyro": ("https://num.pyro.ai/en/stable/", None),
+    "python": ("https://docs.python.org/3", None),
+}
+
+
+# Napoleon options -----------------------------------------------------------
+
+napoleon_type_aliases = {
+    "Array1D": "asteroglitch.annotations.Array1D",
+    "Array2D": "asteroglitch.annotations.Array2D",
+    "Array3D": "asteroglitch.annotations.Array3D",
 }

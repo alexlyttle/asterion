@@ -113,9 +113,7 @@ class Data:
     def to_arviz(self) -> az.InferenceData:
         """[summary]
 
-        Returns
-        -------
-        az.InferenceData
+        Returns:
             [description]
         """               
         data = az.from_dict(

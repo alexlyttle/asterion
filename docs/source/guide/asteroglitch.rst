@@ -31,10 +31,10 @@ asteroglitch.inference
    :undoc-members:
    :show-inheritance:
 
-asteroglitch.model
-------------------
+asteroglitch.models
+-------------------
 
-.. automodule:: asteroglitch.model
+.. automodule:: asteroglitch.models
    :members:
    :undoc-members:
    :show-inheritance:
