@@ -24,7 +24,7 @@ import warnings
 import arviz as az
 
 from .data import Data
-from .model import Model
+from .models import Model
 
 from typing import Callable
 

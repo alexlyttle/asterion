@@ -1,5 +1,7 @@
-"""[summary]
 """
+"""
+from __future__ import annotations
+
 import math
 
 import numpy as np
@@ -280,7 +282,7 @@ class Model:
         trace = model.get_trace()
         return trace
 
-    def get_prior_trace(self, rng_key: Union[int, jax.random.PRNGKey]) -> dict:
+    def get_prior_trace(self, rng_key: Union[int, jnp.ndarray]) -> dict:
         """[summary]
 
         Args:
@@ -291,7 +293,7 @@ class Model:
         """        
         return self._get_trace(rng_key, self.prior)
     
-    def get_posterior_trace(self, rng_key: Union[int, jax.random.PRNGKey]) -> dict:
+    def get_posterior_trace(self, rng_key: Union[int, jnp.ndarray]) -> dict:
         """[summary]
 
         Args:
@@ -341,8 +343,8 @@ class GlitchModel(Model):
         epsilon: Array1D[float]=None,
         alpha: Array1D[float]=None,
         *,
-        nu: Union[Array1D[float], Array2D[float], Array3D[float]],
-        nu_err: Optional[Union[Array1D[float], Array2D[float], Array3D[float]]]=None, 
+        nu: Union[Array1D[float], Array2D[float]],
+        nu_err: Optional[Union[Array1D[float], Array2D[float]]]=None, 
         n: Optional[Array1D[int]]=None,
         num_orders: Optional[int]=None
     ):
