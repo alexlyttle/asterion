@@ -2,4 +2,4 @@ arviz
 jax
 jaxlib
 numpy
-numpyro
+git+https://github.com/pyro-ppl/numpyro@master#egg=numpyro
