@@ -357,6 +357,7 @@
 <span class="sd">        nu_err: [description]. Defaults to None.</span>
 <span class="sd">    """</span>
     <span class="n">reparam</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Reparam</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1">#: [description]</span>
+    <span class="n">circ_var_names</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1">#: [description]</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -393,7 +394,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">nu_err</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_nu_err</span><span class="p">(</span><span class="n">nu_err</span><span class="p">)</span>  <span class="c1">#: [description]</span>
 
     <span class="k">def</span> <span class="nf">_validate_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Array1D</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="n">name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqeeze</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,))</span>
         <span class="k">elif</span> <span class="n">name</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -433,7 +434,7 @@
         <span class="k">if</span> <span class="n">nu_err</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">nu_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">nu_err</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_broadcast</span><span class="p">(</span><span class="n">nu_err</span><span class="p">)</span>
+            <span class="n">nu_err</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_broadcast</span><span class="p">(</span><span class="n">nu_err</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">nu_err</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">obs_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">return</span> <span class="n">nu_err</span>
 
@@ -451,20 +452,22 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">prior</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-        <span class="sd">"""[summary]</span>
+        <span class="sd">"""Function which samples from the prior and returns arguments for the</span>
+<span class="sd">        likelihood.</span>
 <span class="sd">        """</span>        
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prior</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">predictions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-        <span class="sd">"""[summary]</span>
+        <span class="sd">"""Function which makes predictions which may have different dimensions</span>
+<span class="sd">        to observed values.</span>
 <span class="sd">        """</span>        
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predictions</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">likelihood</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
         <span class="sd">"""[summary]</span>
-<span class="sd">        """</span>        
+<span class="sd">        """</span> 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_likelihood</span>
 
     <span class="nd">@property</span>
@@ -502,7 +505,18 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            [description]</span>
 <span class="sd">        """</span>        
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_trace</span><span class="p">(</span><span class="n">rng_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">posterior</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_trace</span><span class="p">(</span><span class="n">rng_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">posterior</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Model.get_predictions_trace"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.Model.get_predictions_trace">[docs]</a>    <span class="k">def</span> <span class="nf">get_predictions_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng_key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="sd">"""[summary]</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            rng_key: [description]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            [description]</span>
+<span class="sd">        """</span>        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_trace</span><span class="p">(</span><span class="n">rng_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictions</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="GlitchModel"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.GlitchModel">[docs]</a><span class="k">class</span> <span class="nc">GlitchModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
@@ -534,6 +548,7 @@
         <span class="s2">"phi_he"</span><span class="p">:</span> <span class="n">CircularReparam</span><span class="p">(),</span>
         <span class="s2">"phi_cz"</span><span class="p">:</span> <span class="n">CircularReparam</span><span class="p">(),</span>
     <span class="p">}</span>
+    <span class="n">circ_var_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"phi_he"</span><span class="p">,</span> <span class="s2">"phi_cz"</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -546,7 +561,8 @@
         <span class="n">nu</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Array1D</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Array2D</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
         <span class="n">nu_err</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Array1D</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Array2D</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
         <span class="n">n</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Array1D</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">num_orders</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+        <span class="n">num_orders</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">num_pred</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
     <span class="p">):</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_delta_nu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">delta_nu</span><span class="p">)</span>
@@ -565,6 +581,12 @@
             <span class="n">name</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">nu</span><span class="o">=</span><span class="n">nu</span><span class="p">,</span> <span class="n">nu_err</span><span class="o">=</span><span class="n">nu_err</span><span class="p">,</span>
         <span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_pred</span> <span class="o">=</span> <span class="n">num_pred</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">num_pred</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="s2">"n_pred"</span><span class="p">]</span> <span class="o">=</span> <span class="n">dimension</span><span class="p">(</span>
+            <span class="s2">"n_pred"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_pred</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pred</span>
+        <span class="p">)</span>
+
         <span class="c1"># self.num_stars = 1 if len(self.name.shape) == 0 else self.name.shape[0]</span>
         <span class="c1"># self.num_orders = self.n.shape[0]</span>
         <span class="c1"># self.name = np.broadcast_to(self.name, (self.num_stars,))</span>
@@ -580,7 +602,7 @@
         <span class="c1">#     'n': dimension('n', self.num_orders, coords=self.n)</span>
         <span class="c1"># }</span>
 
-    <span class="k">def</span> <span class="nf">_prior</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_prior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">m_tau</span> <span class="o">=</span> <span class="mf">1.05</span>
         <span class="c1"># s_tau = 3.0</span>
         <span class="n">log_tau</span> <span class="o">=</span> <span class="o">-</span> <span class="n">m_tau</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nu_max</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># Approx form of log(tau_he)</span>
@@ -609,13 +631,18 @@
             
             <span class="n">err</span> <span class="o">=</span> <span class="n">numpyro</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="s2">"err"</span><span class="p">,</span> <span class="n">dist</span><span class="o">.</span><span class="n">HalfNormal</span><span class="p">(</span><span class="mf">0.1</span><span class="p">))</span>
 
-            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="s2">"n"</span><span class="p">]:</span>
-                <span class="c1"># n = self.n_pred if pred else self.n</span>
-                <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">)</span>  <span class="c1"># Broadcast to the shape of output freq</span>
+            <span class="n">dim_name</span> <span class="o">=</span> <span class="s2">"n_pred"</span> <span class="k">if</span> <span class="n">pred</span> <span class="k">else</span> <span class="s2">"n"</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="n">dim_name</span><span class="p">]:</span>
+                <span class="c1"># Broadcast to the shape of output freq</span>
+                <span class="k">if</span> <span class="n">pred</span><span class="p">:</span>
+                    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_pred</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_stars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_pred</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">)</span>
+
                 <span class="n">nu_asy</span> <span class="o">=</span> <span class="n">numpyro</span><span class="o">.</span><span class="n">deterministic</span><span class="p">(</span><span class="s2">"nu_asy"</span><span class="p">,</span> <span class="n">asy_background</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">delta_nu</span><span class="p">,</span> <span class="n">nu_max</span><span class="p">))</span>
 
-                <span class="n">dnu_he</span> <span class="o">=</span> <span class="n">he_glitch</span><span class="p">(</span><span class="n">nu_asy</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">b1</span><span class="p">,</span> <span class="n">tau_he</span><span class="p">,</span> <span class="n">phi_he</span><span class="p">)</span>
-                <span class="n">dnu_cz</span> <span class="o">=</span> <span class="n">cz_glitch</span><span class="p">(</span><span class="n">nu_asy</span><span class="p">,</span> <span class="n">c0</span><span class="p">,</span> <span class="n">tau_cz</span><span class="p">,</span> <span class="n">phi_cz</span><span class="p">)</span>
+                <span class="n">dnu_he</span> <span class="o">=</span> <span class="n">numpyro</span><span class="o">.</span><span class="n">deterministic</span><span class="p">(</span><span class="s2">"dnu_he"</span><span class="p">,</span> <span class="n">he_glitch</span><span class="p">(</span><span class="n">nu_asy</span><span class="p">,</span> <span class="n">b0</span><span class="p">,</span> <span class="n">b1</span><span class="p">,</span> <span class="n">tau_he</span><span class="p">,</span> <span class="n">phi_he</span><span class="p">))</span>
+                <span class="n">dnu_cz</span> <span class="o">=</span> <span class="n">numpyro</span><span class="o">.</span><span class="n">deterministic</span><span class="p">(</span><span class="s2">"dnu_cz"</span><span class="p">,</span> <span class="n">cz_glitch</span><span class="p">(</span><span class="n">nu_asy</span><span class="p">,</span> <span class="n">c0</span><span class="p">,</span> <span class="n">tau_cz</span><span class="p">,</span> <span class="n">phi_cz</span><span class="p">))</span>
 
                 <span class="n">nu</span> <span class="o">=</span> <span class="n">numpyro</span><span class="o">.</span><span class="n">deterministic</span><span class="p">(</span><span class="s2">"nu"</span><span class="p">,</span> <span class="n">nu_asy</span> <span class="o">+</span> <span class="n">dnu_he</span> <span class="o">+</span> <span class="n">dnu_cz</span><span class="p">)</span>
 
@@ -647,7 +674,10 @@
     <span class="c1">#     self._prior(pred=True)</span>
     
     <span class="k">def</span> <span class="nf">_posterior</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_likelihood</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_prior</span><span class="p">())</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_likelihood</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_prior</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_predictions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prior</span><span class="p">(</span><span class="n">pred</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 </pre></div>
       </article>
       <footer>

@@ -262,14 +262,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span> <span class="n">Model</span> <span class="o">=</span> <span class="n">model</span>  <span class="c1">#: [description]</span>
         
         <span class="n">observed</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"nu"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">nu</span><span class="p">}</span>
-        <span class="n">constant</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"nu_err"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">nu_err</span><span class="p">,</span> <span class="s2">"obs_mask"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">obs_mask</span><span class="p">}</span>
+        <span class="n">constant</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"nu_err"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">nu_err</span><span class="p">,</span> <span class="s2">"obs_mask"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">obs_mask</span><span class="p">,</span>
+                    <span class="s2">"circ_var_names"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">circ_var_names</span><span class="p">}</span>
         <span class="n">coords</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">coords</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">dimensions</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
         <span class="n">dims</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">trace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_posterior_trace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rng_key</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">trace</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">dims</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">dim</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">v</span><span class="p">[</span><span class="s2">"cond_indep_stack"</span><span class="p">][::</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span> <span class="n">Data</span> <span class="o">=</span> <span class="n">Data</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">:</span> <span class="n">Data</span> <span class="o">=</span> <span class="n">Data</span><span class="p">(</span>
             <span class="n">observed</span><span class="o">=</span><span class="n">observed</span><span class="p">,</span> 
             <span class="n">constant</span><span class="o">=</span><span class="n">constant</span><span class="p">,</span> 
             <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span> 
@@ -349,8 +350,8 @@
 
         <span class="n">samples</span><span class="p">,</span> <span class="n">sample_stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_samples</span><span class="p">(</span><span class="n">mcmc</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">posterior</span> <span class="o">=</span> <span class="n">samples</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">sample_stats</span> <span class="o">=</span> <span class="n">sample_stats</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">posterior</span> <span class="o">=</span> <span class="n">samples</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">sample_stats</span> <span class="o">=</span> <span class="n">sample_stats</span></div>
 
     <span class="k">def</span> <span class="nf">_predictive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">predictive_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="o">=</span><span class="p">{}):</span>
         <span class="sd">"""[summary]</span>
@@ -358,7 +359,6 @@
 <span class="sd">        Args:</span>
 <span class="sd">            model: [description]</span>
 <span class="sd">            predictive_kwargs: [description], by default {}.</span>
-
 <span class="sd">        Returns:</span>
 <span class="sd">            [description]</span>
 <span class="sd">        """</span>
@@ -381,14 +381,44 @@
         <span class="sd">"""[summary]</span>
 <span class="sd">        """</span>
         <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predictive</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">prior</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">prior_predictive</span> <span class="o">=</span> <span class="n">samples</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">prior_predictive</span> <span class="o">=</span> <span class="n">samples</span></div>
     
 <div class="viewcode-block" id="Inference.posterior_predictive"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.inference.Inference.posterior_predictive">[docs]</a>    <span class="k">def</span> <span class="nf">posterior_predictive</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">"""[summary]</span>
 <span class="sd">        """</span>
-        <span class="n">predictive_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"posterior_samples"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">posterior</span><span class="p">}</span>
+        <span class="n">predictive_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"posterior_samples"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">posterior</span><span class="p">}</span>
         <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predictive</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">posterior</span><span class="p">,</span> <span class="n">predictive_kwargs</span><span class="o">=</span><span class="n">predictive_kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">posterior_predictive</span> <span class="o">=</span> <span class="n">samples</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">posterior_predictive</span> <span class="o">=</span> <span class="n">samples</span></div>
+
+<div class="viewcode-block" id="Inference.predictions"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.inference.Inference.predictions">[docs]</a>    <span class="k">def</span> <span class="nf">predictions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">predictive_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"posterior_samples"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">posterior</span><span class="p">}</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predictive</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predictions</span><span class="p">,</span> <span class="n">predictive_kwargs</span><span class="o">=</span><span class="n">predictive_kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">predictions</span> <span class="o">=</span> <span class="n">samples</span>
+
+        <span class="c1"># Pred coords and dims - this should be a function</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">coords</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">dimensions</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">coords</span><span class="p">[</span><span class="s2">"chain"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_chains</span><span class="p">)</span>
+        <span class="n">coords</span><span class="p">[</span><span class="s2">"draw"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_samples</span><span class="p">)</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">trace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_predictions_trace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rng_key</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">trace</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">dims</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"chain"</span><span class="p">,</span> <span class="s2">"draw"</span><span class="p">]</span>
+            <span class="n">dims</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="n">dim</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">v</span><span class="p">[</span><span class="s2">"cond_indep_stack"</span><span class="p">][::</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">pred_coords</span> <span class="o">=</span> <span class="n">coords</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">pred_dims</span> <span class="o">=</span> <span class="n">dims</span></div>
+
+<div class="viewcode-block" id="Inference.summary"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.inference.Inference.summary">[docs]</a>    <span class="k">def</span> <span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s2">"posterior"</span><span class="p">):</span>
+        <span class="n">stat_funcs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"16th"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mf">.16</span><span class="p">),</span>
+            <span class="s2">"50th"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">,</span>
+            <span class="s2">"84th"</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mf">.84</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">az</span><span class="o">.</span><span class="n">summary</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">"xarray"</span><span class="p">,</span> <span class="n">round_to</span><span class="o">=</span><span class="s2">"none"</span><span class="p">,</span> 
+            <span class="n">stat_funcs</span><span class="o">=</span><span class="n">stat_funcs</span><span class="p">,</span> <span class="n">circ_var_names</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">circ_var_names</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">az</span><span class="o">.</span><span class="n">InferenceData</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">to_arviz</span><span class="p">()</span></div>
 </pre></div>
       </article>
       <footer>
