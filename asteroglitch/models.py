@@ -157,6 +157,7 @@ class Model:
         nu_err: [description]. Defaults to None.
     """
     reparam: ClassVar[Dict[str, Reparam]] = {}  #: [description]
+    circ_var_names: ClassVar[List[str]] = []  #: [description]
 
     def __init__(
         self,
@@ -193,7 +194,7 @@ class Model:
         self.nu_err: np.ndarray = self._validate_nu_err(nu_err)  #: [description]
 
     def _validate_name(self, name: Union[str, Array1D[str]]) -> np.ndarray:
-        name = np.sqeeze(name)
+        name = np.squeeze(name)
         if name.ndim == 0:
             name = np.broadcast_to(name, (1,))
         elif name.ndim > 1:
@@ -233,7 +234,7 @@ class Model:
         if nu_err is None:
             nu_err = np.zeros(self._shape)
         else:
-            nu_err = self._broadcast(nu_err)
+            nu_err = self._broadcast(nu_err).copy()
         nu_err[~self.obs_mask] = 0.0
         return nu_err
 
@@ -251,20 +252,22 @@ class Model:
 
     @property
     def prior(self) -> Callable:
-        """[summary]
+        """Function which samples from the prior and returns arguments for the
+        likelihood.
         """        
         return self._prior
 
     @property
     def predictions(self) -> Callable:
-        """[summary]
+        """Function which makes predictions which may have different dimensions
+        to observed values.
         """        
         return self._predictions
 
     @property
     def likelihood(self) -> Callable:
         """[summary]
-        """        
+        """ 
         return self._likelihood
 
     @property
@@ -304,6 +307,17 @@ class Model:
         """        
         return self._get_trace(rng_key, self.posterior)
 
+    def get_predictions_trace(self, rng_key: Union[int, jnp.ndarray]) -> dict:
+        """[summary]
+
+        Args:
+            rng_key: [description]
+
+        Returns:
+            [description]
+        """        
+        return self._get_trace(rng_key, self.predictions)
+
 
 class GlitchModel(Model):
     """
@@ -334,6 +348,7 @@ class GlitchModel(Model):
         "phi_he": CircularReparam(),
         "phi_cz": CircularReparam(),
     }
+    circ_var_names = ["phi_he", "phi_cz"]
 
     def __init__(
         self,
@@ -346,7 +361,8 @@ class GlitchModel(Model):
         nu: Union[Array1D[float], Array2D[float]],
         nu_err: Optional[Union[Array1D[float], Array2D[float]]]=None, 
         n: Optional[Array1D[int]]=None,
-        num_orders: Optional[int]=None
+        num_orders: Optional[int]=None,
+        num_pred: int=200,
     ):
 
         self._delta_nu = np.array(delta_nu)
@@ -365,6 +381,12 @@ class GlitchModel(Model):
             name, n, nu=nu, nu_err=nu_err,
         )
 
+        self.num_pred = num_pred
+        self.n_pred = np.linspace(self.n[0], self.n[-1], num_pred)
+        self.dimensions["n_pred"] = dimension(
+            "n_pred", self.num_pred, coords=self.n_pred
+        )
+
         # self.num_stars = 1 if len(self.name.shape) == 0 else self.name.shape[0]
         # self.num_orders = self.n.shape[0]
         # self.name = np.broadcast_to(self.name, (self.num_stars,))
@@ -380,7 +402,7 @@ class GlitchModel(Model):
         #     'n': dimension('n', self.num_orders, coords=self.n)
         # }
 
-    def _prior(self):
+    def _prior(self, pred: bool=False):
         m_tau = 1.05
         # s_tau = 3.0
         log_tau = - m_tau * np.log(self._nu_max[0])  # Approx form of log(tau_he)
@@ -409,13 +431,18 @@ class GlitchModel(Model):
             
             err = numpyro.sample("err", dist.HalfNormal(0.1))
 
-            with self.dimensions["n"]:
-                # n = self.n_pred if pred else self.n
-                n = np.broadcast_to(self.n, self._shape)  # Broadcast to the shape of output freq
+            dim_name = "n_pred" if pred else "n"
+            with self.dimensions[dim_name]:
+                # Broadcast to the shape of output freq
+                if pred:
+                    n = np.broadcast_to(self.n_pred, (self.num_stars, self.num_pred))
+                else:
+                    n = np.broadcast_to(self.n, self._shape)
+
                 nu_asy = numpyro.deterministic("nu_asy", asy_background(n, epsilon, alpha, delta_nu, nu_max))
 
-                dnu_he = he_glitch(nu_asy, b0, b1, tau_he, phi_he)
-                dnu_cz = cz_glitch(nu_asy, c0, tau_cz, phi_cz)
+                dnu_he = numpyro.deterministic("dnu_he", he_glitch(nu_asy, b0, b1, tau_he, phi_he))
+                dnu_cz = numpyro.deterministic("dnu_cz", cz_glitch(nu_asy, c0, tau_cz, phi_cz))
 
                 nu = numpyro.deterministic("nu", nu_asy + dnu_he + dnu_cz)
 
@@ -448,3 +475,6 @@ class GlitchModel(Model):
     
     def _posterior(self):
         self._likelihood(*self._prior())
+
+    def _predictions(self):
+        return self._prior(pred=True)

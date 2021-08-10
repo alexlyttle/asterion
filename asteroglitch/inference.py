@@ -62,14 +62,15 @@ class Inference:
         self.model: Model = model  #: [description]
         
         observed = {"nu": self.model.nu}
-        constant = {"nu_err": self.model.nu_err, "obs_mask": self.model.obs_mask}
+        constant = {"nu_err": self.model.nu_err, "obs_mask": self.model.obs_mask,
+                    "circ_var_names": self.model.circ_var_names}
         coords = {k: v.coords for k, v in self.model.dimensions.items()}
         dims = {}
         trace = self.model.get_posterior_trace(self._rng_key)
         for k, v in trace.items():
             dims[k] = [dim.name for dim in v["cond_indep_stack"][::-1]]
 
-        self.data: Data = Data(
+        self._data: Data = Data(
             observed=observed, 
             constant=constant, 
             coords=coords, 
@@ -149,8 +150,8 @@ class Inference:
 
         samples, sample_stats = self._get_samples(mcmc)
 
-        self.data.posterior = samples
-        self.data.sample_stats = sample_stats
+        self._data.posterior = samples
+        self._data.sample_stats = sample_stats
 
     def _predictive(self, model: Callable, predictive_kwargs: dict={}):
         """[summary]
@@ -158,7 +159,6 @@ class Inference:
         Args:
             model: [description]
             predictive_kwargs: [description], by default {}.
-
         Returns:
             [description]
         """
@@ -181,11 +181,41 @@ class Inference:
         """[summary]
         """
         samples = self._predictive(self.model.prior)
-        self.data.prior_predictive = samples
+        self._data.prior_predictive = samples
     
     def posterior_predictive(self):
         """[summary]
         """
-        predictive_kwargs = {"posterior_samples": self.data.posterior}
+        predictive_kwargs = {"posterior_samples": self._data.posterior}
         samples = self._predictive(self.model.posterior, predictive_kwargs=predictive_kwargs)
-        self.data.posterior_predictive = samples
+        self._data.posterior_predictive = samples
+
+    def predictions(self):
+        predictive_kwargs = {"posterior_samples": self._data.posterior}
+        samples = self._predictive(self.model.predictions, predictive_kwargs=predictive_kwargs)
+        self._data.predictions = samples
+
+        # Pred coords and dims - this should be a function
+        coords = {k: v.coords for k, v in self.model.dimensions.items()}
+        coords["chain"] = np.arange(self._num_chains)
+        coords["draw"] = np.arange(self._num_samples)
+        dims = {}
+        trace = self.model.get_predictions_trace(self._rng_key)
+        for k, v in trace.items():
+            dims[k] = ["chain", "draw"]
+            dims[k] += [dim.name for dim in v["cond_indep_stack"][::-1]]
+        self._data.pred_coords = coords
+        self._data.pred_dims = dims
+
+    def summary(self, group="posterior"):
+        stat_funcs = {
+            "16th": lambda x: np.quantile(x, .16),
+            "50th": np.median,
+            "84th": lambda x: np.quantile(x, .84),
+        }
+        return az.summary(self.data, group=group, fmt="xarray", round_to="none", 
+            stat_funcs=stat_funcs, circ_var_names=self.model.circ_var_names)
+
+    @property
+    def data(self) -> az.InferenceData:
+        return self._data.to_arviz()
