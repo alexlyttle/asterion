@@ -20,4 +20,4 @@ pip install -e .
 
 ## Getting started
 
-See the [docs](https://alexlyttle.github.io/helium-glitch-fitter) for tutorials and API reference. The notebook `notebooks/asteroglitch_example.ipynb` is a good start, and is not yet in the documentation.
+See the [docs](https://alexlyttle.github.io/helium-glitch-fitter) for tutorials and API reference. The notebook `notebooks/asterion_example.ipynb` is a good start, and is not yet in the documentation.

@@ -1,6 +1,6 @@
 import setuptools
 
-name = 'asteroglitch'
+name = 'asterion'
 
 __version__ = None
 exec(open(f'{name}/_version.py').read())

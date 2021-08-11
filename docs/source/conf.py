@@ -18,13 +18,13 @@
 
 # -- Imports -----------------------------------------------------------------
 
-import asteroglitch
-from asteroglitch import __version__
+import asterion
+from asterion import __version__
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'AsteroGlitch'
+project = 'Asterion'
 copyright = '2021, Alex Lyttle'
 author = 'Alex Lyttle'
 
@@ -95,7 +95,7 @@ autodoc_typehints_description_target = 'documented'
 #         fn = inspect.getsourcefile(obj)
 #         fn = os.path.relpath(
 #             fn, 
-#             tart=os.path.dirname(asteroglitch.__file__)
+#             tart=os.path.dirname(asterion.__file__)
 #         )
 #         source, lineno = inspect.getsourcelines(obj)
 #         return fn, lineno, lineno + len(source) - 1
@@ -103,7 +103,7 @@ autodoc_typehints_description_target = 'documented'
 #     if domain != 'py' or not info['module']:
 #         return None
 #     try:
-#         filename = 'asteroglitch/%s#L%d-L%d' % find_source()
+#         filename = 'asterion/%s#L%d-L%d' % find_source()
 #     except Exception:
 #         return None
 #     tag = 'main' if 'dev' in release else ('v' + release)
@@ -125,7 +125,7 @@ intersphinx_mapping = {
 # Napoleon options -----------------------------------------------------------
 
 napoleon_type_aliases = {
-    "Array1D": "asteroglitch.annotations.Array1D",
-    "Array2D": "asteroglitch.annotations.Array2D",
-    "Array3D": "asteroglitch.annotations.Array3D",
+    "Array1D": "asterion.annotations.Array1D",
+    "Array2D": "asterion.annotations.Array2D",
+    "Array3D": "asterion.annotations.Array3D",
 }
