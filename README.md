@@ -9,7 +9,7 @@ Fit the asteroseismic helium-II ionisation zone glitch present in the mode frequ
 Clone the repo,
 
 ```bash
-git clone https://github.com/alexlyttle/helium-glitch-fitter.git
+git clone https://github.com/alexlyttle/asterion.git
 ```
 
 Install the module,
@@ -20,4 +20,4 @@ pip install -e .
 
 ## Getting started
 
-See the [docs](https://alexlyttle.github.io/helium-glitch-fitter) for tutorials and API reference. The notebook `notebooks/asterion_example.ipynb` is a good start, and is not yet in the documentation.
+See the [docs](https://asterion.readthedocs.io/en/latest/) for tutorials and API reference. The notebook `notebooks/asterion_example.ipynb` is a good start, and is not yet in the documentation.
