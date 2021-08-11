@@ -1,4 +1,4 @@
-# helium-glitch-fitter (package name TBC)
+# asterion
 
 Warning: This package is an early build, use with caution!
 
