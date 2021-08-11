@@ -1,10 +1,10 @@
-.. asteroglitch documentation master file, created by
+.. asterion documentation master file, created by
    sphinx-quickstart on Thu Aug  5 16:26:22 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-AsteroGlitch documentation
-==========================
+Welcome to the Asterion documentation
+=====================================
 
 A Bayesian package for modelling asteroseismic oscillation mode frequencies.
 

@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
     <meta name="generator" content="sphinx-4.1.2, furo 2021.07.31.beta41"/>
-        <title>asteroglitch.models - AsteroGlitch v0.0.1dev</title>
+        <title>asterion.models - Asterion v0.0.1dev</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=daa650a7760fac3eee23aa959745d2c866b74cb3" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?digest=93475b62d1c3bc01323a0eefdc14a62d77b12690" />
@@ -124,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">AsteroGlitch v0.0.1dev</div></a>
+      <a href="../../index.html"><div class="brand">Asterion v0.0.1dev</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,7 +147,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
   
-  <span class="sidebar-brand-text">AsteroGlitch v0.0.1dev</span>
+  <span class="sidebar-brand-text">Asterion v0.0.1dev</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
@@ -160,11 +160,11 @@
 <li class="toctree-l1"><a class="reference internal" href="../../guide/installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../guide/getting_started.html">Getting started</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../guide/api.html">API reference</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../guide/asteroglitch.html">asteroglitch</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../guide/asteroglitch.html#module-asteroglitch.annotations">asteroglitch.annotations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../guide/asteroglitch.html#module-asteroglitch.data">asteroglitch.data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../guide/asteroglitch.html#module-asteroglitch.inference">asteroglitch.inference</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../guide/asteroglitch.html#module-asteroglitch.models">asteroglitch.models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide/asterion.html">asterion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide/asterion.html#module-asterion.annotations">asterion.annotations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide/asterion.html#module-asterion.data">asterion.data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide/asterion.html#module-asterion.inference">asterion.inference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../guide/asterion.html#module-asterion.models">asterion.models</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../guide/contributing.html">Contributing</a></li>
@@ -197,7 +197,7 @@
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
-        <h1>Source code for asteroglitch.models</h1><div class="highlight"><pre>
+        <h1>Source code for asterion.models</h1><div class="highlight"><pre>
 <span></span><span class="sd">"""Probabilistic models for asteroseismic oscillation mode frequencies.</span>
 <span class="sd">"""</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
@@ -230,7 +230,7 @@
 <span class="p">]</span>
 
 
-<div class="viewcode-block" id="estimate_n"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.estimate_n">[docs]</a><span class="k">def</span> <span class="nf">estimate_n</span><span class="p">(</span>
+<div class="viewcode-block" id="estimate_n"><a class="viewcode-back" href="../../guide/asterion.html#asterion.models.estimate_n">[docs]</a><span class="k">def</span> <span class="nf">estimate_n</span><span class="p">(</span>
     <span class="n">num_orders</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">delta_nu</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Array1D</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span> 
     <span class="n">nu_max</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Array1D</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span> 
@@ -289,7 +289,7 @@
     <span class="k">return</span> <span class="n">b0</span> <span class="o">*</span> <span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">b1</span><span class="o">*</span><span class="n">low</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">b1</span><span class="o">*</span><span class="n">high</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">b1</span><span class="o">*</span><span class="p">(</span><span class="n">high</span> <span class="o">-</span> <span class="n">low</span><span class="p">))</span>
 
 
-<div class="viewcode-block" id="dimension"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.dimension">[docs]</a><span class="k">class</span> <span class="nc">dimension</span><span class="p">(</span><span class="n">plate</span><span class="p">):</span>
+<div class="viewcode-block" id="dimension"><a class="viewcode-back" href="../../guide/asterion.html#asterion.models.dimension">[docs]</a><span class="k">class</span> <span class="nc">dimension</span><span class="p">(</span><span class="n">plate</span><span class="p">):</span>
     <span class="sd">"""Context manager for variables along a given dimension with coordinates.</span>
 
 <span class="sd">    Based on `numpyro.plate` but includes deterministics defined within the</span>
@@ -324,7 +324,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
 
-<div class="viewcode-block" id="dimension.process_message"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.dimension.process_message">[docs]</a>    <span class="k">def</span> <span class="nf">process_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<div class="viewcode-block" id="dimension.process_message"><a class="viewcode-back" href="../../guide/asterion.html#asterion.models.dimension.process_message">[docs]</a>    <span class="k">def</span> <span class="nf">process_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
         <span class="sd">"""Modified process message to also include deterministics. </span>
 <span class="sd">        </span>
 <span class="sd">        Args:</span>
@@ -338,7 +338,7 @@
             <span class="n">msg</span><span class="p">[</span><span class="s2">"cond_indep_stack"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="Model"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
+<div class="viewcode-block" id="Model"><a class="viewcode-back" href="../../guide/asterion.html#asterion.models.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
     <span class="sd">"""Base Model class for modelling asteroseismic oscillation modes. </span>
 <span class="sd">    </span>
 <span class="sd">    All models must have a `name` (usually the name of the star), array of radial order</span>
@@ -485,7 +485,7 @@
         <span class="n">trace</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_trace</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">trace</span>
 
-<div class="viewcode-block" id="Model.get_prior_trace"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.Model.get_prior_trace">[docs]</a>    <span class="k">def</span> <span class="nf">get_prior_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng_key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<div class="viewcode-block" id="Model.get_prior_trace"><a class="viewcode-back" href="../../guide/asterion.html#asterion.models.Model.get_prior_trace">[docs]</a>    <span class="k">def</span> <span class="nf">get_prior_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng_key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="sd">"""[summary]</span>
 
 <span class="sd">        Args:</span>
@@ -496,7 +496,7 @@
 <span class="sd">        """</span>        
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_trace</span><span class="p">(</span><span class="n">rng_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="Model.get_posterior_trace"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.Model.get_posterior_trace">[docs]</a>    <span class="k">def</span> <span class="nf">get_posterior_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng_key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<div class="viewcode-block" id="Model.get_posterior_trace"><a class="viewcode-back" href="../../guide/asterion.html#asterion.models.Model.get_posterior_trace">[docs]</a>    <span class="k">def</span> <span class="nf">get_posterior_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng_key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="sd">"""[summary]</span>
 
 <span class="sd">        Args:</span>
@@ -507,7 +507,7 @@
 <span class="sd">        """</span>        
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_trace</span><span class="p">(</span><span class="n">rng_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">posterior</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Model.get_predictions_trace"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.Model.get_predictions_trace">[docs]</a>    <span class="k">def</span> <span class="nf">get_predictions_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng_key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<div class="viewcode-block" id="Model.get_predictions_trace"><a class="viewcode-back" href="../../guide/asterion.html#asterion.models.Model.get_predictions_trace">[docs]</a>    <span class="k">def</span> <span class="nf">get_predictions_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng_key</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="sd">"""[summary]</span>
 
 <span class="sd">        Args:</span>
@@ -519,7 +519,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_trace</span><span class="p">(</span><span class="n">rng_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictions</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="GlitchModel"><a class="viewcode-back" href="../../guide/asteroglitch.html#asteroglitch.models.GlitchModel">[docs]</a><span class="k">class</span> <span class="nc">GlitchModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+<div class="viewcode-block" id="GlitchModel"><a class="viewcode-back" href="../../guide/asterion.html#asterion.models.GlitchModel">[docs]</a><span class="k">class</span> <span class="nc">GlitchModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
     <span class="sd">"""</span>
 <span class="sd">    Args:</span>
 <span class="sd">        delta_nu: Two elements containing the respective prior mean and standard </span>

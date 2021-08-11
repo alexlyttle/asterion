@@ -25,10 +25,10 @@ Once you have made changes to docstrings, run the following commands to update t
     make clean
     make html
 
-**Optional**: If you have added a submodule or subpackage to ``asteroglitch``, run the following command in the main project directory to update the API documentation:
+**Optional**: If you have added a submodule or subpackage to ``asterion``, run the following command in the main project directory to update the API documentation:
 
 .. code-block:: shell
 
-    sphinx-apidoc -f -M -H "API reference" --tocfile api -t docs/source/_templates -o docs/source/guide asteroglitch
+    sphinx-apidoc -f -M -H "API reference" --tocfile api -t docs/source/_templates -o docs/source/guide asterion
 
-This recursively searches ``asteroglitch`` and generates a subsection for each submodule and subpackage. Then, update the HTML documentation.
+This recursively searches ``asterion`` and generates a subsection for each submodule and subpackage. Then, update the HTML documentation.
