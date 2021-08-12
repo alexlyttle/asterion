@@ -1,0 +1,12 @@
+Asterion
+========
+
+Warning: This package is an early build, use with caution!
+
+Fit the asteroseismic helium-II ionisation zone glitch present in the mode frequencies of solar-like oscillators.
+
+.. include:: docs/source/guide/installation.rst
+
+.. include:: docs/source/guide/getting_started.rst
+
+.. include:: docs/source/guide/contributing.rst
