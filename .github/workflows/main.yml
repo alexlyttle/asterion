@@ -24,7 +24,23 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-
+      # Setup python
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8 #install the python needed
       # Runs a single command using the runners shell
       - name: Make README files
         run: python ./scripts/make_readme.py
+      # Stage and commit any new files
+      - name: Commit files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git commit -m "Do action" -a
+      - name: Push changes
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          # Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}
+          github_token: $\{{ secrets.GITHUB_TOKEN }}
