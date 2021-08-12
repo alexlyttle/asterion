@@ -23,6 +23,9 @@ classifiers = [
 with open('requirements.txt') as file:
     install_requires = file.read().splitlines()
 
+with open('docs/requirements.txt') as file:
+    docs_require = file.read().splitlines()
+
 setuptools.setup(
     name=name,
     version=__version__,
@@ -32,6 +35,9 @@ setuptools.setup(
     url=url,
     classifiers=classifiers,
     install_requires=install_requires,
+    extras_require={
+        'docs': docs_require,
+    },
     include_package_data=True,
     python_requires='>=3.6',
     licence='MIT',
