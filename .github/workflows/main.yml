@@ -32,13 +32,13 @@ jobs:
       # Runs a single command using the runners shell
       - name: Make README files
         run: python ./scripts/make_readme.py
-      # Stage and commit any new files
+      # Stage and commit any new files if files have been staged
       - name: Commit files
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add -A
-          git commit -m "Do action" -a
+          if [ $(git diff --staged) ]; then git commit -m "Do action" -a; fi
       - name: Push changes
         uses: ad-m/github-push-action@v0.6.0
         with:
