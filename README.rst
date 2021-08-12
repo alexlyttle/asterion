@@ -1,3 +1,11 @@
+.. ./README.rst file, created by
+   ./scripts/make_readme.py on Thu Aug 12 15:07:53 2021 UTC.
+   ================ DO NOT MODIFY THIS FILE! =================
+   It is generated automatically as a part of a GitHub Action.
+   Any changes should be made to
+   ./README.rst.src instead.
+   ===========================================================
+
 Asterion
 ========
 
