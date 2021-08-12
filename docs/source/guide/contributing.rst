@@ -11,19 +11,21 @@ Tests
 Documentation
 -------------
 
-To modify and update the documentation you need to install the following module:
+To modify and update the documentation you need to install the package with the ``docs`` option:
 
 .. code-block:: shell
 
-    pip install sphinx
+    pip install -e '.[docs]'
 
-Once you have made changes to docstrings, run the following commands to update the HTML documentation:
+Once you have made changes to documentation, run the following commands to update the HTML documentation and check that the docs compile locally:
 
 .. code-block:: shell
 
     cd docs
     make clean
     make html
+
+
 
 **Optional**: If you have added a submodule or subpackage to ``asterion``, run the following command in the main project directory to update the API documentation:
 
