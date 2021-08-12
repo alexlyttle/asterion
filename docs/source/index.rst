@@ -30,7 +30,7 @@ use to study surface helium content [references].
    :maxdepth: 1
    :caption: Tutorials
 
-   tutorials/example
+   tutorials/glitch
 
 Indices and tables
 ------------------
