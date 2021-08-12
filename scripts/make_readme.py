@@ -5,6 +5,8 @@ import glob
 import re
 import os.path
 
+from datetime import datetime, timezone
+
 for source in glob.glob('./**/README.rst.src', recursive=True):
     dirname = os.path.dirname(source)
 
@@ -17,7 +19,16 @@ for source in glob.glob('./**/README.rst.src', recursive=True):
     dest = re.sub('\\.src', '', source)
     with open(source, 'r') as f:
         text = f.read()
-    
+
+    d = datetime.now(tz=timezone.utc)
+    header = f".. {dest} file, created by\n" + \
+             f"   {__file__} on {d.strftime('%c %Z')}.\n" + \
+              "   ================ DO NOT MODIFY THIS FILE! =================\n" + \
+              "   It is generated automatically as a part of a GitHub Action.\n" + \
+              "   Any changes should be made to\n" + \
+             f"   {dest}.src instead.\n" + \
+              "   ===========================================================\n\n"
+
     text = re.sub(
         '^\\.\\. include:: (?P<filename>.*)$',
         include,
@@ -25,4 +36,4 @@ for source in glob.glob('./**/README.rst.src', recursive=True):
         flags=re.M,
     )
     with open(dest, 'w') as f:
-        f.write(text)
+        f.write(header + text)
