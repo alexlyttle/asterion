@@ -27,8 +27,7 @@ Array = Union[S, np.ndarray]
 class Array1D(Generic[T]):
     """A generic type for a 1-dimensional array-like object
     
-    alias of Union\[Sequence\[`T <#asterion.annotations.T>`_\],
-    :ref:`numpy.ndarray<numpy:arrays.ndarray>`\]
+    alias of Union\[Sequence\[:obj:`T`\], :obj:`numpy.ndarray`\]
     """
     def __getitem__(self, T):
         return Array[Sequence[T]]
@@ -37,8 +36,7 @@ class Array1D(Generic[T]):
 class Array2D(Generic[T]):
     """A generic type for a 2-dimensional array-like object
     
-    alias of Union\[Sequence\[Sequence\[`T <#asterion.annotations.T>`_\]\],
-    :ref:`numpy.ndarray<numpy:arrays.ndarray>`\]
+    alias of Union\[Sequence\[Sequence\[:obj:`T`\]\], :obj:`numpy.ndarray`\]
     """
     def __getitem__(self, T):
         return Array[Sequence[Sequence[T]]]
@@ -47,9 +45,8 @@ class Array2D(Generic[T]):
 class Array3D(Generic[T]):
     """A generic type for a 3-dimensional array-like object
     
-    alias of Union\[Sequence\[Sequence\[
-    Sequence\[`T <#asterion.annotations.T>`_\]\]\],
-    :ref:`numpy.ndarray<numpy:arrays.ndarray>`\]
+    alias of Union\[Sequence\[Sequence\[Sequence\[:obj:`T`\]\]\],
+    :obj:`numpy.ndarray`\]
     """
     def __getitem__(self, T):
         return Array[Sequence[Sequence[Sequence[T]]]]

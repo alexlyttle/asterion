@@ -34,19 +34,19 @@ def estimate_n(
     num_orders: int,
     delta_nu: Union[float, Array1D[float]], 
     nu_max: Union[float, Array1D[float]], 
-    epsilon: Union[float, Array1D[float]],
+    epsilon: Union[float, Array1D[float]]=0.0,
 ) -> np.ndarray:
     """Estimates n from delta_nu, nu_max and epsilon, given num_orders about
     nu_max.
 
     Args:
         num_orders: Number of radial orders to estimate n for.
-        delta_nu: 
-        nu_max: [description]
-        epsilon: [description]
+        delta_nu: Large frequecy spacing (microHz).
+        nu_max: Frequency at maximum power (microHz).
+        epsilon: Phase or offset of the asymptotic approximation.
 
     Returns:
-        [description]
+        An array of radial order, n.
     """
     n_max = get_n_max(epsilon, delta_nu, nu_max)
     start = np.floor(n_max - np.floor(num_orders/2))
@@ -86,7 +86,8 @@ def cz_glitch(nu, c0, tau_cz, phi_cz):
 
 def average_he_amplitude(b0, b1, low, high):
     """ Derived average amplitude over the fitting range."""
-    return b0 * (jnp.exp(-b1*low**2) - jnp.exp(-b1*high**2)) / (2*b1*(high - low))
+    return b0 * (jnp.exp(-b1*low**2) - jnp.exp(-b1*high**2)) / \
+        (2*b1*(high - low))
 
 
 class dimension(plate):
@@ -118,7 +119,7 @@ class dimension(plate):
                  subsample_size: Optional[int]=None,
                  dim: Optional[int]=None, coords: Optional[Array1D[Any]]=None):
         super().__init__(name, size, subsample_size=subsample_size, dim=dim)
-        self.coords: np.ndarray  #: [description]
+        self.coords: np.ndarray  #: Coordinates for each point in dimension.
         if coords is None:
             self.coords = np.arange(self.size)
         else:
@@ -141,20 +142,92 @@ class dimension(plate):
 class Model:
     """Base Model class for modelling asteroseismic oscillation modes. 
     
-    All models must have a `name` (usually the name of the star), array of radial order
-    `n` and array of angular degree `l` (optional). The observed mode
-    frequencies `nu` must then be broadcastable to an array with shape
-    `num_stars` x `num_orders` (x `num_degrees`). Optionally, the
-    observed uncertainties may be passed with the same shape via `nu_err`.
-    Any unobserved or null data should be passed as NaN, and an `obs_mask`
-    will be made which can be used in the likelihood.
+    All models must have a :attr:`name` (usually the name of the star),
+    array of radial order :attr:`n` and array of angular degree :attr:`l`
+    (optional). The observed mode frequencies :attr:`nu` must then be
+    broadcastable to an array with shape :attr:`num_stars` x :attr:`num_orders`
+    (x :attr:`num_degrees`). Optionally, the observed uncertainties may be
+    passed with the same shape via :attr:`nu_err`. Any unobserved or null data
+    should be passed as :obj:`numpy.nan`, and an :attr:`obs_mask` will be made
+    which can be used in the likelihood.
     
     Args:
-        name: [description]
-        n: [description]
-        nu: [description]
-        l: [description]. Defaults to None.
-        nu_err: [description]. Defaults to None.
+        name: Name of the star(s) in the model.
+        n: Radial orders of the modes to be modelled.
+        l: Angular degree(s) of the modes to be modelled. Defaults to
+            :obj:`None`.
+        nu: Observed central mode frequencies. Must be broadcastable to a 2D or
+            3D array:
+
+            +--------------------------------+--------------------------------+
+            | Shape                          | Description                    |
+            +================================+================================+
+            | (:attr:`num_stars`,            | If :attr:`l` is :class:`float` |
+            | :attr:`num_orders`)            | or :obj:`None`.                |
+            +--------------------------------+--------------------------------+
+            | (:attr:`num_stars`,            | If :attr:`l` is                |
+            | :attr:`num_orders`,            | :class:`Array1D`.              |
+            | :attr:`num_degrees`)           |                                |
+            +--------------------------------+--------------------------------+
+            
+            Unobserved or null data may be passed as
+            :obj:`numpy.nan`.
+        nu_err: The observational uncertainty for each element of
+            :attr:`nu`. Defaults to :obj:`None` which is equivalent to an
+            uncertainty of 0.0.
+    
+    Example:
+        .. code-block:: python
+
+            import numpyro
+            import numpyro.distributions as dist
+            import numpy as np
+            import jax.numpy as jnp
+            from asterion import Model
+
+            class MyModel(Model):
+                def _prior(self):
+                    
+                    # Use dimension context manager to track dimensionality \
+of output
+                    with self.dimensions['name'] as stars:
+                        delta_nu = numpyro.sample('delta_nu', \
+dist.Normal(20., 1.))
+                        epsilon = numpyro.sample('epsilon', \
+dist.Normal(1.0, 0.1))
+                        err = numpyro.sample('err', dist.HalfNormal(0.1))
+                        
+                        with self.dimensions['n'] as orders:
+                            # Make sure that n has the correct shape
+                            n = np.broadcast_to(self.n, \
+(stars.size, orders.size))
+                            nu = numpyro.deterministic('nu', \
+delta_nu * (n + epsilon))
+                    
+                    # Return model nu and model error
+                    return nu, err
+                
+                def _likelihood(self, nu, err):
+                    # Combine model and obs error
+                    # Operations applied to RVs must be jax-compatible
+                    nu_err = jnp.sqrt(err**2 + self.nu_err**2)
+
+                    with self.dimensions['name']:
+                        with self.dimensions['n']:
+                            numpyro.sample(
+                                'nu_obs',
+                                dist.Normal(nu, nu_err),
+                                obs=self.nu,
+                                obs_mask=self.obs_mask
+                            )
+                
+                def _posterior(self):
+                    self._likelihood(*self._prior())
+
+                def _predictions(self):
+                    # Here, you can return the prior, or a version of the prior
+                    # with, e.g. continuous n. Here, we just return the prior.
+                    return self._prior()
     """
     reparam: ClassVar[Dict[str, Reparam]] = {}  #: [description]
     circ_var_names: ClassVar[List[str]] = []  #: [description]
@@ -176,7 +249,7 @@ class Model:
 
         self.num_stars: int = self.name.shape[0]  #: [description]
         self.num_orders: int = self.n.shape[0]  #: [description]
-        self.num_degrees: Optional[int] = None
+        self.num_degrees: Optional[int] = None  #: [description]
 
         self.dimensions: Dict[str, dimension] = {
             "name": dimension("name", self.num_stars, coords=self.name),
@@ -252,8 +325,8 @@ class Model:
 
     @property
     def prior(self) -> Callable:
-        """Function which samples from the prior and returns arguments for the
-        likelihood.
+        """Function which samples from the model prior and returns arguments 
+        for :attr:`likelihood`.
         """        
         return self._prior
 
@@ -266,13 +339,15 @@ class Model:
 
     @property
     def likelihood(self) -> Callable:
-        """[summary]
+        """Function which takes the output of :attr:`prior` and samples
+        from the model likelihood.
         """ 
         return self._likelihood
 
     @property
     def posterior(self) -> Callable:
-        """[summary]
+        """Function which combines the :attr:`prior` and
+        :attr:`likelihood` to sample from the model posterior.
         """        
         return self._posterior
 
@@ -286,41 +361,42 @@ class Model:
         return trace
 
     def get_prior_trace(self, rng_key: Union[int, jnp.ndarray]) -> dict:
-        """[summary]
+        """Sample from :attr:`prior` given a random seed.
 
         Args:
-            rng_key: [description]
+            rng_key: Random seed or key for generating the sample.
 
         Returns:
-            [description]
+            Trace from the :attr:`prior`.
         """        
         return self._get_trace(rng_key, self.prior)
     
     def get_posterior_trace(self, rng_key: Union[int, jnp.ndarray]) -> dict:
-        """[summary]
+        """Sample from :attr:`posterior` given a random seed.
 
         Args:
-            rng_key: [description]
+            rng_key: Random seed or key for generating the sample.
 
         Returns:
-            [description]
+            Trace from the :attr:`posterior`.
         """        
         return self._get_trace(rng_key, self.posterior)
 
     def get_predictions_trace(self, rng_key: Union[int, jnp.ndarray]) -> dict:
-        """[summary]
+        """Sample from :attr:`predictions` given a random seed.
 
         Args:
-            rng_key: [description]
+            rng_key: Random seed or key for generating the sample.
 
         Returns:
-            [description]
+            Trace from the :attr:`predictions`.
         """        
         return self._get_trace(rng_key, self.predictions)
 
 
 class GlitchModel(Model):
-    """
+    """Model the glitch in the asteroseismic radial mode frequencies.
+
     Args:
         delta_nu: Two elements containing the respective prior mean and standard 
             deviation for the large frequency separation.
