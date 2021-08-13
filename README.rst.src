@@ -23,4 +23,4 @@ Fit the asteroseismic helium-II ionisation zone glitch present in the mode frequ
 
 .. include:: docs/source/guide/getting_started.rst
 
-.. include:: docs/source/guide/contributing.rst
+.. include:: docs/source/dev/contributing.rst

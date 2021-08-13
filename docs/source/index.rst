@@ -19,18 +19,30 @@ use to study surface helium content [references].
 
 .. toctree::
    :maxdepth: 1
-   :caption: User Guide:
+   :caption: User Guide
+   :name: guidetoc
 
    guide/installation
    guide/getting_started
    guide/api
-   guide/contributing
 
 .. toctree::
+   :glob:
    :maxdepth: 1
    :caption: Tutorials
+   :name: tutorialstoc
 
-   tutorials/glitch
+   tutorials/*
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Development
+   :name: devtoc
+
+   dev/*
+   GitHub repository <https://github.com/alexlyttle/asterion>
+
 
 Indices and tables
 ------------------
