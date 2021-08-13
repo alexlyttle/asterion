@@ -28,6 +28,7 @@ for source in glob.glob('./**/README.rst.src', recursive=True):
               "   Any changes should be made to\n" + \
              f"   {dest}.src instead.\n" + \
               "   ===========================================================\n\n"
+    skip_lines = len(header.splitlines())
 
     text = re.sub(
         '^\\.\\. include:: (?P<filename>.*)$',
@@ -35,5 +36,12 @@ for source in glob.glob('./**/README.rst.src', recursive=True):
         text,
         flags=re.M,
     )
-    with open(dest, 'w') as f:
-        f.write(header + text)
+
+    with open(dest, 'r+') as file:
+        lines = file.readlines()
+        old_text = ''.join(lines[skip_lines:])
+        if text != old_text:
+            # Only update file if text is updated
+            file.seek(0)
+            file.truncate()  # truncate file at position 0
+            file.write(header + text)
