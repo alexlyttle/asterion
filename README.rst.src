@@ -9,10 +9,10 @@ Asterion
     :target: https://github.com/alexlyttle/asterion/actions/workflows/main.yml
     :alt: Build status
 .. image:: https://img.shields.io/github/issues-closed/alexlyttle/asterion.svg
-    :target https://github.com/alexlyttle/asterion/issues
+    :target: https://github.com/alexlyttle/asterion/issues
     :alt: Issues closed
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
-    :target https://github.com/alexlyttle/asterion/blob/main/LICENSE
+    :target: https://github.com/alexlyttle/asterion/blob/main/LICENSE
     :alt: License
 
 Warning: This package is an early build, use with caution!
