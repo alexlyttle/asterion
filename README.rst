@@ -1,5 +1,5 @@
 .. ./README.rst file, created by
-   scripts/make_readme.py on Mon Aug 23 14:35:07 2021 UTC.
+   ./scripts/make_readme.py on Tue Aug 24 09:09:15 2021 UTC.
    ================ DO NOT MODIFY THIS FILE! =================
    It is generated automatically as a part of a GitHub Action.
    Any changes should be made to
@@ -34,7 +34,7 @@ This module is actively being developed. To install the latest build, run the fo
 
 .. code-block:: shell
 
-    pip install git+https://github.com/alexlyttle/asterion@master#egg=asterion
+    pip install git+https://github.com/alexlyttle/asterion@main#egg=asterion
 
 An official release on PyPI for this package will be coming soon.
 
