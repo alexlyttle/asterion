@@ -1,14 +1,10 @@
 .. ./README.rst file, created by
-   ./scripts/make_readme.py on Fri Aug 13 10:39:51 2021 UTC.
+   scripts/make_readme.py on Mon Aug 23 14:35:07 2021 UTC.
    ================ DO NOT MODIFY THIS FILE! =================
    It is generated automatically as a part of a GitHub Action.
    Any changes should be made to
    ./README.rst.src instead.
    ===========================================================
-
-########
-Asterion
-########
 
 .. image:: https://readthedocs.org/projects/asterion/badge/?version=latest&style=flat
     :target: https://asterion.readthedocs.io
@@ -22,6 +18,10 @@ Asterion
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
     :target: https://github.com/alexlyttle/asterion/blob/main/LICENSE
     :alt: License
+
+########
+Asterion
+########
 
 Warning: This package is an early build, use with caution!
 

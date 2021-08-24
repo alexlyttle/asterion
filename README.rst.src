@@ -1,7 +1,3 @@
-########
-Asterion
-########
-
 .. image:: https://readthedocs.org/projects/asterion/badge/?version=latest&style=flat
     :target: https://asterion.readthedocs.io
     :alt: Documentation status
@@ -14,6 +10,10 @@ Asterion
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
     :target: https://github.com/alexlyttle/asterion/blob/main/LICENSE
     :alt: License
+
+########
+Asterion
+########
 
 Warning: This package is an early build, use with caution!
 
