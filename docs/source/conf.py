@@ -70,11 +70,20 @@ html_static_path = ['_static']
 html_theme_options = {
     "announcement": "<em>Attention</em>! This project is an alpha build, " + \
                     "please use with caution.",
+    "light_logo": "images/asterion624x328.png",
+    "dark_logo": "images/asterion-white624x328.png",
+    "sidebar_hide_name": True,
+    "light_css_variables": {
+        "font-stack": "Atkinson Hyperlegible, sans-serif",
+    },
 }
 
 html_title = f"{project} v{release}"
 html_short_title = project
 
+html_css_files = [
+    'css/custom.css',
+]
 
 # -- Autodoc options ---------------------------------------------------------
 
@@ -130,3 +139,7 @@ napoleon_type_aliases = {
     "Array2D": "asterion.annotations.Array2D",
     "Array3D": "asterion.annotations.Array3D",
 }
+
+# -- NBSphinx options --------------------------------------------------------
+
+nbsphinx_execute = "never"
