@@ -59,9 +59,9 @@ def get_n_max(epsilon, delta_nu, nu_max):
     return nu_max / delta_nu - epsilon
 
 
-def asy_background(n, epsilon, alpha, delta_nu, nu_max):
+def asy_background(n, epsilon, alpha, delta_nu, nu_max, beta=0.0, gamma=0.0):
     n_max = get_n_max(epsilon, delta_nu, nu_max)
-    return delta_nu * (n + epsilon + 0.5 * alpha * (n - n_max)**2)
+    return delta_nu * (n + epsilon + 0.5 * alpha * (n - n_max)**2 + beta*n**3 - gamma*(n - n_max)**4) 
 
 
 def glitch(nu, tau, phi):
@@ -419,12 +419,17 @@ class GlitchModel(Model):
         num_orders: The number of radial orders to model. The observers n is inferred from
             the priors for delta_nu, nu_max and epsilon. Default is None, and
             num_orders is inferred from the length of the final dimension of nu.
+        num_pred: The number of predictions to make in the range of n. Default
+            is 200.
     """
     reparam = {
         "phi_he": CircularReparam(),
         "phi_cz": CircularReparam(),
     }
-    circ_var_names = ["phi_he", "phi_cz"]
+    circ_var_names = [
+        "phi_he",
+        "phi_cz"
+    ]
 
     def __init__(
         self,
@@ -439,6 +444,9 @@ class GlitchModel(Model):
         n: Optional[Array1D[int]]=None,
         num_orders: Optional[int]=None,
         num_pred: int=200,
+        regularization: float=1e-6,
+        beta: Array1D[float]=[-14.0, 1.0],
+        gamma: Array1D[float]=[-12.0, 1.0],
     ):
 
         self._delta_nu = np.array(delta_nu)
@@ -463,6 +471,9 @@ class GlitchModel(Model):
             "n_pred", self.num_pred, coords=self.n_pred
         )
 
+        self.regularization = regularization
+        self._beta = beta
+        self._gamma = gamma
         # self.num_stars = 1 if len(self.name.shape) == 0 else self.name.shape[0]
         # self.num_orders = self.n.shape[0]
         # self.name = np.broadcast_to(self.name, (self.num_stars,))
@@ -479,7 +490,8 @@ class GlitchModel(Model):
         # }
 
     def _prior(self, pred: bool=False):
-        m_tau = 1.05
+        # m_tau = 1.05
+        m_tau = 0.91
         # s_tau = 3.0
         log_tau = - m_tau * np.log(self._nu_max[0])  # Approx form of log(tau_he)
 
@@ -489,15 +501,20 @@ class GlitchModel(Model):
 
             delta_nu = numpyro.sample("delta_nu", dist.Normal(*self._delta_nu))
             nu_max = numpyro.sample("nu_max", dist.Normal(*self._nu_max))
-        
-            b0 = numpyro.sample("b0", dist.LogNormal(np.log(100/self._nu_max[0]), 1.0))
+
+            # TODO: define these
+            beta = numpyro.sample("beta", dist.LogNormal(*self._beta))
+            gamma = numpyro.sample("gamma", dist.LogNormal(*self._gamma))
+
+            b0 = numpyro.sample("b0", dist.LogNormal(np.log(1/self._nu_max[0]), 1.0))
+
             # b0 = numpyro.sample("b0", dist.HalfNormal(100/self._nu_max[0]))
-            b1 = numpyro.sample("b1", dist.LogNormal(np.log(10/self._nu_max[0]**2), 1.0))
+            b1 = numpyro.sample("b1", dist.LogNormal(np.log(1/self._nu_max[0]**2), 1.0))
 
             tau_he = numpyro.sample("tau_he", dist.LogNormal(log_tau, 0.8))
             phi_he = numpyro.sample("phi_he", dist.VonMises(0.0, 0.1))
 
-            c0 = numpyro.sample("c0", dist.LogNormal(np.log(0.5*self._nu_max[0]**2), 1.0))
+            c0 = numpyro.sample("c0", dist.LogNormal(np.log(0.1*self._nu_max[0]**2), 1.0))
 
             # Ensure that tau_cz > tau_he
             delta_tau = numpyro.sample("delta_tau", dist.LogNormal(log_tau, 0.8))
@@ -515,12 +532,172 @@ class GlitchModel(Model):
                 else:
                     n = np.broadcast_to(self.n, self._shape)
 
-                nu_asy = numpyro.deterministic("nu_asy", asy_background(n, epsilon, alpha, delta_nu, nu_max))
+                nu_asy = numpyro.deterministic("nu_asy", asy_background(n, epsilon, alpha, delta_nu, nu_max, beta, gamma))
+
+                # So factor is not done for predictions
+                if numpyro.get_mask() is not False:
+                    # L2 regularisation on d3 nu_asy / d n3 same as Gaussian prior
+                    # with sd = 1/lambda where lambda = self.regularization
+                    log_prob = dist.Normal(0.0, 1/self.regularization).log_prob(6*beta - 24*gamma*n)
+                    numpyro.factor('reg', jnp.sum(log_prob))  # TODO: uncomment
 
                 dnu_he = numpyro.deterministic("dnu_he", he_glitch(nu_asy, b0, b1, tau_he, phi_he))
                 dnu_cz = numpyro.deterministic("dnu_cz", cz_glitch(nu_asy, c0, tau_cz, phi_cz))
+                # dnu_cz = 0.0
 
                 nu = numpyro.deterministic("nu", nu_asy + dnu_he + dnu_cz)
+
+            # average_he = numpyro.deterministic('<he>', average_he_amplitude(...))
+            # he_nu_max = numpyro.deterministic('he_nu_max', he_amplitude(nu_max, b0, b1))
+        return nu, err
+
+    def _likelihood(self, nu, err):
+        # if self.nu_err is not None:
+        err = jnp.sqrt(err**2 + self.nu_err**2)
+
+        with self.dimensions["name"]:
+            with self.dimensions["n"]:
+                nu_obs = numpyro.sample("nu_obs", dist.Normal(nu, err),
+                                        obs=self.nu, obs_mask=self.obs_mask)
+
+    # def _predictive(self, n=None):
+    #     self._likelihood(*self._prior(n=n))
+
+    # @property
+    # def predictive(self):
+    #     # def _predictive():
+    #     #     # nu, nu_err = self._prior()  # prior without reparam
+    #     #     self._likelihood(*self._prior(n=n))
+
+    #     return self._predictive
+
+    # def _predict(self):
+    #     self._prior(pred=True)
+    
+    def _posterior(self):
+        self._likelihood(*self._prior())
+
+    def _predictions(self):
+        return self._prior(pred=True)
+
+
+class AsyModel(Model):
+    """Model the glitch in the asteroseismic radial mode frequencies.
+
+    Args:
+        delta_nu: Two elements containing the respective prior mean and standard 
+            deviation for the large frequency separation.
+        nu_max: Two elements containing the respective prior mean and standard
+            deviation for the frequency at maximum power.
+        epsilon: Two elements containing the respective prior mean and standard
+            deviation for the asymptotic phase term. Default is [1.3, 0.2] which is
+            suitable for main sequence solar-like oscillators.
+        alpha: Two elements containing the respective prior mean and standard
+            deviation for the asymptotic curvature term. Default is [0.0015, 0.002]
+            which is suitable for most solar-like oscillators.
+        nu: Locations of the l=0 (radial) stellar pulsation modes. Null data may be
+            passed as NaN. The shape of nu should be (num_orders,) or 
+            (N, num_orders) for N stars in the model.
+        nu_err: The observational uncertainty for each element of nu. Null data may be
+            passed as NaN. Default is None, for which only a star-by-star model
+            error is inferred and observational uncertainty is assumed to be zero.
+        n: The observers radial order of each mode in nu. Default is None and n is
+            inferred from num_orders.
+        num_orders: The number of radial orders to model. The observers n is inferred from
+            the priors for delta_nu, nu_max and epsilon. Default is None, and
+            num_orders is inferred from the length of the final dimension of nu.
+        num_pred: The number of predictions to make in the range of n. Default
+            is 200.
+    """
+    def __init__(
+        self,
+        name: Union[str, Array1D[str]],
+        delta_nu: Array1D[float],
+        nu_max: Array1D[float],
+        epsilon: Array1D[float]=None,
+        alpha: Array1D[float]=None,
+        *,
+        nu: Union[Array1D[float], Array2D[float]],
+        nu_err: Optional[Union[Array1D[float], Array2D[float]]]=None, 
+        n: Optional[Array1D[int]]=None,
+        num_orders: Optional[int]=None,
+        num_pred: int=200,
+        regularization: float=1e-6,
+        beta: Array1D[float]=[-14.0, 1.0],
+        gamma: Array1D[float]=[-12.0, 1.0],
+    ):
+
+        self._delta_nu = np.array(delta_nu)
+        self._nu_max = np.array(nu_max)
+        self._epsilon = np.array([1.3, 0.2]) if epsilon is None else np.array(epsilon)
+
+        if alpha is None:
+            self._log_alpha = np.array([-7.0, 1.0])  # natural logarithm
+        else:
+            self._log_alpha = np.array([
+                np.log(alpha[0]**2 / np.sqrt(alpha[0]**2 + alpha[1]**2)),  # loc
+                np.sqrt(np.log(1 + alpha[1]**2 / alpha[0]**2))             # scale
+            ])
+        
+        super().__init__(
+            name, n, nu=nu, nu_err=nu_err,
+        )
+
+        self.num_pred = num_pred
+        self.n_pred = np.linspace(self.n[0], self.n[-1], num_pred)
+        self.dimensions["n_pred"] = dimension(
+            "n_pred", self.num_pred, coords=self.n_pred
+        )
+
+        self.regularization = regularization
+        self._beta = beta
+        self._gamma = gamma
+        # self.num_stars = 1 if len(self.name.shape) == 0 else self.name.shape[0]
+        # self.num_orders = self.n.shape[0]
+        # self.name = np.broadcast_to(self.name, (self.num_stars,))
+        # self.n = np.broadcast_to(self.n, (self.num_orders,))
+
+        # shape = (self.num_stars, self.num_orders)
+        # self.nu = np.broadcast_to(self.nu, shape)
+        # self.nu_err = np.broadcast_to(self.nu_err, shape)
+        # self.obs_mask = np.broadcast_to(self.obs_mask, shape)
+    
+        # self.dimensions = {
+        #     'name': dimension('name', self.num_stars, coords=self.name),
+        #     'n': dimension('n', self.num_orders, coords=self.n)
+        # }
+
+    def _prior(self, pred: bool=False):
+
+        with self.dimensions["name"]:
+            epsilon = numpyro.sample("epsilon", dist.Normal(*self._epsilon))
+            alpha = numpyro.sample("alpha", dist.LogNormal(*self._log_alpha))
+
+            delta_nu = numpyro.sample("delta_nu", dist.Normal(*self._delta_nu))
+            nu_max = numpyro.sample("nu_max", dist.Normal(*self._nu_max))
+
+            # TODO: define these
+            beta = numpyro.sample("beta", dist.LogNormal(*self._beta))
+            gamma = numpyro.sample("gamma", dist.LogNormal(*self._gamma))
+            
+            err = numpyro.sample("err", dist.HalfNormal(0.1))
+
+            dim_name = "n_pred" if pred else "n"
+            with self.dimensions[dim_name]:
+                # Broadcast to the shape of output freq
+                if pred:
+                    n = np.broadcast_to(self.n_pred, (self.num_stars, self.num_pred))
+                else:
+                    n = np.broadcast_to(self.n, self._shape)
+
+                nu = numpyro.deterministic("nu", asy_background(n, epsilon, alpha, delta_nu, nu_max, beta, gamma))
+
+                # So factor is not done for predictions
+                if numpyro.get_mask() is not False:
+                    # L2 regularisation on d3 nu_asy / d n3 same as Gaussian prior
+                    # with sd = 1/lambda where lambda = self.regularization
+                    log_prob = dist.Normal(0.0, 1/self.regularization).log_prob(6*beta - 24*gamma*n)
+                    numpyro.factor('reg', jnp.sum(log_prob))  # TODO: uncomment
 
             # average_he = numpyro.deterministic('<he>', average_he_amplitude(...))
             # he_nu_max = numpyro.deterministic('he_nu_max', he_amplitude(nu_max, b0, b1))
