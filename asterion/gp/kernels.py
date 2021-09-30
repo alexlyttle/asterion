@@ -76,6 +76,6 @@ class SquaredExponential(Kernel):
 
     def __call__(self, x, xp):
         """Returns the squared exponential covariance matrix."""
-        exponant = jnp.power((xp[:, None] - x) / self.length, 2.0)
+        exponant = jnp.power((xp[..., None] - x) / self.length, 2.0)
         cov = self.var * jnp.exp(-0.5 * exponant)
         return cov

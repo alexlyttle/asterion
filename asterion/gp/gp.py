@@ -31,7 +31,7 @@ class GP:
     
     Likelihood (just add observation),
 
-        y_obs | y ~ N(y_obs | m(x), k(x, x) + n_x)
+        y_obs | theta ~ N(y_obs | m(x), k(x, x) + n_x)
     
     Predicted truth,
 
