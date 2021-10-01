@@ -38,8 +38,9 @@ class WhiteNoise(Kernel):
     """
     def __init__(self, scale):
         self.scale = jnp.array(scale)
-        self.heteroscedastic = (self.scale.shape != ())
-        assert len(self.scale.shape) < 2
+        # self.heteroscedastic = (self.scale.shape != ())
+        self.heteroscedastic = False  # TODO no need for this.
+        # assert len(self.scale.shape) < 2
 
     def __call__(self, x, xp=None):
         """Returns the white noise covariance matrix.
@@ -56,7 +57,7 @@ class WhiteNoise(Kernel):
 #         cov = jnp.zeros((x.shape[0], xp.shape[0]))
         if x is xp or xp is None:
 #             jnp.fill_diagonal(cov, self.scale**2)
-            if self.heteroscedastic and x.shape != self.scale.shape:
+            if self.heteroscedastic and x.shape[0] != self.scale.shape[0]:
                 raise ValueError(f"Inputs must have shape {self.scale.shape}")
             return self.scale**2 * jnp.eye(x.shape[0])
         
@@ -76,6 +77,6 @@ class SquaredExponential(Kernel):
 
     def __call__(self, x, xp):
         """Returns the squared exponential covariance matrix."""
-        exponant = jnp.power((xp[..., None] - x) / self.length, 2.0)
+        exponant = jnp.power((xp[:, None] - x) / self.length, 2.0)
         cov = self.var * jnp.exp(-0.5 * exponant)
         return cov
