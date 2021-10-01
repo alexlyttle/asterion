@@ -51,15 +51,25 @@ class GP:
         kernel (Kernel or callable): Kernel function,
             default is the squared exponential kernel.
         mean (callable, optional): Mean model function. Default is jnp.zeros.
-        noise (callable or array-like, optional): Independent noise. If callable, must be a
-            function of (x, x) describing the noise. Otherwise, defaults to the 
-            scale parameter for WhiteNoise. Defaults is a noise of zero.
-        jitter (float): Small amount to add to the covariance.
+        jitter (float or callable): Small amount to add to the covariance.
+            If float, this is multiplied by the identity matrix.
+
+    Attributes:
+        kernel (callable): Kernel function.
+        mean (callable): Mean function.
+        jitter (callable): Jitter function.
+        x (jnp.ndarray or None): Input array passed to distribution or sample.
+        y (jnp.ndarray or None): Output array of sample.
+        loc (jnp.ndarray or None): Output of mean(x).
+        cov (jnp.ndarray or None): Output of kernel(x, x).
+        noise (callable or None): Noise function passed to distribution or 
+            sample.
 
     Methods:
-        predict: Make a prediction.
-        conditional: Make a conditional distribution
-        jitter: A small amount along the diagonal of an N x N matrix.
+        distribution: Returns the distribution of y | theta.
+        sample: Returns a sample from the distribution of y | theta.
+        conditional: Returns the conditional distribution of y* | y, theta.
+        predict: Samples the conditional distribution of y* given y and theta.
     
     Example:
 
@@ -92,7 +102,13 @@ class GP:
             mean = lambda x: jnp.zeros(x.shape[0])
         assert callable(mean)
         self.mean = mean
-        self._jitter = jitter
+        
+        if jitter is None:
+            self.jitter = lambda x: 0.0
+        elif not callable(jitter):
+            self.jitter = lambda x: jitter * jnp.eye(x.shape[0])
+        else:
+            self.jitter = jitter
         
         self.x = None
         self.y = None
@@ -109,13 +125,42 @@ class GP:
         gp = GP(kernel, mean=mean, noise=noise, jitter=jitter)
         return gp
 
-    def jitter(self, x):
-        """A small amount on the diagonal of an N x N matrix.
+    # def jitter(self, x):
+    #     """A small amount on the diagonal of an N x N matrix.
         
+    #     Args:
+    #         x: A vector of shape (N,).
+    #     """
+    #     return self._jitter * jnp.eye(x.shape[0])
+
+    def _validate_noise(self, noise):
+        if noise is None:
+            noise = WhiteNoise(0.0)
+        elif not callable(noise):
+            noise = WhiteNoise(noise)
+        return noise
+
+    def distribution(self, x, noise=None, **kwargs):
+        """Distribution for the GP.
+
         Args:
-            x: A vector of shape (N,).
+            params (dict): Kernel and mean parameters.
+            x: The x values for which to sample.
+            kwargs (dict): Keyword arguments to pass to dist.MultivariateNormal 
         """
-        return self._jitter * jnp.eye(x.shape[0])
+        self.x = x
+        self.noise = self._validate_noise(noise)
+        self.loc = self.mean(x)
+        self.cov = self.kernel(x, x) + self.noise(x) + self.jitter(x)
+        return dist.MultivariateNormal(self.loc, self.cov, **kwargs)
+    
+    def sample(self, name, x, noise=None, obs=None, rng_key=None,
+               sample_shape=(), infer=None, obs_mask=None, **kwargs):
+        fn = self.distribution(x, noise=noise, **kwargs)
+        self.y = numpyro.sample(name, fn, obs=obs, rng_key=rng_key,
+                                sample_shape=sample_shape, infer=infer,
+                                obs_mask=obs_mask)
+        return self.y
 
     def _build_conditional(self, x, noise=None, gp=None, diag=False):
         """Make a prediction for the loc and cov of f(x_pred) given y,
@@ -201,35 +246,6 @@ class GP:
             return dist.Normal(*args, **kwargs)
 
         return dist.MultivariateNormal(*args, **kwargs)
-
-    def _validate_noise(self, noise):
-        if noise is None:
-            noise = WhiteNoise(0.0)
-        elif not callable(noise):
-            noise = WhiteNoise(noise)
-        return noise
-
-    def distribution(self, x, noise=None, **kwargs):
-        """Distribution for the GP.
-
-        Args:
-            params (dict): Kernel and mean parameters.
-            x: The x values for which to sample.
-            kwargs (dict): Keyword arguments to pass to dist.MultivariateNormal 
-        """
-        self.x = x
-        self.noise = self._validate_noise(noise)
-        self.loc = self.mean(x)
-        self.cov = self.kernel(x, x) + self.noise(x) + self.jitter(x)
-        return dist.MultivariateNormal(self.loc, self.cov, **kwargs)
-    
-    def sample(self, name, x, noise=None, obs=None, rng_key=None,
-               sample_shape=(), infer=None, obs_mask=None, **kwargs):
-        fn = self.distribution(x, noise=noise, **kwargs)
-        self.y = numpyro.sample(name, fn, obs=obs, rng_key=rng_key,
-                                sample_shape=sample_shape, infer=infer,
-                                obs_mask=obs_mask)
-        return self.y
     
     def predict(self, name, x, noise=None, gp=None, diag=False,
                 rng_key=None, sample_shape=(), infer=None, **kwargs):
