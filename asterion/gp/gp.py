@@ -50,7 +50,8 @@ class GP:
     Args:
         kernel (Kernel or callable): Kernel function,
             default is the squared exponential kernel.
-        mean (callable, optional): Mean model function. Default is jnp.zeros.
+        mean (float or callable): Mean model function. If float, mean
+            function is constant at this value.
         jitter (float or callable): Small amount to add to the covariance.
             If float, this is multiplied by the identity matrix.
 
@@ -93,23 +94,22 @@ class GP:
                     gp.predict('y_pred', x_pred, noise=noise)
 
     """
-    def __init__(self, kernel, mean=None, jitter=1e-6):
+    def __init__(self, kernel, mean=0.0, jitter=1e-6):
         
-        assert callable(kernel)
+        if not callable(kernel):
+            raise TypeError("Argument 'kernel' is not callable")
         self.kernel = kernel
 
-        if mean is None:
-            mean = lambda x: jnp.zeros(x.shape[0])
-        assert callable(mean)
-        self.mean = mean
+        if not callable(mean):
+            self.mean = lambda x: jnp.full(x.shape, mean)
+        else:
+            self.mean = mean
         
-        if jitter is None:
-            self.jitter = lambda x: 0.0
-        elif not callable(jitter):
-            self.jitter = lambda x: jitter * jnp.eye(x.shape[0])
+        if not callable(jitter):
+            self.jitter = lambda x: jitter * jnp.eye(x.shape[-1])
         else:
             self.jitter = jitter
-        
+
         self.x = None
         self.y = None
         self.noise = None
@@ -125,16 +125,8 @@ class GP:
         gp = GP(kernel, mean=mean, noise=noise, jitter=jitter)
         return gp
 
-    # def jitter(self, x):
-    #     """A small amount on the diagonal of an N x N matrix.
-        
-    #     Args:
-    #         x: A vector of shape (N,).
-    #     """
-    #     return self._jitter * jnp.eye(x.shape[0])
-
     def _validate_noise(self, noise):
-        if noise is None:
+        if noise is None or noise is False:
             noise = WhiteNoise(0.0)
         elif not callable(noise):
             noise = WhiteNoise(noise)
@@ -219,7 +211,7 @@ class GP:
 
         return loc, cov
 
-    def conditional(self, x, noise=False, diag=False, gp=None, **kwargs):
+    def conditional(self, x, noise=None, diag=False, gp=None, **kwargs):
         """Make a conditional distribution for y_pred = f(x_pred) + noise_pred,
         
         y_pred | y ~ N(
