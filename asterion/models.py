@@ -30,6 +30,7 @@ import warnings
 
 from .priors import Prior
 
+import astropy.units as u
 
 __all__ = [
     "estimate_n",
@@ -39,58 +40,58 @@ __all__ = [
 ]
 
 
-def estimate_n(
-    num_orders: int,
-    delta_nu: Union[float, Array1D[float]], 
-    nu_max: Union[float, Array1D[float]], 
-    epsilon: Union[float, Array1D[float]]=0.0,
-) -> np.ndarray:
-    """Estimates n from delta_nu, nu_max and epsilon, given num_orders about
-    nu_max.
+# def estimate_n(
+#     num_orders: int,
+#     delta_nu: Union[float, Array1D[float]], 
+#     nu_max: Union[float, Array1D[float]], 
+#     epsilon: Union[float, Array1D[float]]=0.0,
+# ) -> np.ndarray:
+#     """Estimates n from delta_nu, nu_max and epsilon, given num_orders about
+#     nu_max.
 
-    Args:
-        num_orders: Number of radial orders to estimate n for.
-        delta_nu: Large frequecy spacing (microHz).
-        nu_max: Frequency at maximum power (microHz).
-        epsilon: Phase or offset of the asymptotic approximation.
+#     Args:
+#         num_orders: Number of radial orders to estimate n for.
+#         delta_nu: Large frequecy spacing (microHz).
+#         nu_max: Frequency at maximum power (microHz).
+#         epsilon: Phase or offset of the asymptotic approximation.
 
-    Returns:
-        An array of radial order, n.
-    """
-    n_max = get_n_max(epsilon, delta_nu, nu_max)
-    start = np.floor(n_max - np.floor(num_orders/2))
-    stop = np.floor(n_max + np.ceil(num_orders/2)) - 1
-    n = np.linspace(start, stop, num_orders, dtype=int, axis=-1)
-    return n
-
-
-def get_n_max(epsilon, delta_nu, nu_max):
-    return nu_max / delta_nu - epsilon
+#     Returns:
+#         An array of radial order, n.
+#     """
+#     n_max = get_n_max(epsilon, delta_nu, nu_max)
+#     start = np.floor(n_max - np.floor(num_orders/2))
+#     stop = np.floor(n_max + np.ceil(num_orders/2)) - 1
+#     n = np.linspace(start, stop, num_orders, dtype=int, axis=-1)
+#     return n
 
 
-def asy_background(n, epsilon, alpha, delta_nu, nu_max, beta=0.0, gamma=0.0):
-    n_max = get_n_max(epsilon, delta_nu, nu_max)
-    return delta_nu * (n + epsilon + 0.5 * alpha * (n - n_max)**2 + beta*n**3 - gamma*(n - n_max)**4) 
+# def get_n_max(epsilon, delta_nu, nu_max):
+#     return nu_max / delta_nu - epsilon
 
 
-def glitch(nu, tau, phi):
-    return jnp.sin(4 * math.pi * tau * nu + phi)
+# def asy_background(n, epsilon, alpha, delta_nu, nu_max, beta=0.0, gamma=0.0):
+#     n_max = get_n_max(epsilon, delta_nu, nu_max)
+#     return delta_nu * (n + epsilon + 0.5 * alpha * (n - n_max)**2 + beta*n**3 - gamma*(n - n_max)**4) 
+
+
+# def glitch(nu, tau, phi):
+#     return jnp.sin(4 * math.pi * tau * nu + phi)
     
 
-def he_amplitude(nu, b0, b1):
-    return b0 * nu * jnp.exp(- b1 * nu**2)
+# def he_amplitude(nu, b0, b1):
+#     return b0 * nu * jnp.exp(- b1 * nu**2)
 
 
-def he_glitch(nu, b0, b1, tau_he, phi_he):
-    return he_amplitude(nu, b0, b1) * glitch(nu, tau_he, phi_he)
+# def he_glitch(nu, b0, b1, tau_he, phi_he):
+#     return he_amplitude(nu, b0, b1) * glitch(nu, tau_he, phi_he)
 
 
-def cz_amplitude(nu, c0):
-    return c0 / nu**2
+# def cz_amplitude(nu, c0):
+#     return c0 / nu**2
 
 
-def cz_glitch(nu, c0, tau_cz, phi_cz):
-    return cz_amplitude(nu, c0) * glitch(nu, tau_cz, phi_cz)
+# def cz_glitch(nu, c0, tau_cz, phi_cz):
+#     return cz_amplitude(nu, c0) * glitch(nu, tau_cz, phi_cz)
 
 
 def average_he_amplitude(b0, b1, low, high):
@@ -803,12 +804,21 @@ class dimension(Messenger):
 
 class Model:
     """Base Model class"""
+    units = {}
     def __call__(self, n, nu=None, nu_err=None):
         raise NotImplementedError
 
 
 class GlitchModel(Model):
-
+    units = {
+        'delta_nu': u.microhertz,
+        'epsilon': u.dimensionless_unscaled,
+        'nu_obs': u.microhertz,
+        'nu': u.microhertz,
+        'nu_bkg': u.microhertz,
+        'dnu_he': u.microhertz,
+        'dnu_cz': u.microhertz,
+    }
     def __init__(self, background, he_glitch=None, cz_glitch=None):
         self.background = background
         if he_glitch is None:
@@ -817,6 +827,9 @@ class GlitchModel(Model):
             cz_glitch = ZerosPrior()
         self.he_glitch = he_glitch
         self.cz_glitch = cz_glitch
+    
+        self.units.update(self.he_glitch.units)
+        self.units.update(self.cz_glitch.units)
 
     def plot_glitch(self, data, kind='He', group='posterior', quantiles=None, observed=True, ax=None):
         if ax is None:
@@ -854,7 +867,10 @@ class GlitchModel(Model):
         
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.set_xlabel(r'$n$')
-        ax.set_ylabel(r'$\delta\nu_\mathrm{\,'+kind+'}\,(\mathrm{\mu Hz})$')
+        var = r'$\delta\nu_\mathrm{\,'+kind+r'}$'
+        unit = f"({self.units[f'dnu_{kind.lower()}'].to_string(format='latex_inline')})"
+        ax.set_ylabel(' '.join([var, unit]))
+        # ax.set_ylabel(r'$\delta\nu_\mathrm{\,'+kind+'}\,(\mathrm{\mu Hz})$')
         ax.legend()
         return ax
 

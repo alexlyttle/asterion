@@ -6,7 +6,6 @@ Warning:
 import numpyro
 
 from ._version import __version__
-from .data import Data
 from .inference import Inference
 from .models import Model, GlitchModel
 

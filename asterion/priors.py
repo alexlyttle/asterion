@@ -22,11 +22,13 @@ from .annotations import Array1D, Array2D, Array3D
 from .gp import GP, SquaredExponential
 
 from collections.abc import Iterable
+import astropy.units as u
 
 class Prior:
     """Base Prior class.
     """
     reparam = None
+    units = {}
     def _init_prior(self, value, default_dist=dist.Normal):
         if not isinstance(value, dist.Distribution):
             if not isinstance(value, Iterable):
@@ -107,7 +109,12 @@ class HeGlitchPrior(GlitchPrior):
 
     """
     reparam = numpyro.handlers.reparam(config={'phi_he': CircularReparam()})
-
+    units = {
+        'a_he': u.dimensionless_unscaled,
+        'b_he': u.megasecond**2,
+        'tau_he': u.megasecond,
+        'phi_he': u.rad,
+    }
     def __init__(self, nu_max):
         self.nu_max = nu_max
         self.phi = dist.VonMises(0.0, 0.1)
@@ -120,8 +127,8 @@ class HeGlitchPrior(GlitchPrior):
     def nu_max(self, value):
         self._nu_max = self._init_prior(value)
         log_numax = jnp.log10(self._nu_max.mean)
-        self.log_a = dist.Normal(-1.10 - 0.35*log_numax, 0.5)
-        self.log_b = dist.Normal(0.719 - 2.14*log_numax, 0.5)
+        self.log_a = dist.Normal(-1.10 - 0.35*log_numax, 0.7)
+        self.log_b = dist.Normal(0.719 - 2.14*log_numax, 0.7)
         self.log_tau = dist.Normal(0.44 - 1.03*log_numax, 0.1)
     
     @staticmethod
@@ -161,7 +168,11 @@ class CZGlitchPrior(GlitchPrior):
 
     """
     reparam = numpyro.handlers.reparam(config={'phi_cz': CircularReparam()})
-
+    units = {
+        'a_cz': u.microhertz**3,
+        'tau_cz': u.megasecond,
+        'phi_cz': u.rad,
+    }
     def __init__(self, nu_max):
         self.nu_max = nu_max
         self.phi = dist.VonMises(0.0, 0.1)
@@ -174,7 +185,7 @@ class CZGlitchPrior(GlitchPrior):
     def nu_max(self, value):
         self._nu_max = self._init_prior(value)
         log_numax = jnp.log10(self._nu_max.mean)
-        self.log_a = dist.Normal(2*log_numax - 1.0, 0.5)
+        self.log_a = dist.Normal(2*log_numax - 1.0, 0.7)
         self.log_tau = dist.Normal(0.77 - 0.99*log_numax, 0.1)
     
     @staticmethod
