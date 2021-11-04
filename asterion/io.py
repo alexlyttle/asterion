@@ -1,6 +1,7 @@
 """[summary]
 """
-import copy
+from __future__ import annotations
+
 import arviz as az
 import numpy as np
 from typing import List, Dict, Optional
