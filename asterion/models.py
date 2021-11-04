@@ -2,24 +2,18 @@
 """
 from __future__ import annotations
 
-import math
-
 import numpy as np
 
-import jax
 import jax.numpy as jnp
-
-from jax import random
 
 import numpyro
 import numpyro.distributions as dist
+from numpyro.distributions.distribution import Distribution
 
-from numpyro.infer.reparam import CircularReparam, Reparam
-from numpyro import handlers
 from numpyro.primitives import Messenger, plate, apply_stack
 
-from typing import Union, Optional, Callable, Dict, ClassVar, Any
-from .annotations import Array1D, Array2D, Array3D
+from typing import Callable, Optional, Dict
+from .annotations import DistLike
 
 from .gp import GP, SquaredExponential
 
@@ -28,95 +22,77 @@ from matplotlib.ticker import MaxNLocator
 
 import warnings
 
-from .priors import Prior
+# from .priors import ZerosPrior
 
 import astropy.units as u
 
+from collections.abc import Iterable
+from numpy.typing import ArrayLike
+
+import arviz as az
+
+
 __all__ = [
-    "estimate_n",
+    "distribution",
     "dimension",
     "Model",
+    "ZerosPrior",
+    "AsyPrior",
+    "HeGlitchPrior",
+    "CZGlitchPrior",
     "GlitchModel",
 ]
 
 
-# def estimate_n(
-#     num_orders: int,
-#     delta_nu: Union[float, Array1D[float]], 
-#     nu_max: Union[float, Array1D[float]], 
-#     epsilon: Union[float, Array1D[float]]=0.0,
-# ) -> np.ndarray:
-#     """Estimates n from delta_nu, nu_max and epsilon, given num_orders about
-#     nu_max.
+def distribution(
+    value: DistLike,
+    default_dist: dist.Distribution=dist.Normal,
+) -> dist.Distribution:
+    """Return a numpyro distribition.
 
-#     Args:
-#         num_orders: Number of radial orders to estimate n for.
-#         delta_nu: Large frequecy spacing (microHz).
-#         nu_max: Frequency at maximum power (microHz).
-#         epsilon: Phase or offset of the asymptotic approximation.
+    If value is not a distribution, this returns the default distribution,
+    unpacking value as its arguments.
 
-#     Returns:
-#         An array of radial order, n.
-#     """
-#     n_max = get_n_max(epsilon, delta_nu, nu_max)
-#     start = np.floor(n_max - np.floor(num_orders/2))
-#     stop = np.floor(n_max + np.ceil(num_orders/2)) - 1
-#     n = np.linspace(start, stop, num_orders, dtype=int, axis=-1)
-#     return n
+    Args:
+        value: Iterable of args to pass to default_dist, or a Distribution.
+        default_dist: [description]. Defaults to dist.Normal.
 
-
-# def get_n_max(epsilon, delta_nu, nu_max):
-#     return nu_max / delta_nu - epsilon
-
-
-# def asy_background(n, epsilon, alpha, delta_nu, nu_max, beta=0.0, gamma=0.0):
-#     n_max = get_n_max(epsilon, delta_nu, nu_max)
-#     return delta_nu * (n + epsilon + 0.5 * alpha * (n - n_max)**2 + beta*n**3 - gamma*(n - n_max)**4) 
-
-
-# def glitch(nu, tau, phi):
-#     return jnp.sin(4 * math.pi * tau * nu + phi)
-    
-
-# def he_amplitude(nu, b0, b1):
-#     return b0 * nu * jnp.exp(- b1 * nu**2)
-
-
-# def he_glitch(nu, b0, b1, tau_he, phi_he):
-#     return he_amplitude(nu, b0, b1) * glitch(nu, tau_he, phi_he)
-
-
-# def cz_amplitude(nu, c0):
-#     return c0 / nu**2
-
-
-# def cz_glitch(nu, c0, tau_cz, phi_cz):
-#     return cz_amplitude(nu, c0) * glitch(nu, tau_cz, phi_cz)
-
-
-def average_he_amplitude(b0, b1, low, high):
-    """ Derived average amplitude over the fitting range."""
-    return b0 * (jnp.exp(-b1*low**2) - jnp.exp(-b1*high**2)) / \
-        (2*b1*(high - low))
+    Returns:
+        [description]
+    """
+    if not isinstance(value, dist.Distribution):
+        if not isinstance(value, Iterable):
+            value = (value,)
+        value = default_dist(*value)
+    return value
 
 
 class dimension(Messenger):
-    """
+    """Context manager for a model dimension.
+
+    Args:
+        name: Name of the dimension.
+        size: Size of the dimension.
+        coords: Coordinates for points in the dimension. Defaults to
+            :code:`np.arange(size)`.
+        dim: Where to place the dimension. Defaults to :code:`-1` which
+            corresponds to the rightmost dimension. Must be negative.
     """
 
-    def __init__(self, name, size, coords=None, dim=None):
-        self.name = name
-        self.size = size
-        self.dim = -1 if dim is None else dim  # Defaults to rightmost dim
+    def __init__(self, name: str, size: int, coords: Optional[ArrayLike]=None,
+                 dim: Optional[ArrayLike]=None):
+        self.name: str = name  #: Name of the dimension.
+        self.size: int = size  #: Size of the dimension.
+        self.dim: int = -1 if dim is None else dim  # Defaults to rightmost dim
         assert self.dim < 0
         if coords is None:
             coords = np.arange(self.size)
-        self.coords = np.array(coords)
+        self.coords: np.ndarray = np.array(coords)
         msg = self._get_message()
         apply_stack(msg)
         super().__init__()
     
-    def _get_message(self):
+    def _get_message(self) -> dict:
         msg = {
             "name": self.name,
             "type": "dimension",
@@ -125,11 +101,11 @@ class dimension(Messenger):
         }
         return msg
         
-    def __enter__(self):
+    def __enter__(self) -> dict:
         super().__enter__()
         return self._get_message()
 
-    def process_message(self, msg):
+    def process_message(self, msg: dict):
         if msg["type"] not in ("param", "sample", "deterministic"):
             # We don't add dimensions to dimensions
             return
@@ -159,681 +135,376 @@ class dimension(Messenger):
         if shape[dim] != self.size:
             raise ValueError(f"Dimension {dim} of site \'{msg['name']}\' should have length {self.size}")
 
-# class dimension(plate):
-#     """Context manager for variables along a given dimension with coordinates.
-
-#     Based on `numpyro.plate` but includes deterministics defined within the
-#     context.
-    
-#     Args:
-#         name: Name of the dimension.
-#         size: Size of the dimension.
-#         subsample_size: Optional argument denoting the size of the mini-batch.
-#             This can be used to apply a scaling factor by inference algorithms.
-#             e.g. when computing ELBO using a mini-batch.
-#         dim: Optional argument to specify which dimension in the tensor
-#             is used as the plate dim. If `None` (default), the rightmost
-#             available dim is allocated.
-#         coords: Optional coordinates for each point in the dimension. If `None`
-#             (default), the coords are `np.arange(size)`.
-    
-#     Attributes:
-#         name (str): Name of the dimension
-#         size (int): Size of the dimension
-#         subsample_size (int or None): Size of the mini-batch.
-#         dim (int or None): The dimension in the tensor which is used as the
-#             plate dim.
-#     """
-#     def __init__(self, name: str, size: int,
-#                  subsample_size: Optional[int]=None,
-#                  dim: Optional[int]=None, coords: Optional[Array1D[Any]]=None):
-#         super().__init__(name, size, subsample_size=subsample_size, dim=dim)
-#         self.coords: np.ndarray  #: Coordinates for each point in dimension.
-#         if coords is None:
-#             self.coords = np.arange(self.size)
-#         else:
-#             self.coords = np.array(coords)
-
-#     def process_message(self, msg: Dict[str, Any]):
-#         """Modified process message to also include deterministics. 
-        
-#         Args:
-#             msg: Process message
-#         """
-#         super().process_message(msg)
-#         if msg["type"] == "deterministic":
-#             if "cond_indep_stack" not in msg.keys():
-#                 msg["cond_indep_stack"] = []
-#             frame = CondIndepStackFrame(self.name, self.dim, self.subsample_size)
-#             msg["cond_indep_stack"].append(frame)
-
-
-# class Model:
-#     """Base Model class for modelling asteroseismic oscillation modes. 
-    
-#     All models must have a :attr:`name` (usually the name of the star),
-#     array of radial order :attr:`n` and array of angular degree :attr:`l`
-#     (optional). The observed mode frequencies :attr:`nu` must then be
-#     broadcastable to an array with shape :attr:`num_stars` x :attr:`num_orders`
-#     (x :attr:`num_degrees`). Optionally, the observed uncertainties may be
-#     passed with the same shape via :attr:`nu_err`. Any unobserved or null data
-#     should be passed as :obj:`numpy.nan`, and an :attr:`obs_mask` will be made
-#     which can be used in the likelihood.
-    
-#     Args:
-#         name: Name of the star(s) in the model.
-#         n: Radial orders of the modes to be modelled.
-#         l: Angular degree(s) of the modes to be modelled. Defaults to
-#             :obj:`None`.
-#         nu: Observed central mode frequencies. Must be broadcastable to a 2D or
-#             3D array:
-
-#             +--------------------------------+--------------------------------+
-#             | Shape                          | Description                    |
-#             +================================+================================+
-#             | (:attr:`num_stars`,            | If :attr:`l` is :class:`float` |
-#             | :attr:`num_orders`)            | or :obj:`None`.                |
-#             +--------------------------------+--------------------------------+
-#             | (:attr:`num_stars`,            | If :attr:`l` is                |
-#             | :attr:`num_orders`,            | :class:`Array1D`.              |
-#             | :attr:`num_degrees`)           |                                |
-#             +--------------------------------+--------------------------------+
-            
-#             Unobserved or null data may be passed as
-#             :obj:`numpy.nan`.
-#         nu_err: The observational uncertainty for each element of
-#             :attr:`nu`. Defaults to :obj:`None` which is equivalent to an
-#             uncertainty of 0.0.
-    
-#     Example:
-#         .. code-block:: python
-
-#             import numpyro
-#             import numpyro.distributions as dist
-#             import numpy as np
-#             import jax.numpy as jnp
-#             from asterion import Model
-
-#             class MyModel(Model):
-#                 def _prior(self):
-                    
-#                     # Use dimension context manager to track dimensionality \
-# of output
-#                     with self.dimensions['name'] as stars:
-#                         delta_nu = numpyro.sample('delta_nu', \
-# dist.Normal(20., 1.))
-#                         epsilon = numpyro.sample('epsilon', \
-# dist.Normal(1.0, 0.1))
-#                         err = numpyro.sample('err', dist.HalfNormal(0.1))
-                        
-#                         with self.dimensions['n'] as orders:
-#                             # Make sure that n has the correct shape
-#                             n = np.broadcast_to(self.n, \
-# (stars.size, orders.size))
-#                             nu = numpyro.deterministic('nu', \
-# delta_nu * (n + epsilon))
-                    
-#                     # Return model nu and model error
-#                     return nu, err
-                
-#                 def _likelihood(self, nu, err):
-#                     # Combine model and obs error
-#                     # Operations applied to RVs must be jax-compatible
-#                     nu_err = jnp.sqrt(err**2 + self.nu_err**2)
-
-#                     with self.dimensions['name']:
-#                         with self.dimensions['n']:
-#                             numpyro.sample(
-#                                 'nu_obs',
-#                                 dist.Normal(nu, nu_err),
-#                                 obs=self.nu,
-#                                 obs_mask=self.obs_mask
-#                             )
-                
-#                 def _posterior(self):
-#                     self._likelihood(*self._prior())
-
-#                 def _predictions(self):
-#                     # Here, you can return the prior, or a version of the prior
-#                     # with, e.g. continuous n. Here, we just return the prior.
-#                     return self._prior()
-#     """
-#     reparam: ClassVar[Dict[str, Reparam]] = {}  #: [description]
-#     circ_var_names: ClassVar[List[str]] = []  #: [description]
-
-#     def __init__(
-#         self,
-#         name: Union[str, Array1D[str]],
-#         n: Array1D[int],
-#         l: Optional[Union[int, Array1D[int]]]=None, 
-#         *,
-#         nu: Union[Array1D[float], Array2D[float], Array3D[float]],
-#         nu_err: Optional[
-#             Union[Array1D[float], Array2D[float], Array3D[float]]
-#         ]=None,
-#     ):        
-#         self.name: np.ndarray = self._validate_name(name)  #: [description]
-#         self.n: np.ndarray = self._validate_n(n)  #: [description]
-#         self.l: np.ndarray = self._validate_l(l)  #: [description]
-
-#         self.num_stars: int = self.name.shape[0]  #: [description]
-#         self.num_orders: int = self.n.shape[0]  #: [description]
-#         self.num_degrees: Optional[int] = None  #: [description]
-
-#         self.dimensions: Dict[str, dimension] = {
-#             "name": dimension("name", self.num_stars, coords=self.name),
-#             "n": dimension("n", self.num_orders, coords=self.n)
-#         }  #: [description]
-#         self._shape = (self.num_stars, self.num_orders)
-
-#         if self.l is not None:
-#             self.num_degrees = self.l.shape[0]
-#             self._shape += (self.num_degrees,)
-#             self.dimension["l"] = dimension("l", self.num_degrees, coords=self.l)
-        
-#         self.nu: np.ndarray = self._validate_nu(nu)  #: [description]
-#         self.obs_mask: np.ndarray = ~np.isnan(self.nu)  #: [description]
-#         self.nu_err: np.ndarray = self._validate_nu_err(nu_err)  #: [description]
-
-#     def _validate_name(self, name: Union[str, Array1D[str]]) -> np.ndarray:
-#         name = np.squeeze(name)
-#         if name.ndim == 0:
-#             name = np.broadcast_to(name, (1,))
-#         elif name.ndim > 1:
-#             raise ValueError("Variable 'name' is greater than 1-D.")
-#         assert name.astype(str)
-#         assert name.ndim == 1
-#         return name
-
-#     def _validate_n(self, n: Array1D[int]) -> np.ndarray:
-#         n = np.squeeze(n)
-#         if n.ndim == 0 or n.ndim > 1:
-#             raise ValueError("Variable 'n' must be 1-D.")
-#         assert n.ndim == 1
-#         return np.array(n)
-    
-#     def _validate_l(
-#         self, 
-#         l: Optional[Union[int, Array1D[int]]]
-#     ) -> Optional[np.ndarray]:
-#         if l is None:
-#             return
-#         l = np.squeeze(l)
-#         if l.ndim == 0:
-#             l = np.broadcast_to(l, (1,))
-#         elif l.ndim > 1:
-#             raise ValueError("Variable 'l' is greater than 1-D.")
-#         assert l.ndim == 1
-#         return np.array(l)
-    
-#     def _broadcast(self, x) -> np.ndarray:
-#         return np.broadcast_to(x, self._shape)
-
-#     def _validate_nu(self, nu: Union[Array1D[float], Array2D[float], Array3D[float]]) -> np.ndarray:
-#         return self._broadcast(nu)
-    
-#     def _validate_nu_err(self, nu_err: Optional[Union[Array1D[float], Array2D[float], Array3D[float]]]) -> np.ndarray:
-#         if nu_err is None:
-#             nu_err = np.zeros(self._shape)
-#         else:
-#             nu_err = self._broadcast(nu_err).copy()
-#         nu_err[~self.obs_mask] = 0.0
-#         return nu_err
-
-#     def _prior(self):
-#         raise NotImplementedError
-
-#     def _predictions(self):
-#         raise NotImplementedError
-    
-#     def _likelihood(self):
-#         raise NotImplementedError
-    
-#     def _posterior(self):
-#         raise NotImplementedError
-
-#     @property
-#     def prior(self) -> Callable:
-#         """Function which samples from the model prior and returns arguments 
-#         for :attr:`likelihood`.
-#         """        
-#         return self._prior
-
-#     @property
-#     def predictions(self) -> Callable:
-#         """Function which makes predictions which may have different dimensions
-#         to observed values.
-#         """        
-#         return self._predictions
-
-#     @property
-#     def likelihood(self) -> Callable:
-#         """Function which takes the output of :attr:`prior` and samples
-#         from the model likelihood.
-#         """ 
-#         return self._likelihood
-
-#     @property
-#     def posterior(self) -> Callable:
-#         """Function which combines the :attr:`prior` and
-#         :attr:`likelihood` to sample from the model posterior.
-#         """        
-#         return self._posterior
-
-#     def _get_trace(self, rng_key, model):
-#         model = handlers.trace(
-#             handlers.seed(
-#                 model, rng_key
-#             )
-#         )
-#         trace = model.get_trace()
-#         return trace
-
-#     def get_prior_trace(self, rng_key: Union[int, jnp.ndarray]) -> dict:
-#         """Sample from :attr:`prior` given a random seed.
-
-#         Args:
-#             rng_key: Random seed or key for generating the sample.
-
-#         Returns:
-#             Trace from the :attr:`prior`.
-#         """        
-#         return self._get_trace(rng_key, self.prior)
-    
-#     def get_posterior_trace(self, rng_key: Union[int, jnp.ndarray]) -> dict:
-#         """Sample from :attr:`posterior` given a random seed.
-
-#         Args:
-#             rng_key: Random seed or key for generating the sample.
-
-#         Returns:
-#             Trace from the :attr:`posterior`.
-#         """        
-#         return self._get_trace(rng_key, self.posterior)
-
-#     def get_predictions_trace(self, rng_key: Union[int, jnp.ndarray]) -> dict:
-#         """Sample from :attr:`predictions` given a random seed.
-
-#         Args:
-#             rng_key: Random seed or key for generating the sample.
-
-#         Returns:
-#             Trace from the :attr:`predictions`.
-#         """        
-#         return self._get_trace(rng_key, self.predictions)
-
-
-# class GlitchModel(Model):
-#     """Model the glitch in the asteroseismic radial mode frequencies.
-
-#     Args:
-#         delta_nu: Two elements containing the respective prior mean and standard 
-#             deviation for the large frequency separation.
-#         nu_max: Two elements containing the respective prior mean and standard
-#             deviation for the frequency at maximum power.
-#         epsilon: Two elements containing the respective prior mean and standard
-#             deviation for the asymptotic phase term. Default is [1.3, 0.2] which is
-#             suitable for main sequence solar-like oscillators.
-#         alpha: Two elements containing the respective prior mean and standard
-#             deviation for the asymptotic curvature term. Default is [0.0015, 0.002]
-#             which is suitable for most solar-like oscillators.
-#         nu: Locations of the l=0 (radial) stellar pulsation modes. Null data may be
-#             passed as NaN. The shape of nu should be (num_orders,) or 
-#             (N, num_orders) for N stars in the model.
-#         nu_err: The observational uncertainty for each element of nu. Null data may be
-#             passed as NaN. Default is None, for which only a star-by-star model
-#             error is inferred and observational uncertainty is assumed to be zero.
-#         n: The observers radial order of each mode in nu. Default is None and n is
-#             inferred from num_orders.
-#         num_orders: The number of radial orders to model. The observers n is inferred from
-#             the priors for delta_nu, nu_max and epsilon. Default is None, and
-#             num_orders is inferred from the length of the final dimension of nu.
-#         num_pred: The number of predictions to make in the range of n. Default
-#             is 200.
-#     """
-#     reparam = {
-#         "phi_he": CircularReparam(),
-#         "phi_cz": CircularReparam(),
-#     }
-#     circ_var_names = [
-#         "phi_he",
-#         "phi_cz"
-#     ]
-
-#     def __init__(
-#         self,
-#         name: Union[str, Array1D[str]],
-#         delta_nu: Array1D[float],
-#         nu_max: Array1D[float],
-#         epsilon: Array1D[float]=None,
-#         alpha: Array1D[float]=None,
-#         *,
-#         nu: Union[Array1D[float], Array2D[float]],
-#         nu_err: Optional[Union[Array1D[float], Array2D[float]]]=None, 
-#         n: Optional[Array1D[int]]=None,
-#         num_orders: Optional[int]=None,
-#         num_pred: int=200,
-#         regularization: float=1e-6,
-#         beta: Array1D[float]=[-14.0, 1.0],
-#         gamma: Array1D[float]=[-12.0, 1.0],
-#     ):
-
-#         self._delta_nu = np.array(delta_nu)
-#         self._nu_max = np.array(nu_max)
-#         self._epsilon = np.array([1.3, 0.2]) if epsilon is None else np.array(epsilon)
-
-#         if alpha is None:
-#             self._log_alpha = np.array([-7.0, 1.0])  # natural logarithm
-#         else:
-#             self._log_alpha = np.array([
-#                 np.log(alpha[0]**2 / np.sqrt(alpha[0]**2 + alpha[1]**2)),  # loc
-#                 np.sqrt(np.log(1 + alpha[1]**2 / alpha[0]**2))             # scale
-#             ])
-        
-#         super().__init__(
-#             name, n, nu=nu, nu_err=nu_err,
-#         )
-
-#         self.num_pred = num_pred
-#         self.n_pred = np.linspace(self.n[0], self.n[-1], num_pred)
-#         self.dimensions["n_pred"] = dimension(
-#             "n_pred", self.num_pred, coords=self.n_pred
-#         )
-
-#         self.regularization = regularization
-#         self._beta = beta
-#         self._gamma = gamma
-#         # self.num_stars = 1 if len(self.name.shape) == 0 else self.name.shape[0]
-#         # self.num_orders = self.n.shape[0]
-#         # self.name = np.broadcast_to(self.name, (self.num_stars,))
-#         # self.n = np.broadcast_to(self.n, (self.num_orders,))
-
-#         # shape = (self.num_stars, self.num_orders)
-#         # self.nu = np.broadcast_to(self.nu, shape)
-#         # self.nu_err = np.broadcast_to(self.nu_err, shape)
-#         # self.obs_mask = np.broadcast_to(self.obs_mask, shape)
-    
-#         # self.dimensions = {
-#         #     'name': dimension('name', self.num_stars, coords=self.name),
-#         #     'n': dimension('n', self.num_orders, coords=self.n)
-#         # }
-
-#     def _prior(self, pred: bool=False):
-#         # m_tau = 1.05
-#         m_tau = 0.91
-#         # s_tau = 3.0
-#         log_tau = - m_tau * np.log(self._nu_max[0])  # Approx form of log(tau_he)
-
-#         with self.dimensions["name"]:
-#             epsilon = numpyro.sample("epsilon", dist.Normal(*self._epsilon))
-#             alpha = numpyro.sample("alpha", dist.LogNormal(*self._log_alpha))
-
-#             delta_nu = numpyro.sample("delta_nu", dist.Normal(*self._delta_nu))
-#             nu_max = numpyro.sample("nu_max", dist.Normal(*self._nu_max))
-
-#             # TODO: define these
-#             beta = numpyro.sample("beta", dist.LogNormal(*self._beta))
-#             gamma = numpyro.sample("gamma", dist.LogNormal(*self._gamma))
-
-#             b0 = numpyro.sample("b0", dist.LogNormal(np.log(1/self._nu_max[0]), 1.0))
-
-#             # b0 = numpyro.sample("b0", dist.HalfNormal(100/self._nu_max[0]))
-#             b1 = numpyro.sample("b1", dist.LogNormal(np.log(1/self._nu_max[0]**2), 1.0))
-
-#             tau_he = numpyro.sample("tau_he", dist.LogNormal(log_tau, 0.8))
-#             phi_he = numpyro.sample("phi_he", dist.VonMises(0.0, 0.1))
-
-#             c0 = numpyro.sample("c0", dist.LogNormal(np.log(0.1*self._nu_max[0]**2), 1.0))
-
-#             # Ensure that tau_cz > tau_he
-#             delta_tau = numpyro.sample("delta_tau", dist.LogNormal(log_tau, 0.8))
-#             tau_cz = numpyro.deterministic("tau_cz", tau_he + delta_tau)
-
-#             phi_cz = numpyro.sample("phi_cz", dist.VonMises(0.0, 0.1))
-            
-#             err = numpyro.sample("err", dist.HalfNormal(0.1))
-
-#             dim_name = "n_pred" if pred else "n"
-#             with self.dimensions[dim_name]:
-#                 # Broadcast to the shape of output freq
-#                 if pred:
-#                     n = np.broadcast_to(self.n_pred, (self.num_stars, self.num_pred))
-#                 else:
-#                     n = np.broadcast_to(self.n, self._shape)
-
-#                 nu_asy = numpyro.deterministic("nu_asy", asy_background(n, epsilon, alpha, delta_nu, nu_max, beta, gamma))
-
-#                 # So factor is not done for predictions
-#                 if numpyro.get_mask() is not False:
-#                     # L2 regularisation on d3 nu_asy / d n3 same as Gaussian prior
-#                     # with sd = 1/lambda where lambda = self.regularization
-#                     log_prob = dist.Normal(0.0, 1/self.regularization).log_prob(6*beta - 24*gamma*n)
-#                     numpyro.factor('reg', jnp.sum(log_prob))  # TODO: uncomment
-
-#                 dnu_he = numpyro.deterministic("dnu_he", he_glitch(nu_asy, b0, b1, tau_he, phi_he))
-#                 dnu_cz = numpyro.deterministic("dnu_cz", cz_glitch(nu_asy, c0, tau_cz, phi_cz))
-#                 # dnu_cz = 0.0
-
-#                 nu = numpyro.deterministic("nu", nu_asy + dnu_he + dnu_cz)
-
-#             # average_he = numpyro.deterministic('<he>', average_he_amplitude(...))
-#             # he_nu_max = numpyro.deterministic('he_nu_max', he_amplitude(nu_max, b0, b1))
-#         return nu, err
-
-#     def _likelihood(self, nu, err):
-#         # if self.nu_err is not None:
-#         err = jnp.sqrt(err**2 + self.nu_err**2)
-
-#         with self.dimensions["name"]:
-#             with self.dimensions["n"]:
-#                 nu_obs = numpyro.sample("nu_obs", dist.Normal(nu, err),
-#                                         obs=self.nu, obs_mask=self.obs_mask)
-
-#     # def _predictive(self, n=None):
-#     #     self._likelihood(*self._prior(n=n))
-
-#     # @property
-#     # def predictive(self):
-#     #     # def _predictive():
-#     #     #     # nu, nu_err = self._prior()  # prior without reparam
-#     #     #     self._likelihood(*self._prior(n=n))
-
-#     #     return self._predictive
-
-#     # def _predict(self):
-#     #     self._prior(pred=True)
-    
-#     def _posterior(self):
-#         self._likelihood(*self._prior())
-
-#     def _predictions(self):
-#         return self._prior(pred=True)
-
-
-# class AsyModel(Model):
-#     """Model the glitch in the asteroseismic radial mode frequencies.
-
-#     Args:
-#         delta_nu: Two elements containing the respective prior mean and standard 
-#             deviation for the large frequency separation.
-#         nu_max: Two elements containing the respective prior mean and standard
-#             deviation for the frequency at maximum power.
-#         epsilon: Two elements containing the respective prior mean and standard
-#             deviation for the asymptotic phase term. Default is [1.3, 0.2] which is
-#             suitable for main sequence solar-like oscillators.
-#         alpha: Two elements containing the respective prior mean and standard
-#             deviation for the asymptotic curvature term. Default is [0.0015, 0.002]
-#             which is suitable for most solar-like oscillators.
-#         nu: Locations of the l=0 (radial) stellar pulsation modes. Null data may be
-#             passed as NaN. The shape of nu should be (num_orders,) or 
-#             (N, num_orders) for N stars in the model.
-#         nu_err: The observational uncertainty for each element of nu. Null data may be
-#             passed as NaN. Default is None, for which only a star-by-star model
-#             error is inferred and observational uncertainty is assumed to be zero.
-#         n: The observers radial order of each mode in nu. Default is None and n is
-#             inferred from num_orders.
-#         num_orders: The number of radial orders to model. The observers n is inferred from
-#             the priors for delta_nu, nu_max and epsilon. Default is None, and
-#             num_orders is inferred from the length of the final dimension of nu.
-#         num_pred: The number of predictions to make in the range of n. Default
-#             is 200.
-#     """
-#     def __init__(
-#         self,
-#         name: Union[str, Array1D[str]],
-#         delta_nu: Array1D[float],
-#         nu_max: Array1D[float],
-#         epsilon: Array1D[float]=None,
-#         alpha: Array1D[float]=None,
-#         *,
-#         nu: Union[Array1D[float], Array2D[float]],
-#         nu_err: Optional[Union[Array1D[float], Array2D[float]]]=None, 
-#         n: Optional[Array1D[int]]=None,
-#         num_orders: Optional[int]=None,
-#         num_pred: int=200,
-#         regularization: float=1e-6,
-#         beta: Array1D[float]=[-14.0, 1.0],
-#         gamma: Array1D[float]=[-12.0, 1.0],
-#     ):
-
-#         self._delta_nu = np.array(delta_nu)
-#         self._nu_max = np.array(nu_max)
-#         self._epsilon = np.array([1.3, 0.2]) if epsilon is None else np.array(epsilon)
-
-#         if alpha is None:
-#             self._log_alpha = np.array([-7.0, 1.0])  # natural logarithm
-#         else:
-#             self._log_alpha = np.array([
-#                 np.log(alpha[0]**2 / np.sqrt(alpha[0]**2 + alpha[1]**2)),  # loc
-#                 np.sqrt(np.log(1 + alpha[1]**2 / alpha[0]**2))             # scale
-#             ])
-        
-#         super().__init__(
-#             name, n, nu=nu, nu_err=nu_err,
-#         )
-
-#         self.num_pred = num_pred
-#         self.n_pred = np.linspace(self.n[0], self.n[-1], num_pred)
-#         self.dimensions["n_pred"] = dimension(
-#             "n_pred", self.num_pred, coords=self.n_pred
-#         )
-
-#         self.regularization = regularization
-#         self._beta = beta
-#         self._gamma = gamma
-#         # self.num_stars = 1 if len(self.name.shape) == 0 else self.name.shape[0]
-#         # self.num_orders = self.n.shape[0]
-#         # self.name = np.broadcast_to(self.name, (self.num_stars,))
-#         # self.n = np.broadcast_to(self.n, (self.num_orders,))
-
-#         # shape = (self.num_stars, self.num_orders)
-#         # self.nu = np.broadcast_to(self.nu, shape)
-#         # self.nu_err = np.broadcast_to(self.nu_err, shape)
-#         # self.obs_mask = np.broadcast_to(self.obs_mask, shape)
-    
-#         # self.dimensions = {
-#         #     'name': dimension('name', self.num_stars, coords=self.name),
-#         #     'n': dimension('n', self.num_orders, coords=self.n)
-#         # }
-
-#     def _prior(self, pred: bool=False):
-
-#         with self.dimensions["name"]:
-#             epsilon = numpyro.sample("epsilon", dist.Normal(*self._epsilon))
-#             alpha = numpyro.sample("alpha", dist.LogNormal(*self._log_alpha))
-
-#             delta_nu = numpyro.sample("delta_nu", dist.Normal(*self._delta_nu))
-#             nu_max = numpyro.sample("nu_max", dist.Normal(*self._nu_max))
-
-#             # TODO: define these
-#             beta = numpyro.sample("beta", dist.LogNormal(*self._beta))
-#             gamma = numpyro.sample("gamma", dist.LogNormal(*self._gamma))
-            
-#             err = numpyro.sample("err", dist.HalfNormal(0.1))
-
-#             dim_name = "n_pred" if pred else "n"
-#             with self.dimensions[dim_name]:
-#                 # Broadcast to the shape of output freq
-#                 if pred:
-#                     n = np.broadcast_to(self.n_pred, (self.num_stars, self.num_pred))
-#                 else:
-#                     n = np.broadcast_to(self.n, self._shape)
-
-#                 nu = numpyro.deterministic("nu", asy_background(n, epsilon, alpha, delta_nu, nu_max, beta, gamma))
-
-#                 # So factor is not done for predictions
-#                 if numpyro.get_mask() is not False:
-#                     # L2 regularisation on d3 nu_asy / d n3 same as Gaussian prior
-#                     # with sd = 1/lambda where lambda = self.regularization
-#                     log_prob = dist.Normal(0.0, 1/self.regularization).log_prob(6*beta - 24*gamma*n)
-#                     numpyro.factor('reg', jnp.sum(log_prob))  # TODO: uncomment
-
-#             # average_he = numpyro.deterministic('<he>', average_he_amplitude(...))
-#             # he_nu_max = numpyro.deterministic('he_nu_max', he_amplitude(nu_max, b0, b1))
-#         return nu, err
-
-#     def _likelihood(self, nu, err):
-#         # if self.nu_err is not None:
-#         err = jnp.sqrt(err**2 + self.nu_err**2)
-
-#         with self.dimensions["name"]:
-#             with self.dimensions["n"]:
-#                 nu_obs = numpyro.sample("nu_obs", dist.Normal(nu, err),
-#                                         obs=self.nu, obs_mask=self.obs_mask)
-
-#     # def _predictive(self, n=None):
-#     #     self._likelihood(*self._prior(n=n))
-
-#     # @property
-#     # def predictive(self):
-#     #     # def _predictive():
-#     #     #     # nu, nu_err = self._prior()  # prior without reparam
-#     #     #     self._likelihood(*self._prior(n=n))
-
-#     #     return self._predictive
-
-#     # def _predict(self):
-#     #     self._prior(pred=True)
-    
-#     def _posterior(self):
-#         self._likelihood(*self._prior())
-
-#     def _predictions(self):
-#         return self._prior(pred=True)
-
 
 class Model:
-    """Base Model class"""
-    units = {}
-    def __call__(self, n, nu=None, nu_err=None):
+    """Base Model class.
+    
+    A model is a probabilistic object which may be given to Inference. It does
+    not need to return anything during inference, but should have at least
+    one observed sample sites.
+
+    A prior is a model which returns a parameter or function when called and
+    has no observed sample sites.
+    """
+    units: Dict[str, u.Unit] = {}
+    """: Astropy units corresponding to each model parameter."""
+
+    def __call__(self):
+        """Call the model during inference.
+
+        Raises:
+            NotImplementedError: This is an abstract base class and cannot be
+                called.
+        """
         raise NotImplementedError
 
 
+class ZerosPrior(Model):
+    """A prior on the zeros function :math:`f` where
+    :math:`f(\\boldsymbol{x}) = \\boldsymbol{0}`.
+    """
+    def __call__(self) -> Callable:
+        """Samples the prior for the zeros function.
+
+        Returns:
+            The function :math:`f`.
+        """
+        return lambda x: jnp.zeros(x.shape)
+
+
+class AsyPrior(Model):
+    """Prior on the linear asymptotic function :math:`f`, where
+    :math:`f(n) = \\Delta\\nu (n + \\epsilon)`.
+    
+    Args:
+        delta_nu: Prior for the large frequency separation :math:`\\Delta\\nu`.
+            Pass either the arguments of :class:`dist.Normal` or a
+            :class:`dist.Distribution`.
+        epsilon: Prior for the phase term :math:`\\epsilon`. Pass either the
+            arguments of :class:`dist.Gamma` or a :class:`dist.Distribution`.
+            Defaults to :code:`(14., 10.)`.
+    """
+    def __init__(self, delta_nu: DistLike, epsilon: DistLike=None):
+        self.delta_nu: dist.Distribution = distribution(delta_nu)
+        """: The distribution for :math:`\\Delta\\nu`."""
+
+        if epsilon is None:
+            epsilon = (14., 10.)
+        self.epsilon = distribution(epsilon, dist.Gamma)
+        """: The distribution for :math:`\\epsilon`."""
+
+        self.units = {
+            'delta_nu': u.microhertz,
+            'epsilon': u.dimensionless_unscaled,
+        }
+    
+    def __call__(self) -> Callable:
+        """Samples the prior for the linear asymptotic function.
+
+        Returns:
+            The function :math:`f`.
+        """
+        delta_nu = numpyro.sample('delta_nu', self.delta_nu)
+        epsilon = numpyro.sample('epsilon', self.epsilon)
+        
+        def fn(n):
+            return delta_nu * (n + epsilon)
+        return fn
+
+
+class _GlitchPrior(Model):
+    """Prior on the glitch oscillation function :math:`f`, where
+    :math:`f(nu) = \\sin(4\\pi\\tau\\nu + \\phi)`.
+
+    Args:
+        tau: The prior for the acoustic depth of the glitch, :math:`\\tau`.
+            Pass either the arguments of :class:`dist.Normal` or a
+            :class:`dist.Distribution`.
+        phi: The prior for the phase of the glitch, :math:`\\phi`. Pass either
+            the arguments of :class:`dist.VonMises` or a 
+            :class:`dist.Distribution`.
+    """
+
+    def __init__(self, tau: DistLike, phi: DistLike):
+        self.tau = distribution(tau)  #: The distribution for :math:`\\tau`.
+        self.phi = distribution(phi, dist.VonMises)
+        """: The distribution for :math:`\\phi`."""
+
+    @staticmethod
+    def oscillation(nu: ArrayLike, tau: ArrayLike, phi: ArrayLike):
+        return jnp.sin(4 * jnp.pi * tau * nu + phi)
+
+    def __call__(self) -> Callable:
+        """Samples the prior for a generic glitch oscillation function.
+
+        Returns:
+            The function :math:`f`.
+        """
+        tau = numpyro.sample('tau', self.tau)
+        phi = numpyro.sample('phi', self.phi)
+        def fn(nu):
+            return self.oscillation(nu, tau, phi)
+        return fn
+
+
+class HeGlitchPrior(_GlitchPrior):
+    """Prior on the second ionisation of helium glitch function :math:`f`,
+    where :math:`f(\\nu) = a_\\mathrm{He} \\nu \\exp(-b_\\mathrm{He} \\nu^2) 
+    \\sin(4\\pi\\tau_\\mathrm{He}\\nu + \\phi_\\mathrm{He})`.
+
+    The priors for the glitch parameters 
+    :math:`a_\\mathrm{He},b_\\mathrm{He},\\tau_\\mathrm{He}` are inferred
+    from that of the frequency at maximum power, :math:`\\nu_\\max` using
+    scaling relations derived from stellar models (Lyttle et al. in prep.).
+
+    Args:
+        nu_max: The prior for the frequency at maximum power,
+            :math:`\\nu_\\max`. Pass either the arguments of
+            :class:`dist.Normal` or a :class:`dist.Distribution`.
+    """
+    def __init__(self, nu_max: DistLike):
+        self.log_a: dist.Distribution
+        """: The distribition for the glitch phase parameter phi_he."""
+        
+        self.log_b: dist.Distribution
+        """: The distribution for log base-10 of the glitch parameter b_he."""
+        
+        self.log_tau: dist.Distribution
+        """: The distribution for log base-10 of the glitch parameter 
+        (acoustic depth) tau_he."""
+        
+        self.nu_max = nu_max
+        
+        self.phi: dist.Distribution = dist.VonMises(0.0, 0.1)
+        """: The distribution for the phase parameter."""
+        
+        self.units = {
+            'a_he': u.dimensionless_unscaled,
+            'b_he': u.megasecond**2,
+            'tau_he': u.megasecond,
+            'phi_he': u.rad,
+        }
+
+    @property
+    def nu_max(self) -> dist.Distribution:
+        """The distribution of the frequency at maximum power,
+        :math:`\\nu_\\max`.
+        """
+        return self._nu_max
+
+    @nu_max.setter
+    def nu_max(self, value: DistLike):
+        """Resets the priors for the glitch parameters.
+
+        Args:
+            value: The prior for the frequency at maximum power,
+                :math:`\\nu_\\max`. Pass either the arguments of
+                :class:`dist.Normal` or a :class:`dist.Distribution`.
+        """
+        self._nu_max = distribution(value)
+        log_numax = jnp.log10(self._nu_max.mean)
+        self.log_a = dist.Normal(-1.10 - 0.35*log_numax, 0.7)
+        self.log_b = dist.Normal(0.719 - 2.14*log_numax, 0.7)
+        self.log_tau = dist.Normal(0.44 - 1.03*log_numax, 0.1)
+    
+    @staticmethod
+    def amplitude(nu: ArrayLike, a: ArrayLike, b: ArrayLike) -> jnp.ndarray:
+        """The amplitude of the glitch,
+        :math:`a_\\mathrm{He} \\nu \\exp(-b_\\mathrm{He} \\nu^2)`.
+
+        Args:
+            nu: [description]
+            a: [description]
+            b: [description]
+
+        Returns:
+            [description]
+        """
+        return a * nu * jnp.exp(- b * nu**2)
+    
+    def __call__(self) -> Callable:
+        """[summary]
+
+        Returns:
+            The function :math:`f`.
+        """
+        log_a = numpyro.sample('log_a_he', self.log_a)
+        log_b = numpyro.sample('log_b_he', self.log_b)
+        log_tau = numpyro.sample('log_tau_he', self.log_tau)
+        
+        a = numpyro.deterministic('a_he', 10**log_a)
+        b = numpyro.deterministic('b_he', 10**log_b)
+        tau = numpyro.deterministic('tau_he', 10**log_tau)
+        phi = numpyro.sample('phi_he', self.phi)
+        
+        def fn(nu):
+            return self.amplitude(nu, a, b) * self.oscillation(nu, tau, phi)
+        return fn
+
+
+class CZGlitchPrior(_GlitchPrior):
+    """Prior on the base of the convective zone glitch function :math:`f`,
+    where :math:`f(\\nu) = a_\\mathrm{CZ} \\nu^{-2}
+    \\sin(4\\pi\\tau_\\mathrm{CZ}\\nu + \\phi_\\mathrm{CZ})`
+
+    The priors for the glitch parameters 
+    :math:`a_\\mathrm{He},b_\\mathrm{He},\\tau_\\mathrm{He}` are inferred
+    from that of the frequency at maximum power, :math:`\\nu_\\max` using
+    scaling relations derived from stellar models (Lyttle et al. in prep.).
+
+    Args:
+        nu_max: The prior for the frequency at maximum power,
+            :math:`\\nu_\\max`. Pass either the arguments of
+            :class:`dist.Normal` or a :class:`dist.Distribution`.
+    """
+    def __init__(self, nu_max: DistLike):
+        self.log_a: dist.Distribution
+        """: The distribition for the glitch phase parameter phi_cz."""
+        
+        self.log_tau: dist.Distribution
+        """: The distribution for log base-10 of the acoustic depth tau_cz."""
+        
+        self.nu_max = nu_max
+        self.phi: dist.Distribution = dist.VonMises(0.0, 0.1)
+        """: The distribition for the glitch phase parameter phi_cz."""
+
+        self.units = {
+            'a_cz': u.microhertz**3,
+            'tau_cz': u.megasecond,
+            'phi_cz': u.rad,
+        }
+
+    @property
+    def nu_max(self) -> dist.Distribution:
+        """The distribution of the frequency at maximum power,
+        :math:`\\nu_\\max`.
+        """
+        return self._nu_max
+
+    @nu_max.setter
+    def nu_max(self, value: DistLike):
+        """Resets the priors for the glitch parameters.
+
+        Args:
+            value: The prior for the frequency at maximum power,
+                :math:`\\nu_\\max`. Pass either the arguments of
+                :class:`dist.Normal` or a :class:`dist.Distribution`.
+        """
+        self._nu_max = distribution(value)
+        log_numax = jnp.log10(self._nu_max.mean)
+        self.log_a = dist.Normal(2*log_numax - 1.0, 0.7)
+        self.log_tau = dist.Normal(0.77 - 0.99*log_numax, 0.1)
+    
+    @staticmethod
+    def amplitude(nu: ArrayLike, a: ArrayLike) -> jnp.ndarray:
+        """The amplitude of the glitch,
+        :math:`a_\\mathrm{CZ} / \\nu^{-2}`.
+
+        Args:
+            nu: [description]
+            a: [description]
+
+        Returns:
+            [description]
+        """
+        return jnp.divide(a, nu**2)
+    
+    def __call__(self) -> Callable:
+        """[summary]
+
+        Returns:
+            The function :math:`f`.
+        """
+        log_a = numpyro.sample('log_a_cz', self.log_a)
+        log_tau = numpyro.sample('log_tau_cz', self.log_tau)
+        
+        a = numpyro.deterministic('a_cz', 10**log_a)
+        tau = numpyro.deterministic('tau_cz', 10**log_tau)
+        phi = numpyro.sample('phi_cz', self.phi)
+        
+        def fn(nu):
+            return self.amplitude(nu, a) * self.oscillation(nu, tau, phi)
+        return fn
+
+
 class GlitchModel(Model):
-    units = {
-        'delta_nu': u.microhertz,
-        'epsilon': u.dimensionless_unscaled,
-        'nu_obs': u.microhertz,
-        'nu': u.microhertz,
-        'nu_bkg': u.microhertz,
-        'dnu_he': u.microhertz,
-        'dnu_cz': u.microhertz,
-    }
-    def __init__(self, background, he_glitch=None, cz_glitch=None):
-        self.background = background
+    r"""Asteroseismic glitch model.
+
+    .. math:: \nu_\mathrm{obs} \sim \mathcal{GP}(m(n), k(n, n') + \sigma^2\mathcal{I})
+
+    Where the mean function is,
+
+    .. math::
+
+        m(n) &= \nu_\mathrm{bkg} + \delta_\mathrm{He} + \delta_\mathrm{CZ},\\
+        \nu_\mathrm{bkg} &= f_\mathrm{bkg}(n),\\
+        \delta_\mathrm{He} &= f_\mathrm{He}(\nu_\mathrm{bkg}),\\
+        \delta_\mathrm{CZ} &= f_\mathrm{CZ}(\nu_\mathrm{bkg}),
+    
+    and the kernel function is,
+
+    .. math::
+
+        k(n, n') = \sigma_k^2 \exp\left( - \frac{(n' - n)^2}{l^2} \right).
+
+    Args:
+        background: Background prior model which, when called, returns a
+            function :math:`f_\mathrm{bkg}` describing the smoothly varying
+            (non-glitch) component of the oscillation modes.
+        he_glitch: Glitch prior model which, when called, returns a function
+            :math:`f_\mathrm{He}` describing the contribution to the modes from
+            the glitch due to the second ionisation of helium in the stellar
+            convective envelope.
+        cz_glitch: Convective zone glitch prior model which, when called,
+            returns a function :math:`f_\mathrm{He}` describing the
+            contribution to the modes from the glitch due to the base of the
+            convection zone.
+    """
+    def __init__(
+        self,
+        background: Model,
+        he_glitch: Optional[Model]=None,
+        cz_glitch: Optional[Model]=None
+    ):
+        self.background: Model = background  #: Background function prior.
         if he_glitch is None:
             he_glitch = ZerosPrior()
         if cz_glitch is None:
             cz_glitch = ZerosPrior()
-        self.he_glitch = he_glitch
-        self.cz_glitch = cz_glitch
-    
+        self.he_glitch: Model = he_glitch  #: Helium glitch function prior.
+        self.cz_glitch: Model = cz_glitch
+        """: Convective zone glitch function prior."""
+
+        self.units = {
+            'nu_obs': u.microhertz,
+            'nu': u.microhertz,
+            'nu_bkg': u.microhertz,
+            'dnu_he': u.microhertz,
+            'dnu_cz': u.microhertz,
+        }
         self.units.update(self.he_glitch.units)
         self.units.update(self.cz_glitch.units)
 
-    def plot_glitch(self, data, kind='He', group='posterior', quantiles=None, observed=True, ax=None):
+    def plot_glitch(self, data: az.InferenceData, kind: str='He',
+                    group: str='posterior', quantiles: Optional[list]=None,
+                    observed: bool=True, ax: plt.Axes=None) -> plt.Axes:
+        """Plot the glitch.
+
+        Args:
+            data: Inference data.
+            kind: Kind of glitch to plot. One of ['He', 'CZ'].
+            group: Inference data group to plot. One of ['prior', 'posterior']
+                is supported.
+            quantiles: Quantiles to plot as confidence intervals. 
+                Defaults to no confidence intervals drawn.
+            observed: Whether to plot observed data, if available.
+            ax: Axis on which to plot.
+
+        Returns:
+            [description]
+        """
         if ax is None:
-            fig, ax = plt.subplots()
+            _, ax = plt.subplots()
 
         dim = ('chain', 'draw')
         pred_group = group + "_predictive"
@@ -870,11 +541,20 @@ class GlitchModel(Model):
         var = r'$\delta\nu_\mathrm{\,'+kind+r'}$'
         unit = f"({self.units[f'dnu_{kind.lower()}'].to_string(format='latex_inline')})"
         ax.set_ylabel(' '.join([var, unit]))
-        # ax.set_ylabel(r'$\delta\nu_\mathrm{\,'+kind+'}\,(\mathrm{\mu Hz})$')
         ax.legend()
         return ax
 
-    def __call__(self, n, nu=None, nu_err=None, pred=False, num_pred=250):
+    def __call__(self, n: ArrayLike, nu_obs: ArrayLike=None,
+                 nu_err: ArrayLike=None, pred: bool=False, num_pred: int=250):
+        """Sample the model for given observables.
+
+        Args:
+            n: Radial order for the given modes.
+            nu_obs: Observed radial mode frequencies.
+            nu_err: Gaussian observational uncertainties (sigma) for nu_obs.
+            pred: If True, make predictions nu and nu_pred from n and num_pred.
+            num_pred: Number of predictions in the range n.min() to n.max().
+        """
         bkg_func = self.background()
         he_glitch_func = self.he_glitch()
         cz_glitch_func = self.cz_glitch()
@@ -892,7 +572,7 @@ class GlitchModel(Model):
         gp = GP(kernel, mean=mean)
         
         with dimension('n', n.shape[-1], coords=n):
-            gp.sample('nu_obs', n, noise=noise, obs=nu)
+            gp.sample('nu_obs', n, noise=noise, obs=nu_obs)
             
             if pred:
                 gp.predict('nu', n)
