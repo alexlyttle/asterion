@@ -1,3 +1,4 @@
 furo
 ipykernel
 nbsphinx
+autodocsumm
