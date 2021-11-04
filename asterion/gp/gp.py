@@ -1,9 +1,14 @@
+from __future__ import annotations
+
+from typing import Callable, Optional, Union
 import numpyro 
 import numpyro.distributions as dist
 import jax 
 import jax.numpy as jnp
 
-from .kernels import WhiteNoise
+from numpy.typing import ArrayLike
+
+from .kernels import Kernel, WhiteNoise
 
 class GP:
     """Gaussian process class.
@@ -24,53 +29,36 @@ class GP:
     Thus, f evaluated at some set of points x is drawn from a multivariate
     normal distribution,
 
-        f ~ N(m(x), k(x, x))
+    f ~ N(m(x), k(x, x))
     
     or with additional independent noise for each observation of f(x),
-        y ~ N(m(x), k(x, x) + n_x)
+    y ~ N(m(x), k(x, x) + n_x)
     
     Likelihood (just add observation),
 
-        y_obs | theta ~ N(y_obs | m(x), k(x, x) + n_x)
+    y_obs | theta ~ N(y_obs | m(x), k(x, x) + n_x)
     
     Predicted truth,
 
-        f(x_pred) | y ~ N(
-            m(x_pred) + k(x, x_pred)·(k(x, x) + n_x)^{-1}·(y - m(x)),
-            k(x_pred, x_pred) - k(x, x_pred)·(k(x, x) + n_x)^{-1}·k(x_pred, x)
-        )
+    f(x_pred) | y ~ N(
+    m(x_pred) + k(x, x_pred)·(k(x, x) + n_x)^{-1}·(y - m(x)),
+    k(x_pred, x_pred) - k(x, x_pred)·(k(x, x) + n_x)^{-1}·k(x_pred, x)
+    )
 
     Predicted observations (just add noise),
     
-        y_pred | y ~ N(
-            m(x_pred) + k(x, x_pred)·(k(x, x) + n_x)^{-1}·(y - m(x)),
-            k(x_pred, x_pred) + n_pred - k(x, x_pred)·(k(x, x) + n_x)^{-1}·k(x_pred, x)
-        )
-
+    y_pred | y ~ N(
+    m(x_pred) + k(x, x_pred)·(k(x, x) + n_x)^{-1}·(y - m(x)),
+    k(x_pred, x_pred) + n_pred - k(x, x_pred)·(k(x, x) + n_x)^{-1}·k(x_pred, x)
+    )
+    
     Args:
-        kernel (Kernel or callable): Kernel function,
+        kernel: Kernel function,
             default is the squared exponential kernel.
-        mean (float or callable): Mean model function. If float, mean
+        mean: Mean model function. If float, mean
             function is constant at this value.
-        jitter (float or callable): Small amount to add to the covariance.
+        jitter: Small amount to add to the covariance.
             If float, this is multiplied by the identity matrix.
-
-    Attributes:
-        kernel (callable): Kernel function.
-        mean (callable): Mean function.
-        jitter (callable): Jitter function.
-        x (jnp.ndarray or None): Input array passed to distribution or sample.
-        y (jnp.ndarray or None): Output array of sample.
-        loc (jnp.ndarray or None): Output of mean(x).
-        cov (jnp.ndarray or None): Output of kernel(x, x).
-        noise (callable or None): Noise function passed to distribution or 
-            sample.
-
-    Methods:
-        distribution: Returns the distribution of y | theta.
-        sample: Returns a sample from the distribution of y | theta.
-        conditional: Returns the conditional distribution of y* | y, theta.
-        predict: Samples the conditional distribution of y* given y and theta.
     
     Example:
 
@@ -90,55 +78,75 @@ class GP:
                 gp.sample('y', x, noise=noise, obs=y)
 
                 if x_pred is not None:
-                    gp.predict('f_pred', x_pred, noise=noise)
+                    gp.predict('f_pred', x_pred, noise=None)
                     gp.predict('y_pred', x_pred, noise=noise)
 
     """
-    def __init__(self, kernel, mean=0.0, jitter=1e-6):
+    def __init__(self, kernel: Union[Kernel, Callable], mean: Union[float, Callable]=0.0,
+                 jitter: Union[float, Callable]=1e-6):
         
         if not callable(kernel):
             raise TypeError("Argument 'kernel' is not callable")
-        self.kernel = kernel
+        self.kernel: Callable = kernel  #: Kernel function.
 
         if not callable(mean):
-            self.mean = lambda x: jnp.full(x.shape, mean)
+            _mean = lambda x: jnp.full(x.shape, mean)
         else:
-            self.mean = mean
-        
-        if not callable(jitter):
-            self.jitter = lambda x: jitter * jnp.eye(x.shape[-1])
-        else:
-            self.jitter = jitter
+            _mean = mean
+        self.mean: Callable = _mean  #: Mean function.
 
-        self.x = None
-        self.y = None
-        self.noise = None
-        self.loc = None
-        self.cov = None
-    
+        if not callable(jitter):
+            _jitter = lambda x: jitter * jnp.eye(x.shape[-1])
+        else:
+            _jitter = jitter
+
+        self.jitter: Callable = _jitter  #: Jitter function.
+        
+        self.noise: Optional[Callable] = None
+        """: Independent noise function passed to
+        :meth:`distribution` or :meth:`sample`."""
+        
+        self.x: Optional[ArrayLike] = None
+        """: Input array passed to :meth:`distribution` or :meth:`sample`."""
+        
+        self.y: Optional[ArrayLike] = None
+        """: Output of :meth:`sample`."""
+        
+        self.loc: Optional[ArrayLike] = None
+        """: Output of :attr:`mean` :code:`(x)`."""
+        
+        self.cov: Optional[ArrayLike] = None
+        """: Output of :attr:`kernel` :code:`(x, x)`."""
+
     def __add__(self, obj):
         if not isinstance(obj, self.__class__):
-            raise TypeError(f"Object added must be instance of {self.__class__}")
+            raise TypeError(
+                f"Object added must be instance of {self.__class__}"
+            )
         kernel = self.kernel + obj.kernel
         mean = self.mean + obj.mean
         jitter = max(self.jitter, obj.jitter)  # Take the max jitter.
-        gp = GP(kernel, mean=mean, noise=noise, jitter=jitter)
+        gp = GP(kernel, mean=mean, jitter=jitter)
         return gp
 
-    def _validate_noise(self, noise):
+    def _validate_noise(self,
+                        noise: Optional[Union[Callable, float]]) -> Callable:
         if noise is None or noise is False:
             noise = WhiteNoise(0.0)
         elif not callable(noise):
             noise = WhiteNoise(noise)
         return noise
 
-    def distribution(self, x, noise=None, **kwargs):
-        """Distribution for the GP.
+    def distribution(self, x: ArrayLike,
+                    noise: Optional[Union[Callable, float]]=None,
+                    **kwargs) -> dist.MultivariateNormal:
+        """Distribution for the GP. Calling this method updates :attr:`x`,
+        :attr:`noise`, :attr:`loc` and :attr:`cov`.
 
         Args:
-            params (dict): Kernel and mean parameters.
-            x: The x values for which to sample.
-            kwargs (dict): Keyword arguments to pass to dist.MultivariateNormal 
+            x: The x values for which to construct the distribution
+            noise: The independent noise function.
+            **kwargs: Keyword arguments to pass to dist.MultivariateNormal.
         """
         self.x = x
         self.noise = self._validate_noise(noise)
@@ -146,16 +154,40 @@ class GP:
         self.cov = self.kernel(x, x) + self.noise(x) + self.jitter(x)
         return dist.MultivariateNormal(self.loc, self.cov, **kwargs)
     
-    def sample(self, name, x, noise=None, obs=None, rng_key=None,
-               sample_shape=(), infer=None, obs_mask=None, **kwargs):
+    def sample(self, name: str, x: ArrayLike,
+               noise: Optional[Union[Callable, float]]=None,
+               obs: Optional[ArrayLike]=None,
+               rng_key: Optional[jnp.ndarray]=None,
+               sample_shape: tuple=(), infer: Optional[dict]=None,
+               obs_mask: Optional[ArrayLike]=None,
+               **kwargs) -> jnp.ndarray:
+        """Sample from the GP likelihood. Calling this method updates
+        :attr:`x`, :attr:`noise`, :attr:`loc` and :attr:`cov` and assigns the
+        result to :attr:`y`.
+
+        Args:
+            name: [description]
+            x: [description]
+            noise: [description]. Defaults to None.
+            obs: [description]. Defaults to None.
+            rng_key: [description]. Defaults to None.
+            sample_shape: [description]. Defaults to ().
+            infer: [description]. Defaults to None.
+            obs_mask: [description]. Defaults to None.
+
+        Returns:
+            A sample from the GP likelihood.
+        """
         fn = self.distribution(x, noise=noise, **kwargs)
         self.y = numpyro.sample(name, fn, obs=obs, rng_key=rng_key,
                                 sample_shape=sample_shape, infer=infer,
                                 obs_mask=obs_mask)
         return self.y
 
-    def _build_conditional(self, x, noise=None, gp=None, diag=False):
-        """Make a prediction for the loc and cov of f(x_pred) given y,
+    def _build_conditional(self, x: ArrayLike,
+                           noise: Optional[Union[float, Callable]]=None,
+                           gp=None, diag: bool=False):
+        """Make a prediction for the loc and cov of f(x) given y,
         
         loc = mp + kxp·(kxx + nx)^{-1}·(y - mx),
         cov = kpp + np - kxp·(kxx + nx)^{-1}·kxp^T,
@@ -167,24 +199,25 @@ class GP:
 
         Args:
             x: The x values for which to make predictions.
-            noise (bool, callable or array-like): If True, add self.noise to the
+            noise: If True, add self.noise to the
                 prediction. If callable, must be a function of (x_pred, x_pred).
-                Otherwise, pass the scale parameter for WhiteNoise. Default is False 
-                (no noise).
-            gp (GP, optional): The GP from which to make predictions. E.g. the total
-                GP in which self is a term. Default is self. 
-            diag (bool): If True, returns the variance. Default is False.
+                Otherwise, pass the scale parameter for WhiteNoise.
+                Default is None (no noise).
+            gp (GP, optional): The GP from which to make predictions. 
+                For example, used in GP addition. Default is self. 
+            diag: If True, returns the variance. Default is False.
         
         Returns:
             loc: The mean of the prediction.
-            cov or var: The covarience or variance of the prediction.
+            cov or var: The covariance or variance of the prediction.
         """
         if gp is None:
             # Predict given a different GP (e.g. additive)
             gp = self
         
         if gp.x is None:
-            raise ValueError("GP must be sampled to make predictions, consider the `gp` keyword argument")
+            raise ValueError("GP must be sampled to make predictions," + 
+                             " consider the `gp` keyword argument")
 
         kxx = gp.cov    
         L = jax.scipy.linalg.cho_factor(kxx, lower=True)
@@ -211,12 +244,14 @@ class GP:
 
         return loc, cov
 
-    def conditional(self, x, noise=None, diag=False, gp=None, **kwargs):
-        """Make a conditional distribution for y_pred = f(x_pred) + noise_pred,
+    def conditional(self, x: ArrayLike,
+                    noise: Optional[Union[float, Callable]]=None,
+                    diag: bool=False, gp=None, **kwargs) -> dist.Distribution:
+        """Make a conditional distribution for y' = f(x') + noise',
         
-        y_pred | y ~ N(
-            mp + kxp·(kxx + nx)^{-1}·(y - mx),
-            kpp + np - kxp·(kxx + nx)^{-1}·kxp^T
+        y' | y ~ N(
+        mp + kxp·(kxx + nx)^{-1}·(y - mx),
+        kpp + np - kxp·(kxx + nx)^{-1}·kxp^T
         ),
         
         where mx = mean(x), mp = mean(x_pred), kxx = kernel(x, x),
@@ -225,13 +260,15 @@ class GP:
         
         Args:
             x: The x values for which to make predictions.
-            noise (bool, callable or array-like): If True, add self.noise to the
-                prediction. If callable, must be a function of (x_pred, x_pred). 
-                Otherwise, pass the scale parameter for WhiteNoise. Default is False
-                (no noise).
+            noise: If True, add self.noise to 
+                the prediction. If callable, must be a function of 
+                (x_pred, x_pred). Otherwise, pass the scale parameter for
+                WhiteNoise. Default is None (no noise).
             gp (GP, optional): The GP from which to make predictions. Default is
                 self. E.g. the total GP in which self is a term.
-            diag (bool): If True, diagonalises the varience. Default is False.
+            diag: If True, diagonalises the variance. Default is False.
+            **kwargs: Keyword arguments to pass to :class:`dist.Normal` or
+                :class:`dist.MultivariateNormal`.
         """
         args = self._build_conditional(x, noise=noise, gp=gp, diag=diag)
         if diag:
@@ -239,8 +276,27 @@ class GP:
 
         return dist.MultivariateNormal(*args, **kwargs)
     
-    def predict(self, name, x, noise=None, gp=None, diag=False,
-                rng_key=None, sample_shape=(), infer=None, **kwargs):
+    def predict(self, name: str, x: ArrayLike,
+                noise: Optional[Union[float, Callable]]=None, gp=None,
+                diag: bool=False, rng_key: Optional[jnp.ndarray]=None, 
+                sample_shape: tuple=(), infer: Optional[dict]=None,
+                **kwargs) -> jnp.ndarray:
+        """Sample from the GP conditional distribution.
+
+        Args:
+            name: [description]
+            x: [description]
+            noise: [description]. Defaults to None.
+            gp: [description]. Defaults to None.
+            diag: [description]. Defaults to False.
+            rng_key: [description]. Defaults to None.
+            sample_shape: [description]. Defaults to ().
+            infer: [description]. Defaults to None.
+            **kwargs: Keyword arguments to pass to :meth:`conditional`.
+
+        Returns:
+            [description]
+        """
         fn = self.conditional(x, noise=noise, gp=gp, diag=diag, **kwargs)
         return numpyro.sample(name, fn, rng_key=rng_key, sample_shape=sample_shape,
                               infer=infer)

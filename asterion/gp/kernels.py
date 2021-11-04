@@ -2,7 +2,8 @@ import jax.numpy as jnp
 
 
 class Kernel:
-    """Base class for a GP kernel."""
+    """Base class for a GP kernel.
+    """
     def __call__(self, x, xp):
         """Returns a covariance matrix.
         
@@ -30,11 +31,6 @@ class WhiteNoise(Kernel):
     
     Args:
         scale (float or array-like): The scale of the white noise ($\sigma$).
-    
-    Attributes:
-        scale (jnp.ndarray): The scale of the white noise ($\sigma$).
-        heteroscedastic (bool): True if the scale is heteroscedastic, i.e.
-            the white noise varies across the elements of x.
     """
     def __init__(self, scale):
         self.scale = jnp.array(scale)
