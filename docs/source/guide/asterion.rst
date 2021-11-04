@@ -1,5 +1,5 @@
 asterion
---------
+========
 
 .. automodule:: asterion
    :members:
@@ -7,24 +7,30 @@ asterion
    :show-inheritance:
 
 
+.. toctree::
+   :maxdepth: 4
+
+   asterion.gp
+
+
 asterion.annotations
---------------------
+====================
 
 .. automodule:: asterion.annotations
    :members:
    :undoc-members:
    :show-inheritance:
 
-asterion.data
--------------
+asterion.io
+===========
 
-.. automodule:: asterion.data
+.. automodule:: asterion.io
    :members:
    :undoc-members:
    :show-inheritance:
 
 asterion.inference
-------------------
+==================
 
 .. automodule:: asterion.inference
    :members:
@@ -32,9 +38,10 @@ asterion.inference
    :show-inheritance:
 
 asterion.models
----------------
+===============
 
 .. automodule:: asterion.models
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __call__

@@ -14,9 +14,9 @@
 {%- endmacro %}
 
 {%- if is_namespace %}
-{{- pkgname | e | heading(2) }}
+{{- pkgname | e | heading }}
 {% else %}
-{{- pkgname | e | heading(2) }}
+{{- pkgname | e | heading }}
 {% endif %}
 
 {%- if modulefirst and not is_namespace %}
@@ -34,7 +34,7 @@
 {% else %}
 {%- for submodule in submodules %}
 {% if show_headings %}
-{{- submodule | e | heading(2) }}
+{{- submodule | e | heading }}
 {% endif %}
 {{ automodule(submodule, automodule_options) }}
 {% endfor %}

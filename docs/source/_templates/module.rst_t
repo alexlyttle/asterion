@@ -1,5 +1,5 @@
 {%- if show_headings %}
-{{- submodule | e | heading(2) }}
+{{- submodule | e | heading }}
 
 {% endif -%}
 .. automodule:: {{ qualname }}

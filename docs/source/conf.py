@@ -18,7 +18,6 @@
 
 # -- Imports -----------------------------------------------------------------
 
-import asterion
 from asterion import __version__
 
 
@@ -38,12 +37,13 @@ release = __version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.napoleon',  # Add napoleon to the extensions list
-    'sphinx.ext.autodoc',
-    # 'sphinx.ext.linkcode',  # Uncomment for links to source code on GitHub
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.viewcode',
-    'nbsphinx',
+    'sphinx.ext.napoleon',     # Support for Google-style docstrings
+    'sphinx.ext.autodoc',      # Automatically generate documentation
+    'sphinx.ext.intersphinx',  # Link to external documentation
+    'sphinx.ext.viewcode',     # View source code
+    'sphinx.ext.mathjax',      # Render math
+    'nbsphinx',                # Generate notebooks
+    'autodocsumm',  # Add nice summaries of classes, methods and attributes
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -53,6 +53,9 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
+
+# Don't prepend module names to functions
+add_module_names = False
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -85,60 +88,37 @@ html_css_files = [
     'css/custom.css',
 ]
 
+
 # -- Autodoc options ---------------------------------------------------------
 
 autodoc_typehints = 'description'  # show type hints in doc body
 autodoc_typehints_description_target = 'documented'
-
-# -- Link code options -------------------------------------------------------
-
-# Uncomment the following for links to source in GitHub
-# def linkcode_resolve(domain, info):
-#     def find_source():
-#         # try to find the file and line number, based on code from numpy:
-#         # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
-#         obj = sys.modules[info['module']]
-#         for part in info['fullname'].split('.'):
-#             obj = getattr(obj, part)
-#         import inspect
-#         import os
-#         fn = inspect.getsourcefile(obj)
-#         fn = os.path.relpath(
-#             fn, 
-#             tart=os.path.dirname(asterion.__file__)
-#         )
-#         source, lineno = inspect.getsourcelines(obj)
-#         return fn, lineno, lineno + len(source) - 1
-
-#     if domain != 'py' or not info['module']:
-#         return None
-#     try:
-#         filename = 'asterion/%s#L%d-L%d' % find_source()
-#     except Exception:
-#         return None
-#     tag = 'main' if 'dev' in release else ('v' + release)
-#     return "https://github.com/alexlyttle/helium-glitch-fitter/blob/%s/%s" \
-#         % (tag, filename)
+autodoc_inherit_docstrings = True
+autodoc_default_options = {
+    'autosummary': True,  # Add summaries automatically
+}
+autodoc_type_aliases = {
+    "DistLike": "asterion.annotations.DistLike",
+    "ArrayLike": "numpy.typing.ArrayLike",
+}
 
 
 # -- InterSphinx options -----------------------------------------------------
 
 intersphinx_mapping = {
-    "arviz": ("https://arviz-devs.github.io/arviz", None),
-    "jax": ("https://jax.readthedocs.io/en/latest", None),
-    "numpy": ("https://numpy.org/doc/stable", None),
+    "arviz": ("https://arviz-devs.github.io/arviz/", None),
+    "jax": ("https://jax.readthedocs.io/en/latest/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
     "numpyro": ("https://num.pyro.ai/en/stable/", None),
-    "python": ("https://docs.python.org/3", None),
+    "python": ("https://docs.python.org/3/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
+    "astropy": ("https://docs.astropy.org/en/stable/", None),
 }
 
 
 # Napoleon options -----------------------------------------------------------
 
-napoleon_type_aliases = {
-    "Array1D": "asterion.annotations.Array1D",
-    "Array2D": "asterion.annotations.Array2D",
-    "Array3D": "asterion.annotations.Array3D",
-}
+napoleon_type_aliases = autodoc_type_aliases
 
 # -- NBSphinx options --------------------------------------------------------
 
