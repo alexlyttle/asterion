@@ -10,6 +10,12 @@ from numpy.typing import ArrayLike
 
 from .kernels import Kernel, WhiteNoise
 
+
+__all__ = [
+    'GP',
+]
+
+
 class GP:
     """Gaussian process class.
 
