@@ -317,7 +317,7 @@ class Inference:
 
     def _init_handlers(self, handlers: list,
                        reparam: Union[str, hdl.reparam]='auto') -> list:
-        handlers = handlers.copy()
+        # handlers = handlers.copy()
         if handlers is None:
             handlers = []
         if reparam == 'auto':
@@ -405,11 +405,10 @@ class Inference:
         Returns:
             [description]
         """
-        self._update_args_kwargs(model_args, model_kwargs)
         rng_key, self._rng_key = random.split(self._rng_key)
         self.mcmc.run(rng_key, *model_args, extra_fields=extra_fields,
                         init_params=init_params, **model_kwargs)
-
+        self._update_args_kwargs(model_args, model_kwargs)
         # # Filter UserWarnings from numpyro as errors
         # module = r'\bnumpyro\b'
         # category = UserWarning
@@ -479,7 +478,6 @@ class Inference:
             reparam: [description]. Defaults to 'auto'.
             svi_kwargs: [description]. Defaults to {}.
         """
-        self._update_args_kwargs(model_args, model_kwargs)
         handlers = self._init_handlers(handlers, reparam=reparam)
         model = self.model
         for h in handlers:
@@ -493,6 +491,7 @@ class Inference:
         
         rng_key, self._rng_key = random.split(self._rng_key)
         self.map_result = self.map_svi.run(rng_key, num_steps, *model_args, **model_kwargs)
+        self._update_args_kwargs(model_args, model_kwargs)
 
     def predictive(self, model_args: tuple=(), model_kwargs: dict={},
                    **kwargs) -> dict:
@@ -506,7 +505,6 @@ class Inference:
         Returns:
             [description]
         """
-        self._update_args_kwargs(model_args, model_kwargs)
         posterior_samples = kwargs.pop("posterior_samples", {})
         num_samples = kwargs.pop("num_samples", None)
         # batch_ndims = kwargs.pop("batch_ndims", 2)
@@ -533,6 +531,7 @@ class Inference:
 
         rng_key, self._rng_key = random.split(self._rng_key)
         samples = predictive(rng_key, *model_args, **model_kwargs)
+        self._update_args_kwargs(model_args, model_kwargs)
         return samples
     
     def prior_predictive(self, num_samples: int=1000, model_args: tuple=(),
