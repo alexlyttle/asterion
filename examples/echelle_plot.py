@@ -2,7 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-data_dir = 'out/glitch_with_err'  # Modify this
+data_dir = 'docs/source/tutorials/out/glitch_with_err'  # Modify this
 
 n, nu = np.loadtxt(os.path.join(data_dir, 'nu.csv'), delimiter=',', skiprows=1).T
 n_pred, nu_pred = np.loadtxt(os.path.join(data_dir, 'nu_pred.csv'), delimiter=',', skiprows=1).T
