@@ -6,7 +6,6 @@ Warning:
 import numpyro
 
 from ._version import __version__
-from .inference import Inference, Results
 
 numpyro.enable_x64()
 numpyro.set_host_device_count(10)
