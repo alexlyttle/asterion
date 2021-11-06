@@ -32,7 +32,7 @@ use to study surface helium content [references].
    :caption: Tutorials
    :name: tutorialstoc
 
-   tutorials/*
+   tutorials/glitch
 
 .. toctree::
    :glob:
