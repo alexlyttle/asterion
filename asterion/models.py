@@ -22,8 +22,6 @@ from matplotlib.ticker import MaxNLocator
 
 import warnings
 
-# from .priors import ZerosPrior
-
 import astropy.units as u
 
 from collections.abc import Iterable
@@ -36,10 +34,10 @@ __all__ = [
     "distribution",
     "dimension",
     "Model",
-    "ZerosPrior",
-    "AsyPrior",
-    "HeGlitchPrior",
-    "CZGlitchPrior",
+    "ZerosFunction",
+    "AsyFunction",
+    "HeGlitchFunction",
+    "CZGlitchFunction",
     "GlitchModel",
 ]
 
@@ -54,11 +52,12 @@ def distribution(
     unpacking value as its arguments.
 
     Args:
-        value: Iterable of args to pass to default_dist, or a Distribution.
-        default_dist: [description]. Defaults to dist.Normal.
+        value (:term:`dist_like`): Iterable of args to pass to default_dist, or a Distribution.
+        default_dist (numpyro.distributions.distribution.Distribution, optional):
+            [description]. Defaults to dist.Normal.
 
     Returns:
-        [description]
+        numpyro.distributions.distribution.Distribution: [description]
     """
     if not isinstance(value, dist.Distribution):
         if not isinstance(value, Iterable):
@@ -71,23 +70,27 @@ class dimension(Messenger):
     """Context manager for a model dimension.
 
     Args:
-        name: Name of the dimension.
-        size: Size of the dimension.
-        coords: Coordinates for points in the dimension. Defaults to
+        name (str): Name of the dimension.
+        size (int): Size of the dimension.
+        coords (:term:`array_like`, optional): Coordinates for points in the dimension. Defaults to
             :code:`np.arange(size)`.
-        dim: Where to place the dimension. Defaults to :code:`-1` which
+        dim (int, optional): Where to place the dimension. Defaults to :code:`-1` which
             corresponds to the rightmost dimension. Must be negative.
     """
 
     def __init__(self, name: str, size: int, coords: Optional[ArrayLike]=None,
                  dim: Optional[ArrayLike]=None):
-        self.name: str = name  #: Name of the dimension.
-        self.size: int = size  #: Size of the dimension.
-        self.dim: int = -1 if dim is None else dim  # Defaults to rightmost dim
+        self.name: str = name  #:str: Name of the dimension.
+        self.size: int = size  #:int: Size of the dimension.
+        self.dim: int = -1 if dim is None else dim
+        """:int: Location in which to insert the dimension."""
+        
         assert self.dim < 0
         if coords is None:
             coords = np.arange(self.size)
         self.coords: np.ndarray = np.array(coords)
+        """:numpy.ndarray: Coordinates for the dimension."""
+
         msg = self._get_message()
         apply_stack(msg)
         super().__init__()
@@ -106,6 +109,15 @@ class dimension(Messenger):
         return self._get_message()
 
     def process_message(self, msg: dict):
+        """[summary]
+
+        Args:
+            msg (dict): Message.
+
+        Raises:
+            ValueError: If the corresponding dimension of the site is of
+                incorrect size.
+        """
         if msg["type"] not in ("param", "sample", "deterministic"):
             # We don't add dimensions to dimensions
             return
@@ -147,7 +159,7 @@ class Model:
     has no observed sample sites.
     """
     units: Dict[str, u.Unit] = {}
-    """: Astropy units corresponding to each model parameter."""
+    """:dict: Astropy units corresponding to each model parameter."""
 
     def __call__(self):
         """Call the model during inference.
@@ -159,7 +171,7 @@ class Model:
         raise NotImplementedError
 
 
-class ZerosPrior(Model):
+class ZerosFunction(Model):
     """A prior on the zeros function :math:`f` where
     :math:`f(\\boldsymbol{x}) = \\boldsymbol{0}`.
     """
@@ -167,31 +179,33 @@ class ZerosPrior(Model):
         """Samples the prior for the zeros function.
 
         Returns:
-            The function :math:`f`.
+            function: The function :math:`f`.
         """
         return lambda x: jnp.zeros(x.shape)
 
 
-class AsyPrior(Model):
+class AsyFunction(Model):
     """Prior on the linear asymptotic function :math:`f`, where
     :math:`f(n) = \\Delta\\nu (n + \\epsilon)`.
     
     Args:
-        delta_nu: Prior for the large frequency separation :math:`\\Delta\\nu`.
+        delta_nu (:term:`dist_like`): Prior for the large frequency separation :math:`\\Delta\\nu`.
             Pass either the arguments of :class:`dist.Normal` or a
             :class:`dist.Distribution`.
-        epsilon: Prior for the phase term :math:`\\epsilon`. Pass either the
+        epsilon (:term:`dist_like`): Prior for the phase term :math:`\\epsilon`. Pass either the
             arguments of :class:`dist.Gamma` or a :class:`dist.Distribution`.
             Defaults to :code:`(14., 10.)`.
     """
     def __init__(self, delta_nu: DistLike, epsilon: DistLike=None):
         self.delta_nu: dist.Distribution = distribution(delta_nu)
-        """: The distribution for :math:`\\Delta\\nu`."""
+        """:numpyro.distributions.distribution.Distribution: The distribution for
+        :math:`\\Delta\\nu`."""
 
         if epsilon is None:
             epsilon = (14., 10.)
-        self.epsilon = distribution(epsilon, dist.Gamma)
-        """: The distribution for :math:`\\epsilon`."""
+        self.epsilon: dist.Distribution = distribution(epsilon, dist.Gamma)
+        """:numpyro.distributions.distribution.Distribution: The distribution for 
+        :math:`\\epsilon`."""
 
         self.units = {
             'delta_nu': u.microhertz,
@@ -202,7 +216,7 @@ class AsyPrior(Model):
         """Samples the prior for the linear asymptotic function.
 
         Returns:
-            The function :math:`f`.
+            function: The function :math:`f`.
         """
         delta_nu = numpyro.sample('delta_nu', self.delta_nu)
         epsilon = numpyro.sample('epsilon', self.epsilon)
@@ -212,33 +226,47 @@ class AsyPrior(Model):
         return fn
 
 
-class _GlitchPrior(Model):
+class _GlitchFunction(Model):
     """Prior on the glitch oscillation function :math:`f`, where
     :math:`f(nu) = \\sin(4\\pi\\tau\\nu + \\phi)`.
 
     Args:
-        tau: The prior for the acoustic depth of the glitch, :math:`\\tau`.
+        tau (:term:`dist_like`): The prior for the acoustic depth of the glitch, :math:`\\tau`.
             Pass either the arguments of :class:`dist.Normal` or a
             :class:`dist.Distribution`.
-        phi: The prior for the phase of the glitch, :math:`\\phi`. Pass either
+        phi (:term:`dist_like`): The prior for the phase of the glitch, :math:`\\phi`. Pass either
             the arguments of :class:`dist.VonMises` or a 
             :class:`dist.Distribution`.
     """
 
     def __init__(self, tau: DistLike, phi: DistLike):
-        self.tau = distribution(tau)  #: The distribution for :math:`\\tau`.
+        self.tau = distribution(tau)
+        """:numpyro.distributions.distribution.Distribution: The distribution for 
+        :math:`\\tau`."""
         self.phi = distribution(phi, dist.VonMises)
-        """: The distribution for :math:`\\phi`."""
+        """:numpyro.distributions.distribution.Distribution: The distribution for
+        :math:`\\phi`."""
 
     @staticmethod
-    def oscillation(nu: ArrayLike, tau: ArrayLike, phi: ArrayLike):
+    def oscillation(nu: ArrayLike, tau: ArrayLike,
+                    phi: ArrayLike) -> jnp.ndarray:
+        """[summary]
+
+        Args:
+            nu (:term:`array_like`): [description]
+            tau (:term:`array_like`): [description]
+            phi (:term:`array_like`): [description]
+
+        Returns:
+            jax.numpy.ndarray: [description]
+        """
         return jnp.sin(4 * jnp.pi * tau * nu + phi)
 
     def __call__(self) -> Callable:
         """Samples the prior for a generic glitch oscillation function.
 
         Returns:
-            The function :math:`f`.
+            function: The function :math:`f`.
         """
         tau = numpyro.sample('tau', self.tau)
         phi = numpyro.sample('phi', self.phi)
@@ -247,7 +275,7 @@ class _GlitchPrior(Model):
         return fn
 
 
-class HeGlitchPrior(_GlitchPrior):
+class HeGlitchFunction(_GlitchFunction):
     """Prior on the second ionisation of helium glitch function :math:`f`,
     where :math:`f(\\nu) = a_\\mathrm{He} \\nu \\exp(-b_\\mathrm{He} \\nu^2) 
     \\sin(4\\pi\\tau_\\mathrm{He}\\nu + \\phi_\\mathrm{He})`.
@@ -258,25 +286,27 @@ class HeGlitchPrior(_GlitchPrior):
     scaling relations derived from stellar models (Lyttle et al. in prep.).
 
     Args:
-        nu_max: The prior for the frequency at maximum power,
+        nu_max (:term:`dist_like`): The prior for the frequency at maximum power,
             :math:`\\nu_\\max`. Pass either the arguments of
             :class:`dist.Normal` or a :class:`dist.Distribution`.
     """
     def __init__(self, nu_max: DistLike):
         self.log_a: dist.Distribution
-        """: The distribition for the glitch phase parameter phi_he."""
+        """:numpyro.distributions.distribution.Distribution: The distribition for the glitch 
+        phase parameter phi_he."""
         
         self.log_b: dist.Distribution
-        """: The distribution for log base-10 of the glitch parameter b_he."""
+        """:numpyro.distributions.distribution.Distribution: The distribution for log 
+        base-10 of the glitch parameter b_he."""
         
         self.log_tau: dist.Distribution
-        """: The distribution for log base-10 of the glitch parameter 
-        (acoustic depth) tau_he."""
+        """:numpyro.distributions.distribution.Distribution: The distribution for log 
+        base-10 of the glitch parameter (acoustic depth) tau_he."""
         
         self.nu_max = nu_max
         
         self.phi: dist.Distribution = dist.VonMises(0.0, 0.1)
-        """: The distribution for the phase parameter."""
+        """:numpyro.distributions.distribution.Distribution: The distribution for the phase parameter."""
         
         self.units = {
             'a_he': u.dimensionless_unscaled,
@@ -297,7 +327,7 @@ class HeGlitchPrior(_GlitchPrior):
         """Resets the priors for the glitch parameters.
 
         Args:
-            value: The prior for the frequency at maximum power,
+            value (:term:`dist_like`): The prior for the frequency at maximum power,
                 :math:`\\nu_\\max`. Pass either the arguments of
                 :class:`dist.Normal` or a :class:`dist.Distribution`.
         """
@@ -313,12 +343,12 @@ class HeGlitchPrior(_GlitchPrior):
         :math:`a_\\mathrm{He} \\nu \\exp(-b_\\mathrm{He} \\nu^2)`.
 
         Args:
-            nu: [description]
-            a: [description]
-            b: [description]
+            nu (:term:`array_like`): [description]
+            a (:term:`array_like`): [description]
+            b (:term:`array_like`): [description]
 
         Returns:
-            [description]
+            jax.numpy.ndarray: [description]
         """
         return a * nu * jnp.exp(- b * nu**2)
     
@@ -326,7 +356,7 @@ class HeGlitchPrior(_GlitchPrior):
         """[summary]
 
         Returns:
-            The function :math:`f`.
+            function: The function :math:`f`.
         """
         log_a = numpyro.sample('log_a_he', self.log_a)
         log_b = numpyro.sample('log_b_he', self.log_b)
@@ -342,7 +372,7 @@ class HeGlitchPrior(_GlitchPrior):
         return fn
 
 
-class CZGlitchPrior(_GlitchPrior):
+class CZGlitchFunction(_GlitchFunction):
     """Prior on the base of the convective zone glitch function :math:`f`,
     where :math:`f(\\nu) = a_\\mathrm{CZ} \\nu^{-2}
     \\sin(4\\pi\\tau_\\mathrm{CZ}\\nu + \\phi_\\mathrm{CZ})`
@@ -353,20 +383,23 @@ class CZGlitchPrior(_GlitchPrior):
     scaling relations derived from stellar models (Lyttle et al. in prep.).
 
     Args:
-        nu_max: The prior for the frequency at maximum power,
+        nu_max (:term:`dist_like`): The prior for the frequency at maximum power,
             :math:`\\nu_\\max`. Pass either the arguments of
             :class:`dist.Normal` or a :class:`dist.Distribution`.
     """
     def __init__(self, nu_max: DistLike):
         self.log_a: dist.Distribution
-        """: The distribition for the glitch phase parameter phi_cz."""
+        """:numpyro.distributions.distribution.Distribution: The distribition for the glitch 
+        phase parameter phi_cz."""
         
         self.log_tau: dist.Distribution
-        """: The distribution for log base-10 of the acoustic depth tau_cz."""
+        """:numpyro.distributions.distribution.Distribution: The distribution for log 
+        base-10 of the acoustic depth tau_cz."""
         
         self.nu_max = nu_max
         self.phi: dist.Distribution = dist.VonMises(0.0, 0.1)
-        """: The distribition for the glitch phase parameter phi_cz."""
+        """:numpyro.distributions.distribution.Distribution: The distribition for the glitch 
+        phase parameter phi_cz."""
 
         self.units = {
             'a_cz': u.microhertz**3,
@@ -386,7 +419,7 @@ class CZGlitchPrior(_GlitchPrior):
         """Resets the priors for the glitch parameters.
 
         Args:
-            value: The prior for the frequency at maximum power,
+            value (:term:`dist_like`): The prior for the frequency at maximum power,
                 :math:`\\nu_\\max`. Pass either the arguments of
                 :class:`dist.Normal` or a :class:`dist.Distribution`.
         """
@@ -401,11 +434,11 @@ class CZGlitchPrior(_GlitchPrior):
         :math:`a_\\mathrm{CZ} / \\nu^{-2}`.
 
         Args:
-            nu: [description]
-            a: [description]
+            nu (:term:`array_like`): [description]
+            a (:term:`array_like`): [description]
 
         Returns:
-            [description]
+            jax.numpy.ndarray: [description]
         """
         return jnp.divide(a, nu**2)
     
@@ -413,7 +446,7 @@ class CZGlitchPrior(_GlitchPrior):
         """[summary]
 
         Returns:
-            The function :math:`f`.
+            function: The function :math:`f`.
         """
         log_a = numpyro.sample('log_a_cz', self.log_a)
         log_tau = numpyro.sample('log_tau_cz', self.log_tau)
@@ -448,17 +481,18 @@ class GlitchModel(Model):
         k(n, n') = \sigma_k^2 \exp\left( - \frac{(n' - n)^2}{l^2} \right).
 
     Args:
-        background: Background prior model which, when called, returns a
+        background (Model): Background prior model which, when called, returns a
             function :math:`f_\mathrm{bkg}` describing the smoothly varying
             (non-glitch) component of the oscillation modes.
-        he_glitch: Glitch prior model which, when called, returns a function
+        he_glitch (Model): Glitch prior model which, when called, returns a function
             :math:`f_\mathrm{He}` describing the contribution to the modes from
             the glitch due to the second ionisation of helium in the stellar
             convective envelope.
-        cz_glitch: Convective zone glitch prior model which, when called,
+        cz_glitch (Model): Convective zone glitch prior model which, when called,
             returns a function :math:`f_\mathrm{He}` describing the
             contribution to the modes from the glitch due to the base of the
             convection zone.
+
     """
     def __init__(
         self,
@@ -466,14 +500,17 @@ class GlitchModel(Model):
         he_glitch: Optional[Model]=None,
         cz_glitch: Optional[Model]=None
     ):
-        self.background: Model = background  #: Background function prior.
+        self.background: Model = background
+        """:Model: Background function prior."""
         if he_glitch is None:
-            he_glitch = ZerosPrior()
+            he_glitch = ZerosFunction()
         if cz_glitch is None:
-            cz_glitch = ZerosPrior()
-        self.he_glitch: Model = he_glitch  #: Helium glitch function prior.
+            cz_glitch = ZerosFunction()
+        self.he_glitch: Model = he_glitch
+        """:Model: Helium glitch function prior."""
+
         self.cz_glitch: Model = cz_glitch
-        """: Convective zone glitch function prior."""
+        """:Model: Convective zone glitch function prior."""
 
         self.units = {
             'nu_obs': u.microhertz,
@@ -491,17 +528,17 @@ class GlitchModel(Model):
         """Plot the glitch.
 
         Args:
-            data: Inference data.
-            kind: Kind of glitch to plot. One of ['He', 'CZ'].
-            group: Inference data group to plot. One of ['prior', 'posterior']
+            data (arviz.InferenceData): Inference data.
+            kind (str): Kind of glitch to plot. One of ['He', 'CZ'].
+            group (str): Inference data group to plot. One of ['prior', 'posterior']
                 is supported.
-            quantiles: Quantiles to plot as confidence intervals. 
+            quantiles (iterable, optional): Quantiles to plot as confidence intervals. 
                 Defaults to no confidence intervals drawn.
-            observed: Whether to plot observed data, if available.
-            ax: Axis on which to plot.
+            observed (bool): Whether to plot observed data, if available.
+            ax (matplotlib.axes.Axes): Axis on which to plot.
 
         Returns:
-            [description]
+            matplotlib.axes.Axes: [description]
         """
         if ax is None:
             _, ax = plt.subplots()
@@ -549,11 +586,11 @@ class GlitchModel(Model):
         """Sample the model for given observables.
 
         Args:
-            n: Radial order for the given modes.
-            nu_obs: Observed radial mode frequencies.
-            nu_err: Gaussian observational uncertainties (sigma) for nu_obs.
-            pred: If True, make predictions nu and nu_pred from n and num_pred.
-            num_pred: Number of predictions in the range n.min() to n.max().
+            n (:term:`array_like`): Radial order for the given modes.
+            nu_obs (:term:`array_like`, optional): Observed radial mode frequencies.
+            nu_err (:term:`array_like`, optional): Gaussian observational uncertainties (sigma) for nu_obs.
+            pred (bool): If True, make predictions nu and nu_pred from n and num_pred.
+            num_pred (int): Number of predictions in the range n.min() to n.max().
         """
         bkg_func = self.background()
         he_glitch_func = self.he_glitch()
