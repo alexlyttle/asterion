@@ -11,9 +11,11 @@ delta_nu = 111.84  # uHz
 
 fig, ax = plt.subplots()
 
-ax.plot(nu%delta_nu, nu, 'o')
-ax.plot(nu_pred%delta_nu, nu_pred)
-ax.set_xlabel(f'nu mod. {delta_nu:.2f} uHz')
+x = (nu - n*delta_nu)%delta_nu
+x_pred = (nu_pred - n_pred*delta_nu)%delta_nu
+ax.plot(x, nu, 'o')
+ax.plot(x_pred, nu_pred)
+ax.set_xlabel(f'nu - {delta_nu:.2f}*n uHz')
 ax.set_ylabel('nu (uHz)')
 
 plt.show()
