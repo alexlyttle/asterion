@@ -18,17 +18,18 @@ stellar envelope. This model yields posterior estimates for the amplitudes of th
 use to study surface helium content [references].
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: User Guide
    :name: guidetoc
 
    guide/installation
    guide/getting_started
    guide/api
+   guide/glossary
 
 .. toctree::
    :glob:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Tutorials
    :name: tutorialstoc
 
@@ -36,7 +37,7 @@ use to study surface helium content [references].
 
 .. toctree::
    :glob:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Development
    :name: devtoc
 
