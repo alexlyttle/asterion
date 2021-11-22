@@ -48,7 +48,7 @@ __all__ = [
 
 DistLike = Union[Iterable, Distribution]  
 """A generic type for a distribution object which is accepted as the argument
-of :func:`distribution`.
+of :func:`asterion.models.distribution`.
 """
 
 # alias of Union\[:obj:`Iterable`, :obj:`Distribution`\]

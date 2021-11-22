@@ -17,32 +17,84 @@ __all__ = [
 
 
 class GP:
-    """Gaussian process class.
+    r"""Gaussian process class.
 
     The function f(x) is described by a Gaussian process: a collection of
     random variables for which any finite number are a part of a multivariate
     normal distribution.
+
+    .. math::
     
-    f(x) ~ GP(m(x), k(x, x')),
+        f(x) \sim \mathcal{GP}(m(x), k(x, x')),
 
-    where m(x) and m(x, x') are our expectation for the mean and covariance
-    of f(x) and f(x'). I.e. k(x, x') = cov(f(x), f(x')).
+    where :math:`m(x)` and :math:`k(x, x')` are the mean and covariance
+    of :math:`f(x)` and :math:`f(x')`. I.e. :math:`k(x, x') = \mathrm{Cov}(f(x), f(x'))`.
 
-    Models y = f(x) or, y = f(x) + n_x if there is additional independent
-    noise.
-
-    The kernel implies a distribution over all possible functional forms of f.
-    Thus, f evaluated at some set of points x is drawn from a multivariate
+    The kernel implies a distribution over all possible functional forms of :math:`f`.
+    For example, :math:`f` given :math:`x` is drawn from a multivariate
     normal distribution,
 
-    f ~ N(m(x), k(x, x))
-    
-    or with additional independent noise for each observation of f(x),
-    y ~ N(m(x), k(x, x) + n_x)
-    
-    Likelihood (just add observation),
+    .. math::
 
-    y_obs | theta ~ N(y_obs | m(x), k(x, x) + n_x)
+        f | x \sim \mathcal{N}(m(x), k(x, x)).
+    
+    The marginal likelihood of some observation :math:`y` of :math:`f(x)`,
+
+    .. math::
+
+        p(y | x) = \int p(y | f, x)\,p(f | \theta)\,\mathrm{d}f
+    
+    can be shown to be,
+
+    .. math::
+
+        y | x \sim \mathcal{N}(m(x), k(x, x) + n(x))
+
+    where :math:`n(x)` is some uncorrelated Gaussian noise term such that
+    :math:`y | f \sim \mathcal{N}(f, n(x))`.
+
+    Making predictions from the GP given :math:`x` and :math:`y` for some
+    new points :math:`x_\star`,
+
+    .. math::
+        :nowrap:
+
+        \begin{equation}
+            \begin{bmatrix}
+                f_\star\\y
+            \end{bmatrix}
+            \sim \mathcal{N} \left(
+            \begin{bmatrix}
+                m(x_\star)\\m(x)
+            \end{bmatrix}
+            ,\,
+            \begin{bmatrix}
+                k(x_\star, x_\star) & k(x_\star, x) \\
+                k(x, x_\star) & k(x, x) + n(x)
+            \end{bmatrix}
+            \right)
+        \end{equation}
+    
+    or making predictions with noise :math:`n(x_star)`,
+
+    .. math::
+        :nowrap:
+
+        \begin{equation}
+            \begin{bmatrix}
+                y_\star\\y
+            \end{bmatrix}
+            \sim \mathcal{N} \left(
+            \begin{bmatrix}
+                m(x_\star)\\m(x)
+            \end{bmatrix}
+            ,\,
+            \begin{bmatrix}
+                k(x_\star, x_\star) + n(x_\star) & k(x_\star, x) \\
+                k(x, x_\star) & k(x, x) + n(x)
+            \end{bmatrix}
+            \right)
+        \end{equation}
     
     Predicted truth,
 
@@ -59,11 +111,11 @@ class GP:
     )
     
     Args:
-        kernel: Kernel function,
+        kernel (Kernel, or function): Kernel function,
             default is the squared exponential kernel.
-        mean: Mean model function. If float, mean
+        mean (function): Mean model function. If float, mean
             function is constant at this value.
-        jitter: Small amount to add to the covariance.
+        jitter (float, or function): Small amount to add to the covariance.
             If float, this is multiplied by the identity matrix.
     
     Example:

@@ -1,15 +1,21 @@
 import jax.numpy as jnp
 
+__all__ = [
+    'Kernel',
+    'WhiteNoise',
+    'SquaredExponential',
+]
+
 
 class Kernel:
-    """Base class for a GP kernel.
+    """Abstract base class for a GP kernel.
     """
     def __call__(self, x, xp):
         """Returns a covariance matrix.
         
         Args:
-            x (array-like): First input vector.
-            xp (array-like): Second input vector. Can be optional.
+            x (:term:`array_like`): First input vector.
+            xp (:term:`array_like`): Second input vector. Can be optional.
 
         Raises:
             NotImplementedError
@@ -27,10 +33,21 @@ class Kernel:
 
 
 class WhiteNoise(Kernel):
-    """White noise kernel.
+    r"""White noise kernel.
     
+    .. math::
+        :nowrap:
+
+        \begin{equation}
+            k(x_i, x_j) = \begin{cases}
+                \sigma^2 &\quad \mathrm{if}\,i=j,\\
+                0 &\quad \mathrm{else}.
+            \end{cases}
+        \end{equation}
+
     Args:
-        scale (float or array-like): The scale of the white noise ($\sigma$).
+        scale (float, or :term:`array_like`): The scale of the white noise 
+            (:math:`\sigma`).
     """
     def __init__(self, scale):
         self.scale = jnp.array(scale)
@@ -42,13 +59,16 @@ class WhiteNoise(Kernel):
         """Returns the white noise covariance matrix.
         
         Args:
-            x (array-like): First input vector.
-            xp (array-like, optional): Second input vector. If x is not xp, 
+            x (:term:`array_like`): First input vector.
+            xp (:term:`array_like`, optional): Second input vector. If x is not xp, 
                 returns zeros((x.shape[0], xp.shape[0])).
         
         Raises:
             ValueError: Inputs x and xp must have the same shape as the
                 scale if white noise is heteroscedastic.
+        
+        Returns:
+            jax.numpy.ndarray: Covariance matrix.
         """
 #         cov = jnp.zeros((x.shape[0], xp.shape[0]))
         if x is xp or xp is None:
@@ -61,18 +81,26 @@ class WhiteNoise(Kernel):
 
 
 class SquaredExponential(Kernel):
-    """Squared exponential kernel.
+    r"""Squared exponential kernel.
+
+    .. math::
+
+        k(x_i, x_j) = \sigma^2 \exp\left[ \frac{(x_j - x_i)^2}{2 \lambda^2} \right]
     
     Args:
-        var (float): Variance (or amplitude, $\sigma^2$) of the kernel.
-        length (float): Length-scale ($\lambda$) of the kernel.
+        var (float): Variance (or amplitude, :math:`\sigma^2`) of the kernel.
+        length (float): Length-scale (:math:`\lambda`) of the kernel.
     """
     def __init__(self, var, length):
         self.var = var
         self.length = length
 
     def __call__(self, x, xp):
-        """Returns the squared exponential covariance matrix."""
+        """Returns the squared exponential covariance matrix.
+        
+        Returns:
+            jax.numpy.ndarray: Covariance matrix.
+        """
         exponant = jnp.power((xp[:, None] - x) / self.length, 2.0)
         # exponant = jnp.power((xp[..., None] - x[..., None, :]) / self.length, 2.0)
         cov = self.var * jnp.exp(-0.5 * exponant)

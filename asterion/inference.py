@@ -17,8 +17,6 @@ from numpyro.infer import svi
 
 from collections import OrderedDict
 
-import warnings
-
 import arviz as az
 from numpyro.infer.svi import SVIRunResult
 
@@ -46,8 +44,9 @@ class Results:
     """[summary]
 
     Args:
-        data: description
-        units: description
+        data (arviz.InferenceData): description
+        units (dict, optional): description
+        circ_var_names (list, optional): 
     """
     def __init__(self, data: az.InferenceData, units: Dict[str, u.Unit]=None,
                  circ_var_names: Sequence[str]=None):
@@ -89,10 +88,10 @@ class Results:
         """Get available dimension groups for a given inference data group.
 
         Args:
-            group: Inference data group.
+            group (str): Inference data group.
 
         Returns:
-            [description]
+            list: [description]
         """
         # return list(self._dim_vars.keys())
         dim_vars = self._get_dim_vars(group=group)
@@ -103,11 +102,14 @@ class Results:
         """Get var names for a given group and dimensions.
         
         Args:
-            group: Inference data group.
-            dims: Dimensions by which to group variables. If 'all', returns
+            group (str): Inference data group.
+            dims (str, or tuple of str): Dimensions by which to group variables. If 'all', returns
                 variable names for all model dimensions. If a tuple of
                 dimension names, returns variable names in that dimension
                 group.
+        
+        Returns:
+            list: Variable names for a given group and dimensions.
         """
         if dims == 'all':
             var_names = list(self.data[group].data_vars.keys())
@@ -122,6 +124,7 @@ class Results:
     def _validate_var_names(self, group: str='posterior',
                             var_names: Optional[List[str]]=None,
                             dims: Union[str, Tuple[str]]='all') -> List[str]:
+        """Validate variable names."""
         available_vars = self.get_var_names(group=group, dims=dims)
         
         if var_names is None:
@@ -149,12 +152,12 @@ class Results:
         """Get a summary of the inference data for a chosen group.
 
         Args:
-            group: [description]. Defaults to 'posterior'.
-            var_names: [description]. Defaults to None (all variable names)
+            group (str): [description]. Defaults to 'posterior'.
+            var_names (list, optional): [description]. Defaults to None (all variable names)
             **kwargs: Keyword arguments to pass to :func:`az.summary`.
 
         Returns:
-            Summary of inference data.
+            xarray.Dataset, or pandas.DataFrame: Summary of inference data.
         """
         fmt = kwargs.pop('fmt', 'xarray')
         round_to = kwargs.pop('round_to', 'none')
@@ -180,6 +183,19 @@ class Results:
                   metrics: Optional[List[str]]=None, fmt: str='pandas',
                   round_to: Union[str, int]='auto',
                   **kwargs) -> Union[pd.DataFrame, Table]:
+        """[summary]
+
+        Args:
+            dims (tuple of str): [description]
+            group (str, optional): [description]. Defaults to 'posterior'.
+            var_names (list of str, optional): [description]. Defaults to None.
+            metrics (list of str, optional): [description]. Defaults to None.
+            fmt (str, optional): [description]. Defaults to 'pandas'.
+            round_to (str, or int, optional): [description]. Defaults to 'auto'.
+
+        Returns:
+            pandas.DataFrame, or astropy.table.Table]: [description]
+        """
 
         var_names = self._validate_var_names(group=group, var_names=var_names, dims=dims)
         summary = self.get_summary(group=group, var_names=var_names, **kwargs)
@@ -219,7 +235,7 @@ class Results:
         """Save the results.
 
         Args:
-            path: Path to directory in which to save the results.
+            path (str): Path to directory in which to save the results.
         """
         self.data.to_netcdf(os.path.join(path, 'data.nc'), **kwargs)
         save_dict = {
@@ -234,10 +250,10 @@ class Results:
         """Load results.
 
         Args:
-            path: Directory from which to load results.
+            path (str): Directory from which to load results.
 
         Returns:
-            Results object. 
+            Results: Results object loaded from path.
         """
         data = az.from_netcdf(os.path.join(path, 'data.nc'), **kwargs)
         with open(os.path.join(path, 'config.json'), 'r') as fp:
@@ -250,21 +266,21 @@ class Inference:
     """[summary]
 
     Args:
-        model: [description]
-        seed: [description]
+        model (Model): [description]
+        seed (int): [description]
     """ 
     def __init__(self, model: Model, *, seed: int):       
         self._rng_key = random.PRNGKey(seed)        
-        self.model: Model = model
-        self.samples: Optional[dict] = None
-        self.sample_stats: Optional[dict] = None
-        self.prior_predictive_samples: Optional[dict] = None
-        self.predictive_samples: Optional[dict] = None
-        self.mcmc: Optional[MCMC] = None
+        self.model: Model = model  #:Model: Model with which to perform inference.
+        self.samples: Optional[dict] = None  #:dict: Posterior MCMC samples.
+        self.sample_stats: Optional[dict] = None  #:dict: Posterior MCMC sample stats.
+        self.prior_predictive_samples: Optional[dict] = None  #:dict: Prior predictive samples.
+        self.predictive_samples: Optional[dict] = None  #:dict: Posterior predictive samples.
+        self.mcmc: Optional[MCMC] = None  #:numpyro.infer.MCMC: MCMC inference object.
         self._model_args: tuple = ()
         self._model_kwargs: dict = {}
-        self.map_svi: Optional[SVI] = None
-        self.map_result: Optional[svi.SVIRunResult] = None
+        self.map_svi: Optional[SVI] = None  #:numpyro.infer.SVI: MAP inference object.
+        self.map_result: Optional[svi.SVIRunResult] = None  #:numpyro.infer.svi.SVIRunResult: MAP result.
 
     def _get_dims(self, trace):
         coords = {}
@@ -282,11 +298,11 @@ class Inference:
         """[summary]
 
         Args:
-            model_args: [description]. Defaults to ().
-            model_kwargs: [description]. Defaults to {}.
+            model_args (tuple): [description]. Defaults to ().
+            model_kwargs (dict): [description]. Defaults to {}.
 
         Returns:
-            [description]
+            OrderedDict: [description]
         """
         rng_key, self._rng_key = random.split(self._rng_key)
         model = hdl.trace(
@@ -301,7 +317,7 @@ class Inference:
         """[summary]
 
         Returns:
-            Circular variable names in the model.
+            list: Circular variable names in the model.
         """
         var_names = []
         trace = self.get_trace(self._model_args, self._model_kwargs)
@@ -334,9 +350,9 @@ class Inference:
         """[summary]
 
         Args:
-            method: Sampling method, choose from ['NUTS']. Defaults to 'NUTS'.
-            handlers: List of handlers to apply to the model. Defaults to [].
-            reparam: If 'auto', automatically reparameterises model. If 'none',
+            method (str): Sampling method, choose from ['NUTS']. Defaults to 'NUTS'.
+            handlers (list): List of handlers to apply to the model. Defaults to [].
+            reparam (str, or numpyro.handlers.reparam): If 'auto', automatically reparameterises model. If 'none',
                 no reparameterisation is done. If numpyro.handlers.reparam,
                 this is applied instead.
             **kwargs: Keyword arguments to pass to sample initialisation.
@@ -346,7 +362,7 @@ class Inference:
                 chosen.
 
         Returns:
-            MCMC sampler.
+            numpyro.infer.mcmc.MCMCKernel: MCMC sampler.
         """
         if method != 'NUTS':
             raise NotImplementedError(f"Method '{method}' not implemented")
@@ -379,10 +395,10 @@ class Inference:
         """Initialises the MCMC.
 
         Args:
-            sampler: [description]
-            num_warmup: [description]. Defaults to 1000.
-            num_samples: [description]. Defaults to 1000.
-            num_chains: [description]. Defaults to 1.
+            sampler (numpyro.infer.mcmc.MCMCKernel): [description]
+            num_warmup (int): [description]. Defaults to 1000.
+            num_samples (int): [description]. Defaults to 1000.
+            num_chains (int): [description]. Defaults to 1.
         """
         self.mcmc = MCMC(sampler, num_warmup=num_warmup,
                     num_samples=num_samples, num_chains=num_chains,
@@ -397,13 +413,13 @@ class Inference:
         """Runs MCMC for a given set of model arguments.
 
         Args:
-            model_args: Positional arguments to pass to model. Defaults to ().
-            model_kwargs: Keyword arguments to pass to model. Defaults to {}.
-            extra_fields: Extra fields to report in sample_stats. Defaults to ().
-            init_params: Initial parameter values prior to sampling. Defaults to None.
+            model_args (tuple): Positional arguments to pass to model. Defaults to ().
+            model_kwargs (dict): Keyword arguments to pass to model. Defaults to {}.
+            extra_fields (tuple): Extra fields to report in sample_stats. Defaults to ().
+            init_params (dict): Initial parameter values prior to sampling. Defaults to None.
 
         Returns:
-            [description]
+            tuple: [description]
         """
         rng_key, self._rng_key = random.split(self._rng_key)
         self.mcmc.run(rng_key, *model_args, extra_fields=extra_fields,
@@ -438,19 +454,19 @@ class Inference:
         """[summary]
 
         Args:
-            num_warmup: Number of warmup steps.
-            num_samples: Number of samples after warmup.
-            num_chains: Number of MCMC chains. If > 1, sampler will attempt
+            num_warmup (int): Number of warmup steps.
+            num_samples (int): Number of samples after warmup.
+            num_chains (int): Number of MCMC chains. If > 1, sampler will attempt
                 to run in parallel on your device.
-            model_args: Positional arguments to pass to the model callable.
-            model_kwargs: Keyword arguments to pass to the model callable.
-            method: Sampler method, choose from ['NUTS'].
-            handlers: Handlers to apply to the model during inference.
-            extra_fields: Extra fields to track in sample
+            model_args (tuple): Positional arguments to pass to the model callable.
+            model_kwargs (dict): Keyword arguments to pass to the model callable.
+            method (str): Sampler method, choose from ['NUTS'].
+            handlers (list, optional): Handlers to apply to the model during inference.
+            extra_fields (tuple): Extra fields to track in sample
                 statistics. Defaults to ().
-            init_params: Initial values for the parameters.
-            sampler_kwargs: Kwargs passed to :meth:`get_sampler`.
-            mcmc_kwargs: Kwargs to pass to :meth:`init_mcmc`.
+            init_params (dict, optional): Initial values for the parameters.
+            sampler_kwargs (dict): Kwargs passed to :meth:`get_sampler`.
+            mcmc_kwargs (dict): Kwargs to pass to :meth:`init_mcmc`.
         """                           
         sampler = self.get_sampler(method=method, handlers=handlers,
                                    **sampler_kwargs)
@@ -471,12 +487,12 @@ class Inference:
         """EXPERIMENTAL: find MAP.
 
         Args:
-            num_steps: [description]. Defaults to 10000.
-            model_args: [description]. Defaults to ().
-            model_kwargs: [description]. Defaults to {}.
-            handlers: [description]. Defaults to None.
-            reparam: [description]. Defaults to 'auto'.
-            svi_kwargs: [description]. Defaults to {}.
+            num_steps (int): [description]. Defaults to 10000.
+            model_args (tuple): [description]. Defaults to ().
+            model_kwargs (dict): [description]. Defaults to {}.
+            handlers (list, optional): [description]. Defaults to None.
+            reparam (str, or numpyro.handlers.reparam): [description]. Defaults to 'auto'.
+            svi_kwargs (dict): [description]. Defaults to {}.
         """
         handlers = self._init_handlers(handlers, reparam=reparam)
         model = self.model
@@ -498,12 +514,12 @@ class Inference:
         """[summary]
 
         Args:
-            model_args: Positional arguments to pass to the model callable.
-            model_kwargs: Keyword arguments to pass to the model callable.
+            model_args (tuple): Positional arguments to pass to the model callable.
+            model_kwargs (dict): Keyword arguments to pass to the model callable.
             **kwargs: Kwargs to pass to Predictive.
 
         Returns:
-            [description]
+            dict: [description]
         """
         posterior_samples = kwargs.pop("posterior_samples", {})
         num_samples = kwargs.pop("num_samples", None)
@@ -539,9 +555,9 @@ class Inference:
         """[summary]
 
         Args:
-            num_samples: Number of samples to take from the prior.
-            model_args: Positional arguments to pass to the model callable.
-            model_kwargs: Keyword arguments to pass to the model callable.
+            num_samples (int): Number of samples to take from the prior.
+            model_args (tuple): Positional arguments to pass to the model callable.
+            model_kwargs (dict): Keyword arguments to pass to the model callable.
         """
         self.prior_predictive_samples = self.predictive(
             model_args=model_args, model_kwargs=model_kwargs,
@@ -553,8 +569,8 @@ class Inference:
         """[summary]
 
         Args:
-            model_args: Positional arguments to pass to the model callable.
-            model_kwargs: Keyword arguments to pass to the model callable.
+            model_args (tuple): Positional arguments to pass to the model callable.
+            model_kwargs (dict): Keyword arguments to pass to the model callable.
         """
         batch_ndims = 1
         if self.mcmc.num_chains > 1:
@@ -569,11 +585,11 @@ class Inference:
         """EXPERIMENTAL: Get predictive from MAP.
 
         Args:
-            model_args: [description]. Defaults to ().
-            model_kwargs: [description]. Defaults to {}.
+            model_args (tuple): [description]. Defaults to ().
+            model_kwargs (dict): [description]. Defaults to {}.
 
         Returns:
-            [description]
+            xarray.Dataset: [description]
         """
         batch_ndims = 0
         guide = self.map_svi.guide
@@ -591,8 +607,10 @@ class Inference:
         return xarray.Dataset(ds, coords=coords)
 
     def get_results(self) -> Results:
-        """Returns inference results as a dictionary of tables containing
-        metrics for the model parameters.
+        """Get inference results.
+
+        Returns:
+            Results: Inference results.
         """
         data = self.get_data()
         circ_var_names = self.get_circ_var_names()
@@ -602,7 +620,7 @@ class Inference:
         """Get inference data.
 
         Returns:
-            Inference data.
+            arviz.InferenceData: Inference data.
         """
         trace = self.get_trace(self._model_args, self._model_kwargs)
         dims, coords = self._get_dims(trace)
