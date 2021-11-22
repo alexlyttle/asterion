@@ -122,7 +122,7 @@ intersphinx_mapping = {
 
 # Napoleon options -----------------------------------------------------------
 
-# napoleon_type_aliases = autodoc_type_aliases
+# napoleon_type_aliases = {}
 # napoleon_preprocess_types = True
 
 
