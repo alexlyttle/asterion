@@ -37,13 +37,14 @@ release = __version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.napoleon',     # Support for Google-style docstrings
     'sphinx.ext.autodoc',      # Automatically generate documentation
+    'sphinx.ext.napoleon',     # Support for Google-style docstrings
+    'autodocsumm',  # Add nice summaries of classes, methods and attributes
     'sphinx.ext.intersphinx',  # Link to external documentation
     'sphinx.ext.viewcode',     # View source code
     'sphinx.ext.mathjax',      # Render math
     'nbsphinx',                # Generate notebooks
-    'autodocsumm',  # Add nice summaries of classes, methods and attributes
+    'sphinx_inline_tabs',      # Inline tabs (introduces .. tab:: domain)
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -91,16 +92,19 @@ html_css_files = [
 
 # -- Autodoc options ---------------------------------------------------------
 
-autodoc_typehints = 'description'  # show type hints in doc body
-autodoc_typehints_description_target = 'documented'
+autodoc_typehints = 'none'  # show type hints in doc body
+# autodoc_typehints_description_target = 'documented'
 autodoc_inherit_docstrings = True
 autodoc_default_options = {
+    # -- autodocsumm options -------------------------------------------------
     'autosummary': True,  # Add summaries automatically
+    'autosummary-nosignatures': True,
+    # 'autosummary-sections': 'Classes ;; Functions ;; Data',
 }
-autodoc_type_aliases = {
-    "DistLike": "asterion.annotations.DistLike",
-    "ArrayLike": "numpy.typing.ArrayLike",
-}
+# autodoc_type_aliases = {
+#     "DistLike": "asterion.annotations.DistLike",
+#     "ArrayLike": "numpy.typing.ArrayLike",
+# }
 
 
 # -- InterSphinx options -----------------------------------------------------
@@ -118,7 +122,9 @@ intersphinx_mapping = {
 
 # Napoleon options -----------------------------------------------------------
 
-napoleon_type_aliases = autodoc_type_aliases
+# napoleon_type_aliases = autodoc_type_aliases
+# napoleon_preprocess_types = True
+
 
 # -- NBSphinx options --------------------------------------------------------
 
