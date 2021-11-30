@@ -75,10 +75,11 @@ class dimension(Messenger):
     Args:
         name (str): Name of the dimension.
         size (int): Size of the dimension.
-        coords (:term:`array_like`, optional): Coordinates for points in the dimension. Defaults to
-            :code:`np.arange(size)`.
-        dim (int, optional): Where to place the dimension. Defaults to :code:`-1` which
-            corresponds to the rightmost dimension. Must be negative.
+        coords (:term:`array_like`, optional): Coordinates for points in the
+            dimension. Defaults to :code:`np.arange(size)`.
+        dim (int, optional): Where to place the dimension. Defaults to
+            :code:`-1` which corresponds to the rightmost dimension. Must be
+            negative.
     """
 
     def __init__(self, name: str, size: int, coords: Optional[ArrayLike]=None,
@@ -112,7 +113,7 @@ class dimension(Messenger):
         return self._get_message()
 
     def process_message(self, msg: dict):
-        """[summary]
+        """Process the message.
 
         Args:
             msg (dict): Message.
@@ -192,12 +193,12 @@ class AsyFunction(Model):
     :math:`f(n) = \\Delta\\nu (n + \\epsilon)`.
     
     Args:
-        delta_nu (:term:`dist_like`): Prior for the large frequency separation :math:`\\Delta\\nu`.
-            Pass either the arguments of :class:`dist.Normal` or a
-            :class:`dist.Distribution`.
-        epsilon (:term:`dist_like`): Prior for the phase term :math:`\\epsilon`. Pass either the
-            arguments of :class:`dist.Gamma` or a :class:`dist.Distribution`.
-            Defaults to :code:`(14., 10.)`.
+        delta_nu (:term:`dist_like`): Prior for the large frequency separation
+            :math:`\\Delta\\nu`. Pass either the arguments of
+            :class:`dist.Normal` or a :class:`dist.Distribution`.
+        epsilon (:term:`dist_like`): Prior for the phase term
+            :math:`\\epsilon`. Pass either the arguments of :class:`dist.Gamma`
+            or a :class:`dist.Distribution`. Defaults to :code:`(14., 10.)`.
     """
     def __init__(self, delta_nu: DistLike, epsilon: DistLike=None):
         self.delta_nu: dist.Distribution = distribution(delta_nu)
@@ -207,8 +208,8 @@ class AsyFunction(Model):
         if epsilon is None:
             epsilon = (14., 10.)
         self.epsilon: dist.Distribution = distribution(epsilon, dist.Gamma)
-        """:numpyro.distributions.distribution.Distribution: The distribution for 
-        :math:`\\epsilon`."""
+        """:numpyro.distributions.distribution.Distribution: The distribution 
+        for :math:`\\epsilon`."""
 
         self.units = {
             'delta_nu': u.microhertz,
@@ -234,34 +235,34 @@ class _GlitchFunction(Model):
     :math:`f(nu) = \\sin(4\\pi\\tau\\nu + \\phi)`.
 
     Args:
-        tau (:term:`dist_like`): The prior for the acoustic depth of the glitch, :math:`\\tau`.
-            Pass either the arguments of :class:`dist.Normal` or a
-            :class:`dist.Distribution`.
-        phi (:term:`dist_like`): The prior for the phase of the glitch, :math:`\\phi`. Pass either
-            the arguments of :class:`dist.VonMises` or a 
-            :class:`dist.Distribution`.
+        tau (:term:`dist_like`): The prior for the acoustic depth of the
+            glitch, :math:`\\tau`. Pass either the arguments of
+            :class:`dist.Normal` or a :class:`dist.Distribution`.
+        phi (:term:`dist_like`): The prior for the phase of the glitch,
+            :math:`\\phi`. Pass either the arguments of :class:`dist.VonMises`
+            or a :class:`dist.Distribution`.
     """
 
     def __init__(self, tau: DistLike, phi: DistLike):
         self.tau = distribution(tau)
-        """:numpyro.distributions.distribution.Distribution: The distribution for 
-        :math:`\\tau`."""
+        """:numpyro.distributions.distribution.Distribution: The distribution 
+        for :math:`\\tau`."""
         self.phi = distribution(phi, dist.VonMises)
-        """:numpyro.distributions.distribution.Distribution: The distribution for
-        :math:`\\phi`."""
+        """:numpyro.distributions.distribution.Distribution: The distribution
+        for :math:`\\phi`."""
 
     @staticmethod
     def oscillation(nu: ArrayLike, tau: ArrayLike,
                     phi: ArrayLike) -> jnp.ndarray:
-        """[summary]
+        r"""Oscillatory component of the acoustic glitch.
 
         Args:
-            nu (:term:`array_like`): [description]
-            tau (:term:`array_like`): [description]
-            phi (:term:`array_like`): [description]
+            nu (:term:`array_like`): Mode frequency, :math:`\\nu`.
+            tau (:term:`array_like`): Acoustic depth, :math:`\\tau`.
+            phi (:term:`array_like`): Glitch phase, :math:`\\phi`.
 
         Returns:
-            jax.numpy.ndarray: [description]
+            jax.numpy.ndarray: Glitch oscillation.
         """
         return jnp.sin(4 * jnp.pi * tau * nu + phi)
 
@@ -289,27 +290,28 @@ class HeGlitchFunction(_GlitchFunction):
     scaling relations derived from stellar models (Lyttle et al. in prep.).
 
     Args:
-        nu_max (:term:`dist_like`): The prior for the frequency at maximum power,
-            :math:`\\nu_\\max`. Pass either the arguments of
+        nu_max (:term:`dist_like`): The prior for the frequency at maximum
+            power, :math:`\\nu_\\max`. Pass either the arguments of
             :class:`dist.Normal` or a :class:`dist.Distribution`.
     """
     def __init__(self, nu_max: DistLike):
         self.log_a: dist.Distribution
-        """:numpyro.distributions.distribution.Distribution: The distribition for the glitch 
-        phase parameter phi_he."""
+        """:numpyro.distributions.distribution.Distribution: The distribition
+        for the glitch phase parameter phi_he."""
         
         self.log_b: dist.Distribution
-        """:numpyro.distributions.distribution.Distribution: The distribution for log 
-        base-10 of the glitch parameter b_he."""
+        """:numpyro.distributions.distribution.Distribution: The distribution
+        for log base-10 of the glitch parameter b_he."""
         
         self.log_tau: dist.Distribution
-        """:numpyro.distributions.distribution.Distribution: The distribution for log 
-        base-10 of the glitch parameter (acoustic depth) tau_he."""
+        """:numpyro.distributions.distribution.Distribution: The distribution
+        for log base-10 of the glitch parameter (acoustic depth) tau_he."""
         
         self.nu_max = nu_max
         
         self.phi: dist.Distribution = dist.VonMises(0.0, 0.1)
-        """:numpyro.distributions.distribution.Distribution: The distribution for the phase parameter."""
+        """:numpyro.distributions.distribution.Distribution: The distribution
+        for the phase parameter."""
         
         self.units = {
             'a_he': u.dimensionless_unscaled,
@@ -330,8 +332,8 @@ class HeGlitchFunction(_GlitchFunction):
         """Resets the priors for the glitch parameters.
 
         Args:
-            value (:term:`dist_like`): The prior for the frequency at maximum power,
-                :math:`\\nu_\\max`. Pass either the arguments of
+            value (:term:`dist_like`): The prior for the frequency at maximum
+                power, :math:`\\nu_\\max`. Pass either the arguments of
                 :class:`dist.Normal` or a :class:`dist.Distribution`.
         """
         self._nu_max = distribution(value)
@@ -342,21 +344,21 @@ class HeGlitchFunction(_GlitchFunction):
     
     @staticmethod
     def amplitude(nu: ArrayLike, a: ArrayLike, b: ArrayLike) -> jnp.ndarray:
-        """The amplitude of the glitch,
+        r"""The amplitude of the glitch,
         :math:`a_\\mathrm{He} \\nu \\exp(-b_\\mathrm{He} \\nu^2)`.
 
         Args:
-            nu (:term:`array_like`): [description]
-            a (:term:`array_like`): [description]
-            b (:term:`array_like`): [description]
+            nu (:term:`array_like`): Mode frequency, :math:`\\nu`.
+            a (:term:`array_like`): Amplitude, :math:`a_\\mathrm{He}`.
+            b (:term:`array_like`): Decay, :math:`b_\\mathrm{He}`.
 
         Returns:
-            jax.numpy.ndarray: [description]
+            jax.numpy.ndarray: Helium glitch amplitude.
         """
         return a * nu * jnp.exp(- b * nu**2)
     
     def __call__(self) -> Callable:
-        """[summary]
+        """Samples the helium glitch function.
 
         Returns:
             function: The function :math:`f`.
@@ -386,23 +388,23 @@ class CZGlitchFunction(_GlitchFunction):
     scaling relations derived from stellar models (Lyttle et al. in prep.).
 
     Args:
-        nu_max (:term:`dist_like`): The prior for the frequency at maximum power,
-            :math:`\\nu_\\max`. Pass either the arguments of
+        nu_max (:term:`dist_like`): The prior for the frequency at maximum
+            power, :math:`\\nu_\\max`. Pass either the arguments of
             :class:`dist.Normal` or a :class:`dist.Distribution`.
     """
     def __init__(self, nu_max: DistLike):
         self.log_a: dist.Distribution
-        """:numpyro.distributions.distribution.Distribution: The distribition for the glitch 
-        phase parameter phi_cz."""
+        """:numpyro.distributions.distribution.Distribution: The distribition
+        for the glitch phase parameter phi_cz."""
         
         self.log_tau: dist.Distribution
-        """:numpyro.distributions.distribution.Distribution: The distribution for log 
-        base-10 of the acoustic depth tau_cz."""
+        """:numpyro.distributions.distribution.Distribution: The distribution
+        for log base-10 of the acoustic depth tau_cz."""
         
         self.nu_max = nu_max
         self.phi: dist.Distribution = dist.VonMises(0.0, 0.1)
-        """:numpyro.distributions.distribution.Distribution: The distribition for the glitch 
-        phase parameter phi_cz."""
+        """:numpyro.distributions.distribution.Distribution: The distribition
+        for the glitch phase parameter phi_cz."""
 
         self.units = {
             'a_cz': u.microhertz**3,
@@ -422,8 +424,8 @@ class CZGlitchFunction(_GlitchFunction):
         """Resets the priors for the glitch parameters.
 
         Args:
-            value (:term:`dist_like`): The prior for the frequency at maximum power,
-                :math:`\\nu_\\max`. Pass either the arguments of
+            value (:term:`dist_like`): The prior for the frequency at maximum
+                power, :math:`\\nu_\\max`. Pass either the arguments of
                 :class:`dist.Normal` or a :class:`dist.Distribution`.
         """
         self._nu_max = distribution(value)
@@ -437,16 +439,16 @@ class CZGlitchFunction(_GlitchFunction):
         :math:`a_\\mathrm{CZ} / \\nu^{-2}`.
 
         Args:
-            nu (:term:`array_like`): [description]
-            a (:term:`array_like`): [description]
+            nu (:term:`array_like`): Mode frequency, :math:`\\nu`.
+            a (:term:`array_like`): Amplitude, :math:`a_\\mathrm{CZ}`.
 
         Returns:
-            jax.numpy.ndarray: [description]
+            jax.numpy.ndarray: Base of the convective zone glitch amplitude.
         """
         return jnp.divide(a, nu**2)
     
     def __call__(self) -> Callable:
-        """[summary]
+        """Samples the convective zone glitch function.
 
         Returns:
             function: The function :math:`f`.
@@ -466,7 +468,10 @@ class CZGlitchFunction(_GlitchFunction):
 class GlitchModel(Model):
     r"""Asteroseismic glitch model.
 
-    .. math:: \nu_\mathrm{obs} \sim \mathcal{GP}(m(n), k(n, n') + \sigma^2\mathcal{I})
+    .. math::
+    
+        \nu_\mathrm{obs} \sim \mathcal{GP}(m(n), k(n, n') + 
+        \sigma^2\mathcal{I})
 
     Where the mean function is,
 
@@ -484,15 +489,15 @@ class GlitchModel(Model):
         k(n, n') = \sigma_k^2 \exp\left( - \frac{(n' - n)^2}{l^2} \right).
 
     Args:
-        background (Model): Background prior model which, when called, returns a
-            function :math:`f_\mathrm{bkg}` describing the smoothly varying
+        background (Model): Background prior model which, when called, returns
+            a function :math:`f_\mathrm{bkg}` describing the smoothly varying
             (non-glitch) component of the oscillation modes.
-        he_glitch (Model): Glitch prior model which, when called, returns a function
-            :math:`f_\mathrm{He}` describing the contribution to the modes from
-            the glitch due to the second ionisation of helium in the stellar
-            convective envelope.
-        cz_glitch (Model): Convective zone glitch prior model which, when called,
-            returns a function :math:`f_\mathrm{He}` describing the
+        he_glitch (Model): Glitch prior model which, when called, returns a
+            function :math:`f_\mathrm{He}` describing the contribution to the
+            modes from the glitch due to the second ionisation of helium in the
+            stellar convective envelope.
+        cz_glitch (Model): Convective zone glitch prior model which, when
+            called, returns a function :math:`f_\mathrm{He}` describing the
             contribution to the modes from the glitch due to the base of the
             convection zone.
 
@@ -533,15 +538,15 @@ class GlitchModel(Model):
         Args:
             data (arviz.InferenceData): Inference data.
             kind (str): Kind of glitch to plot. One of ['He', 'CZ'].
-            group (str): Inference data group to plot. One of ['prior', 'posterior']
-                is supported.
-            quantiles (iterable, optional): Quantiles to plot as confidence intervals. 
-                Defaults to no confidence intervals drawn.
+            group (str): Inference data group to plot. One of ['prior',
+                'posterior'] is supported.
+            quantiles (iterable, optional): Quantiles to plot as confidence
+                intervals. Defaults to no confidence intervals drawn.
             observed (bool): Whether to plot observed data, if available.
-            ax (matplotlib.axes.Axes): Axis on which to plot.
+            ax (matplotlib.axes.Axes): Axis on which to plot the glitch.
 
         Returns:
-            matplotlib.axes.Axes: [description]
+            matplotlib.axes.Axes: Axis on which the glitch is plot.
         """
         if ax is None:
             _, ax = plt.subplots()
@@ -551,19 +556,23 @@ class GlitchModel(Model):
         if pred_group not in data.keys():
             pred_group = group
         n = data[group]['n']
-        dnu = data[group]['dnu_'+kind.lower()]
+        kindl = kind.lower()
+        dnu = data[group]['dnu_'+kindl]
 
         if observed:
             if 'observed_data' in data.keys():
                 res = data.observed_data['nu_obs'] - data[pred_group]['nu']
                 dnu_obs = dnu + res
-                ax.errorbar(n, dnu_obs.mean(dim=dim), yerr=dnu_obs.std(dim=dim),
-                            color='C0', marker='o', linestyle='none', label='observed')
+                ax.errorbar(n, dnu_obs.mean(dim=dim),
+                            yerr=dnu_obs.std(dim=dim), color='C0', marker='o',
+                            linestyle='none', label='observed')
             else:
-                warnings.warn('No \'observed_data\' found in data. Set observed=False to surpress this message', UserWarning)
+                warnings.warn('No \'observed_data\' found in data. ' + 
+                              'Set observed=False to surpress this message',
+                              UserWarning)
 
         n_pred = data[pred_group].get('n_pred', n)
-        dnu_pred = data[pred_group].get('dnu_'+kind.lower()+'_pred', dnu) 
+        dnu_pred = data[pred_group].get('dnu_'+kindl+'_pred', dnu) 
         dnu_med = dnu_pred.median(dim=dim)
         ax.plot(n_pred, dnu_med, label='median', color='C1')
 
@@ -574,12 +583,13 @@ class GlitchModel(Model):
             for i in range(num_quant):
                 delta = quantiles[-i-1] - quantiles[i]
                 ax.fill_between(n_pred, dnu_quant[i], dnu_quant[-i-1],
-                                color='C1', alpha=alphas[2*i+1], label=f'{delta:.1%} CI')
+                                color='C1', alpha=alphas[2*i+1],
+                                label=f'{delta:.1%} CI')
         
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.set_xlabel(r'$n$')
         var = r'$\delta\nu_\mathrm{\,'+kind+r'}$'
-        unit = f"({self.units[f'dnu_{kind.lower()}'].to_string(format='latex_inline')})"
+        unit = f"({self.units[f'dnu_{kindl}'].to_string(format='latex_inline')})"
         ax.set_ylabel(' '.join([var, unit]))
         ax.legend()
         return ax
@@ -604,7 +614,9 @@ class GlitchModel(Model):
             return nu_bkg + he_glitch_func(nu_bkg) + cz_glitch_func(nu_bkg)
 
         var = numpyro.param('kernel_var', 10.0)
-        length = numpyro.sample('kernel_length', dist.Gamma(5.0))
+        # length = numpyro.sample('kernel_length', dist.Gamma(5.0))
+        length = numpyro.param('kernel_length', 4.0)
+
         noise = numpyro.sample('noise', dist.HalfNormal(0.1))
         if nu_err is not None:
             noise = jnp.sqrt(noise**2 + nu_err**2)
