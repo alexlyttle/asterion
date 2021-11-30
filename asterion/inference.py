@@ -467,7 +467,8 @@ class Inference:
             init_params (dict, optional): Initial values for the parameters.
             sampler_kwargs (dict): Kwargs passed to :meth:`get_sampler`.
             mcmc_kwargs (dict): Kwargs to pass to :meth:`init_mcmc`.
-        """                           
+        """
+        self._update_args_kwargs(model_args, model_kwargs)                           
         sampler = self.get_sampler(method=method, handlers=handlers,
                                    **sampler_kwargs)
 
