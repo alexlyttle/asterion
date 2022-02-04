@@ -1,7 +1,8 @@
-arviz
-jax
-jaxlib
 numpy
-numpyro @ git+https://github.com/pyro-ppl/numpyro@master#egg=numpyro
 matplotlib
+arviz
 astropy
+h5py
+jaxlib
+jax
+numpyro
