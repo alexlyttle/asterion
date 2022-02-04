@@ -38,7 +38,9 @@ setuptools.setup(
     extras_require={
         'docs': docs_require,
     },
-    include_package_data=True,
+    package_data={
+        '': ['*.hdf5'],
+    },
     python_requires='>=3.6',
     licence='MIT',
 )
