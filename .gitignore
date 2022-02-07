@@ -7,3 +7,4 @@ __pycache__/
 docs/build/
 notebook/data/
 out/
+.python-version
