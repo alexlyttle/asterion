@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 import jax.numpy as jnp
+from jax import random
 
 import numpyro
 import numpyro.distributions as dist
@@ -29,6 +30,7 @@ from numpy.typing import ArrayLike
 
 import arviz as az
 
+from .nn import BayesianNN
 
 __all__ = [
     "distribution",
@@ -307,7 +309,11 @@ class HeGlitchFunction(_GlitchFunction):
         """:numpyro.distributions.distribution.Distribution: The distribution
         for log base-10 of the glitch parameter (acoustic depth) tau_he."""
         
-        self.nu_max = nu_max
+        log_numax = jnp.log10(distribution(nu_max).mean)
+        # Attempt rough guess of glitch params
+        self.log_a = dist.Normal(-1.10 - 0.35*log_numax, 0.7)
+        self.log_b = dist.Normal(0.719 - 2.14*log_numax, 0.7)
+        self.log_tau = dist.Normal(0.44 - 1.03*log_numax, 0.1)
         
         self.phi: dist.Distribution = dist.VonMises(0.0, 0.1)
         """:numpyro.distributions.distribution.Distribution: The distribution
@@ -320,28 +326,28 @@ class HeGlitchFunction(_GlitchFunction):
             'phi_he': u.rad,
         }
 
-    @property
-    def nu_max(self) -> dist.Distribution:
-        """The distribution of the frequency at maximum power,
-        :math:`\\nu_\\max`.
-        """
-        return self._nu_max
+    # @property
+    # def nu_max(self) -> dist.Distribution:
+    #     """The distribution of the frequency at maximum power,
+    #     :math:`\\nu_\\max`.
+    #     """
+    #     return self._nu_max
 
-    @nu_max.setter
-    def nu_max(self, value: DistLike):
-        """Resets the priors for the glitch parameters.
+    # @nu_max.setter
+    # def nu_max(self, value: DistLike):
+    #     """Resets the priors for the glitch parameters.
 
-        Args:
-            value (:term:`dist_like`): The prior for the frequency at maximum
-                power, :math:`\\nu_\\max`. Pass either the arguments of
-                :class:`dist.Normal` or a :class:`dist.Distribution`.
-        """
-        self._nu_max = distribution(value)
-        log_numax = jnp.log10(self._nu_max.mean)
-        self.log_a = dist.Normal(-1.10 - 0.35*log_numax, 0.7)
-        self.log_b = dist.Normal(0.719 - 2.14*log_numax, 0.7)
-        self.log_tau = dist.Normal(0.44 - 1.03*log_numax, 0.1)
-    
+    #     Args:
+    #         value (:term:`dist_like`): The prior for the frequency at maximum
+    #             power, :math:`\\nu_\\max`. Pass either the arguments of
+    #             :class:`dist.Normal` or a :class:`dist.Distribution`.
+    #     """
+    #     self._nu_max = distribution(value)
+    #     log_numax = jnp.log10(self._nu_max.mean)
+    #     self.log_a = dist.Normal(-1.10 - 0.35*log_numax, 0.7)
+    #     self.log_b = dist.Normal(0.719 - 2.14*log_numax, 0.7)
+    #     self.log_tau = dist.Normal(0.44 - 1.03*log_numax, 0.1)
+
     @staticmethod
     def amplitude(nu: ArrayLike, a: ArrayLike, b: ArrayLike) -> jnp.ndarray:
         r"""The amplitude of the glitch,
@@ -401,7 +407,11 @@ class CZGlitchFunction(_GlitchFunction):
         """:numpyro.distributions.distribution.Distribution: The distribution
         for log base-10 of the acoustic depth tau_cz."""
         
-        self.nu_max = nu_max
+        log_numax = jnp.log10(distribution(nu_max).mean)
+        # Rough guess of glitch params
+        self.log_a = dist.Normal(2*log_numax - 1.0, 0.7)
+        self.log_tau = dist.Normal(0.77 - 0.99*log_numax, 0.1)
+        
         self.phi: dist.Distribution = dist.VonMises(0.0, 0.1)
         """:numpyro.distributions.distribution.Distribution: The distribition
         for the glitch phase parameter phi_cz."""
@@ -412,26 +422,26 @@ class CZGlitchFunction(_GlitchFunction):
             'phi_cz': u.rad,
         }
 
-    @property
-    def nu_max(self) -> dist.Distribution:
-        """The distribution of the frequency at maximum power,
-        :math:`\\nu_\\max`.
-        """
-        return self._nu_max
+    # @property
+    # def nu_max(self) -> dist.Distribution:
+    #     """The distribution of the frequency at maximum power,
+    #     :math:`\\nu_\\max`.
+    #     """
+    #     return self._nu_max
 
-    @nu_max.setter
-    def nu_max(self, value: DistLike):
-        """Resets the priors for the glitch parameters.
+    # @nu_max.setter
+    # def nu_max(self, value: DistLike):
+    #     """Resets the priors for the glitch parameters.
 
-        Args:
-            value (:term:`dist_like`): The prior for the frequency at maximum
-                power, :math:`\\nu_\\max`. Pass either the arguments of
-                :class:`dist.Normal` or a :class:`dist.Distribution`.
-        """
-        self._nu_max = distribution(value)
-        log_numax = jnp.log10(self._nu_max.mean)
-        self.log_a = dist.Normal(2*log_numax - 1.0, 0.7)
-        self.log_tau = dist.Normal(0.77 - 0.99*log_numax, 0.1)
+    #     Args:
+    #         value (:term:`dist_like`): The prior for the frequency at maximum
+    #             power, :math:`\\nu_\\max`. Pass either the arguments of
+    #             :class:`dist.Normal` or a :class:`dist.Distribution`.
+    #     """
+    #     self._nu_max = distribution(value)
+    #     log_numax = jnp.log10(self._nu_max.mean)
+    #     self.log_a = dist.Normal(2*log_numax - 1.0, 0.7)
+    #     self.log_tau = dist.Normal(0.77 - 0.99*log_numax, 0.1)
     
     @staticmethod
     def amplitude(nu: ArrayLike, a: ArrayLike) -> jnp.ndarray:
@@ -506,7 +516,7 @@ class GlitchModel(Model):
         self,
         background: Model,
         he_glitch: Optional[Model]=None,
-        cz_glitch: Optional[Model]=None
+        cz_glitch: Optional[Model]=None,
     ):
         self.background: Model = background
         """:Model: Background function prior."""
@@ -619,7 +629,8 @@ class GlitchModel(Model):
 
         noise = numpyro.sample('noise', dist.HalfNormal(0.1))
         if nu_err is not None:
-            noise = jnp.sqrt(noise**2 + nu_err**2)
+            noise += nu_err
+            # noise = jnp.sqrt(noise**2 + nu_err**2)
         kernel = SquaredExponential(var, length)
         gp = GP(kernel, mean=mean)
         

@@ -44,8 +44,8 @@ class TrainedBayesianNN:
         """
         num_obs = x.shape[0]
         x = (x - self.x_loc) / self.x_scale
-                
-        # we put a prior on the observation noise
+
+        # prior on the observation noise
         sigma = numpyro.sample("sigma", dist.Gamma(1.0))
 
         # sample first layer (we put unit normal priors on all weights)

@@ -445,7 +445,7 @@ class Inference:
         samples = self.mcmc.get_samples(group_by_chain=True)
         sample_stats = self.mcmc.get_extra_fields(group_by_chain=True)
         return samples, sample_stats
-
+    
     def sample(self, num_warmup: int=1000, num_samples: int=1000,
                 num_chains: int=1, model_args: tuple=(), model_kwargs: dict={}, 
                 method: str='NUTS', handlers: Optional[list]=None,
