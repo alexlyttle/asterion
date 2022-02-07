@@ -323,7 +323,9 @@ class Inference:
         trace = self.get_trace(self._model_args, self._model_kwargs)
         for key, value in trace.items():
             if value['type'] == 'sample':
-                if value['fn'].support is constraints.circular:
+                if value['fn'].support == constraints.circular:
+                    # This assumes any fn with support from -pi to +pi is
+                    # circular
                     var_names.append(value['name'])
         return var_names
     
