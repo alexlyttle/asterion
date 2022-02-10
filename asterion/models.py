@@ -30,8 +30,6 @@ from numpy.typing import ArrayLike
 
 import arviz as az
 
-from .nn import BayesianNN
-
 __all__ = [
     "distribution",
     "dimension",
@@ -165,7 +163,13 @@ class Model:
     has no observed sample sites.
     """
     units: Dict[str, u.Unit] = {}
+    symbols: Dict[str, str] = {}
     """:dict: Astropy units corresponding to each model parameter."""
+
+    def predict(self, *args, **kwargs):
+        """Model predictions. By default this calls the model.
+        """
+        return self(*args, **kwargs)
 
     def __call__(self):
         """Call the model during inference.
@@ -208,8 +212,8 @@ class AsyFunction(Model):
         :math:`\\Delta\\nu`."""
 
         if epsilon is None:
-            epsilon = (14., 10.)
-        self.epsilon: dist.Distribution = distribution(epsilon, dist.Gamma)
+            epsilon = (np.log(1.4), 0.4)
+        self.epsilon: dist.Distribution = distribution(epsilon, dist.LogNormal)
         """:numpyro.distributions.distribution.Distribution: The distribution 
         for :math:`\\epsilon`."""
 
@@ -217,7 +221,11 @@ class AsyFunction(Model):
             'delta_nu': u.microhertz,
             'epsilon': u.dimensionless_unscaled,
         }
-    
+        self.symbols = {
+            'delta_nu': r'$\Delta\nu$',
+            'epsilon': r'$\epsilon$',
+        }
+
     def __call__(self) -> Callable:
         """Samples the prior for the linear asymptotic function.
 
@@ -237,7 +245,7 @@ class _GlitchFunction(Model):
     :math:`f(nu) = \\sin(4\\pi\\tau\\nu + \\phi)`.
 
     Args:
-        tau (:term:`dist_like`): The prior for the acoustic depth of the
+        log_tau (:term:`dist_like`): The prior for the acoustic depth of the
             glitch, :math:`\\tau`. Pass either the arguments of
             :class:`dist.Normal` or a :class:`dist.Distribution`.
         phi (:term:`dist_like`): The prior for the phase of the glitch,
@@ -245,11 +253,14 @@ class _GlitchFunction(Model):
             or a :class:`dist.Distribution`.
     """
 
-    def __init__(self, tau: DistLike, phi: DistLike):
-        self.tau = distribution(tau)
+    def __init__(self, log_tau: DistLike, phi: DistLike=None):
+        self.log_tau = distribution(log_tau)
         """:numpyro.distributions.distribution.Distribution: The distribution 
         for :math:`\\tau`."""
-        self.phi = distribution(phi, dist.VonMises)
+        
+        if phi is None:
+            phi = (-np.pi, np.pi)
+        self.phi = distribution(phi, dist.Uniform)
         """:numpyro.distributions.distribution.Distribution: The distribution
         for :math:`\\phi`."""
 
@@ -274,7 +285,8 @@ class _GlitchFunction(Model):
         Returns:
             function: The function :math:`f`.
         """
-        tau = numpyro.sample('tau', self.tau)
+        log_tau = numpyro.sample('log_tau', self.log_tau)
+        tau = numpyro.deterministic('tau', 10**log_tau)
         phi = numpyro.sample('phi', self.phi)
         def fn(nu):
             return self.oscillation(nu, tau, phi)
@@ -296,7 +308,7 @@ class HeGlitchFunction(_GlitchFunction):
             power, :math:`\\nu_\\max`. Pass either the arguments of
             :class:`dist.Normal` or a :class:`dist.Distribution`.
     """
-    def __init__(self, nu_max: DistLike):
+    def __init__(self, nu_max: DistLike, log_tau: DistLike, phi: DistLike=None):
         self.log_a: dist.Distribution
         """:numpyro.distributions.distribution.Distribution: The distribition
         for the glitch phase parameter phi_he."""
@@ -311,13 +323,15 @@ class HeGlitchFunction(_GlitchFunction):
         
         log_numax = jnp.log10(distribution(nu_max).mean)
         # Attempt rough guess of glitch params
-        self.log_a = dist.Normal(-1.10 - 0.35*log_numax, 0.7)
-        self.log_b = dist.Normal(0.719 - 2.14*log_numax, 0.7)
-        self.log_tau = dist.Normal(0.44 - 1.03*log_numax, 0.1)
+        self.log_a = dist.Normal(-1.10 - 0.35*log_numax, 0.8)
+        self.log_b = dist.Normal(0.719 - 2.14*log_numax, 0.8)
+        # self.log_tau = dist.Normal(0.44 - 1.03*log_numax, 0.1)
         
-        self.phi: dist.Distribution = dist.VonMises(0.0, 0.1)
-        """:numpyro.distributions.distribution.Distribution: The distribution
-        for the phase parameter."""
+        super().__init__(log_tau, phi=phi)
+        
+        # self.phi: dist.Distribution = dist.VonMises(0.0, 0.1)
+        # """:numpyro.distributions.distribution.Distribution: The distribution
+        # for the phase parameter."""
         
         self.units = {
             'a_he': u.dimensionless_unscaled,
@@ -325,6 +339,17 @@ class HeGlitchFunction(_GlitchFunction):
             'tau_he': u.megasecond,
             'phi_he': u.rad,
         }
+        self.symbols = {
+            'a_he': r'$a_\mathrm{He}$',
+            'b_he': r'$b_\mathrm{He}$',
+            'tau_he': r'$\tau_\mathrm{He}$',
+            'phi_he': r'$\phi_\mathrm{He}$',
+        }
+        # log units
+        for k in ['a_he', 'b_he', 'tau_he']:
+            log_k = f'log_{k}'
+            self.units[log_k] = u.LogUnit(self.units[k])
+            self.symbols[log_k] = r'$\log\,' + self.symbols[k][1:]
 
     # @property
     # def nu_max(self) -> dist.Distribution:
@@ -398,7 +423,7 @@ class CZGlitchFunction(_GlitchFunction):
             power, :math:`\\nu_\\max`. Pass either the arguments of
             :class:`dist.Normal` or a :class:`dist.Distribution`.
     """
-    def __init__(self, nu_max: DistLike):
+    def __init__(self, nu_max: DistLike, log_tau: DistLike, phi: DistLike=None):
         self.log_a: dist.Distribution
         """:numpyro.distributions.distribution.Distribution: The distribition
         for the glitch phase parameter phi_cz."""
@@ -409,19 +434,31 @@ class CZGlitchFunction(_GlitchFunction):
         
         log_numax = jnp.log10(distribution(nu_max).mean)
         # Rough guess of glitch params
-        self.log_a = dist.Normal(2*log_numax - 1.0, 0.7)
-        self.log_tau = dist.Normal(0.77 - 0.99*log_numax, 0.1)
+        self.log_a = dist.Normal(2*log_numax - 1.0, 0.8)
+        # self.log_tau = dist.Normal(0.77 - 0.99*log_numax, 0.1)
         
-        self.phi: dist.Distribution = dist.VonMises(0.0, 0.1)
-        """:numpyro.distributions.distribution.Distribution: The distribition
-        for the glitch phase parameter phi_cz."""
+        super().__init__(log_tau, phi=phi)
+        # self.phi: dist.Distribution = dist.VonMises(0.0, 0.1)
+        # """:numpyro.distributions.distribution.Distribution: The distribition
+        # for the glitch phase parameter phi_cz."""
 
         self.units = {
             'a_cz': u.microhertz**3,
             'tau_cz': u.megasecond,
             'phi_cz': u.rad,
         }
+        self.symbols = {
+            'a_cz': r'$a_\mathrm{BCZ}$',
+            'tau_cz': r'$\tau_\mathrm{BCZ}$',
+            'phi_cz': r'$\phi_\mathrm{BCZ}$',
+        }
 
+        # log units
+        for k in ['a_cz', 'tau_cz']:
+            log_k = f'log_{k}'
+            self.units[log_k] = u.LogUnit(self.units[k])
+            self.symbols[log_k] = r'$\log\,' + self.symbols[k][1:]
+    
     # @property
     # def nu_max(self) -> dist.Distribution:
     #     """The distribution of the frequency at maximum power,
@@ -514,10 +551,17 @@ class GlitchModel(Model):
     """
     def __init__(
         self,
+        n: ArrayLike,
         background: Model,
         he_glitch: Optional[Model]=None,
         cz_glitch: Optional[Model]=None,
+        num_pred: int=250,
     ):
+        
+        self.n = np.asarray(n)
+        """:numpy.ndarray: Radial order of observations."""
+        self.n_pred = np.linspace(n[0], n[-1], num_pred)
+        """:numpy.ndarray: Radial order of predictions."""
         self.background: Model = background
         """:Model: Background function prior."""
         if he_glitch is None:
@@ -536,85 +580,110 @@ class GlitchModel(Model):
             'nu_bkg': u.microhertz,
             'dnu_he': u.microhertz,
             'dnu_cz': u.microhertz,
+            'noise': u.microhertz,
         }
-        self.units.update(self.he_glitch.units)
-        self.units.update(self.cz_glitch.units)
 
-    def plot_glitch(self, data: az.InferenceData, kind: str='He',
-                    group: str='posterior', quantiles: Optional[list]=None,
-                    observed: bool=True, ax: plt.Axes=None) -> plt.Axes:
-        """Plot the glitch.
+        self.symbols = {
+            'nu_obs': r'$\nu_\mathrm{obs}$',
+            'nu': r'$\nu$',
+            'nu_bkg': r'$\nu_\mathrm{bkg}$',
+            'dnu_he': r'$\delta\nu_\mathrm{He}$',
+            'dnu_cz': r'$\delta\nu_\mathrm{BCZ}$',
+            'noise': r'$\sigma_\mathrm{WN}$',
+        }
 
-        Args:
-            data (arviz.InferenceData): Inference data.
-            kind (str): Kind of glitch to plot. One of ['He', 'CZ'].
-            group (str): Inference data group to plot. One of ['prior',
-                'posterior'] is supported.
-            quantiles (iterable, optional): Quantiles to plot as confidence
-                intervals. Defaults to no confidence intervals drawn.
-            observed (bool): Whether to plot observed data, if available.
-            ax (matplotlib.axes.Axes): Axis on which to plot the glitch.
+        for model in [self.background, self.he_glitch, self.cz_glitch]:
+            self.units.update(model.units)
+            self.symbols.update(model.symbols)
 
-        Returns:
-            matplotlib.axes.Axes: Axis on which the glitch is plot.
-        """
-        if ax is None:
-            _, ax = plt.subplots()
+    # def plot_glitch(self, samples: dict, nu: ArrayLike=None, 
+    #                 nu_err: ArrayLike=None, kind: str='He',
+    #                 quantiles: Optional[list]=[.16, .84], 
+    #                 ax: plt.Axes=None) -> plt.Axes:
+    #     """Plot the glitch.
 
-        dim = ('chain', 'draw')
-        pred_group = group + "_predictive"
-        if pred_group not in data.keys():
-            pred_group = group
-        n = data[group]['n']
-        kindl = kind.lower()
-        dnu = data[group]['dnu_'+kindl]
+    #     Args:
+    #         samples (dict): Predictive samples (e.g. from MCMC or Predictive).
+    #         nu (:term:`array_like`): Observed mode frequencies.
+    #         nu_err (:term:`array_like`): Observed mode frequency uncertainty.
+    #         kind (str): Kind of glitch to plot. One of ['He', 'CZ'].
+    #         group (str): Inference data group to plot. One of ['prior',
+    #             'posterior'] is supported.
+    #         quantiles (iterable, optional): Quantiles to plot as confidence
+    #             intervals. Defaults to no confidence intervals drawn.
+    #         ax (matplotlib.axes.Axes): Axis on which to plot the glitch.
 
-        if observed:
-            if 'observed_data' in data.keys():
-                res = data.observed_data['nu_obs'] - data[pred_group]['nu']
-                dnu_obs = dnu + res
-                ax.errorbar(n, dnu_obs.mean(dim=dim),
-                            yerr=dnu_obs.std(dim=dim), color='C0', marker='o',
-                            linestyle='none', label='observed')
-            else:
-                warnings.warn('No \'observed_data\' found in data. ' + 
-                              'Set observed=False to surpress this message',
-                              UserWarning)
+    #     Returns:
+    #         matplotlib.axes.Axes: Axis on which the glitch is plot.
+    #     """
+    #     if ax is None:
+    #         ax = plt.gca()
 
-        n_pred = data[pred_group].get('n_pred', n)
-        dnu_pred = data[pred_group].get('dnu_'+kindl+'_pred', dnu) 
-        dnu_med = dnu_pred.median(dim=dim)
-        ax.plot(n_pred, dnu_med, label='median', color='C1')
-
-        if quantiles is not None:
-            dnu_quant = dnu_pred.quantile(quantiles, dim=dim)
-            num_quant = len(quantiles)//2
-            alphas = np.linspace(0.1, 0.5, num_quant*2+1)
-            for i in range(num_quant):
-                delta = quantiles[-i-1] - quantiles[i]
-                ax.fill_between(n_pred, dnu_quant[i], dnu_quant[-i-1],
-                                color='C1', alpha=alphas[2*i+1],
-                                label=f'{delta:.1%} CI')
+    #     kindl = kind.lower()
         
-        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-        ax.set_xlabel(r'$n$')
-        var = r'$\delta\nu_\mathrm{\,'+kind+r'}$'
-        unit = f"({self.units[f'dnu_{kindl}'].to_string(format='latex_inline')})"
-        ax.set_ylabel(' '.join([var, unit]))
-        ax.legend()
-        return ax
+    #     # Account for case where first dimension is num_chains
+    #     shape = samples['nu'].shape
+    #     assert len(shape) > 1
+    #     num_chains = 1
+    #     if len(shape) == 3:
+    #         num_chains = shape[0]
+    #     new_shape = (num_chains * shape[-2], shape[-1])
 
-    def __call__(self, n: ArrayLike, nu_obs: ArrayLike=None,
-                 nu_err: ArrayLike=None, pred: bool=False, num_pred: int=250):
+    #     dnu = samples['dnu_'+kindl].reshape(new_shape)
+
+    #     if nu is not None:
+    #         res = nu - samples['nu'].reshape(new_shape)
+    #         dnu_obs = dnu + res 
+            
+    #         # TODO: good way to show model error on dnu_obs here??
+    #         ax.errorbar(self.n, np.median(dnu_obs, axis=0),
+    #                     yerr=nu_err, color='C0', marker='o',
+    #                     linestyle='none', label='observed')
+        
+    #     # TODO: if not pred, then just show the model dnu with errorbars
+    #     # according to quantiles
+    #     if 'nu_pred' in samples.keys():
+    #         shape = samples['nu_pred'].shape
+    #         new_shape = (num_chains * shape[-2], shape[-1])
+    #         dnu_pred = samples['dnu_'+kindl+'_pred'].reshape(new_shape)
+    #         dnu_med = np.median(dnu_pred, axis=0)
+    #         ax.plot(self.n_pred, dnu_med, label='median', color='C1')
+
+    #         if quantiles is not None:
+    #             dnu_quant = np.quantile(dnu_pred, quantiles, axis=0)
+    #             num_quant = len(quantiles)//2
+    #             alphas = np.linspace(0.1, 0.5, num_quant*2+1)
+    #             for i in range(num_quant):
+    #                 delta = quantiles[-i-1] - quantiles[i]
+    #                 ax.fill_between(self.n_pred, dnu_quant[i], dnu_quant[-i-1],
+    #                                 color='C1', alpha=alphas[2*i+1],
+    #                                 label=f'{delta:.1%} CI')
+        
+    #     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    #     ax.set_xlabel(r'$n$')
+    #     var = r'$\delta\nu_\mathrm{\,'+kind+r'}$'
+    #     unit = f"({self.units[f'dnu_{kindl}'].to_string(format='latex_inline')})"
+    #     ax.set_ylabel(' '.join([var, unit]))
+    #     ax.legend()
+    #     return ax
+
+    def predict(self, nu: ArrayLike=None, nu_err: ArrayLike=None):
+        return self(nu=nu, nu_err=nu_err, pred=True)
+
+    def __call__(self, nu: ArrayLike=None,
+                 nu_err: ArrayLike=None, pred: bool=False):
         """Sample the model for given observables.
 
         Args:
-            n (:term:`array_like`): Radial order for the given modes.
-            nu_obs (:term:`array_like`, optional): Observed radial mode frequencies.
-            nu_err (:term:`array_like`, optional): Gaussian observational uncertainties (sigma) for nu_obs.
+            nu (:term:`array_like`, optional): Observed radial mode frequencies.
+            nu_err (:term:`array_like`, optional): Gaussian observational uncertainties (sigma) for nu.
             pred (bool): If True, make predictions nu and nu_pred from n and num_pred.
             num_pred (int): Number of predictions in the range n.min() to n.max().
         """
+        # TODO it would be more general for all models to take an obs dict as
+        # argument and every parameter to do obs.get('name', None)
+        n = self.n
+        n_pred = self.n_pred
         bkg_func = self.background()
         he_glitch_func = self.he_glitch()
         cz_glitch_func = self.cz_glitch()
@@ -635,7 +704,7 @@ class GlitchModel(Model):
         gp = GP(kernel, mean=mean)
         
         with dimension('n', n.shape[-1], coords=n):
-            gp.sample('nu_obs', n, noise=noise, obs=nu_obs)
+            gp.sample('nu_obs', n, noise=noise, obs=nu)
             
             if pred:
                 gp.predict('nu', n)
@@ -645,7 +714,6 @@ class GlitchModel(Model):
             numpyro.deterministic('dnu_cz', cz_glitch_func(nu_bkg))
 
         if pred:
-            n_pred = np.linspace(n.min(), n.max(), num_pred)
             with dimension('n_pred', n_pred.shape[-1], coords=n_pred):
                 gp.predict('nu_pred', n_pred)
                 nu_bkg = numpyro.deterministic('nu_bkg_pred', bkg_func(n_pred))
