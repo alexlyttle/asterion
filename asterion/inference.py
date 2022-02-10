@@ -14,6 +14,7 @@ from numpyro import handlers as hdl
 from numpyro.infer import MCMC, NUTS, init_to_median, Predictive, SVI
 from numpyro.distributions import constraints
 from numpyro.infer import svi
+from numpyro.contrib.nested_sampling import NestedSampler
 
 from collections import OrderedDict
 
@@ -35,231 +36,238 @@ import astropy.units as u
 import pandas as pd
 
 __all__ = [
-    "Results",
+    # "Results",
     "Inference",
 ]
 
 
-class Results:
-    """[summary]
-
-    Args:
-        data (arviz.InferenceData): description
-        units (dict, optional): description
-        circ_var_names (list, optional): 
-    """
-    def __init__(self, data: az.InferenceData, units: Dict[str, u.Unit]=None,
-                 circ_var_names: Sequence[str]=None):
-#         self._tables = tables
-        self.data: az.InferenceData = data  #: Inference data.
-        # self.summary = summary
-        self.units: Dict[str, u.Unit] = units  #: Astropy units.
-        self.circ_var_names: Sequence[str] = circ_var_names
-        """: Circular variable names for calculating summary statistics."""
-
-#         dim_vars = {}
-#         for group in ['posterior', 'posterior_predictive']:
-#             if group not in self.data.groups():
-#                 continue
-#             for k in self.data[group].data_vars.keys():
-#                 dims = self.data[group][k].dims[2:]
-#                 if dims not in dim_vars.keys():
-#                     dim_vars[dims] = []
-#                 if k not in dim_vars[dims]:
-#                     dim_vars[dims].append(k)
-#         self._dim_vars = dim_vars
-
-    def _get_dim_vars(self, group: str='posterior') -> Dict[Tuple[str], List[str]]:
-        """Get the dimensions and their variable names
-        """
-        dim_vars = {}
-        for k in self.data[group].data_vars.keys():
-            ns = 2  # Don't count chains and draws
-            if group in ['observed_data', 'constant_data']:
-                ns = 0  # These groups don't have chains and draws
-            dims = self.data[group][k].dims[ns:]
-            if dims not in dim_vars.keys():
-                dim_vars[dims] = []
-            if k not in dim_vars[dims]:
-                dim_vars[dims].append(k)
-        return dim_vars
-
-    def get_dims(self, group: str='posterior') -> List[Tuple[str]]:
-        """Get available dimension groups for a given inference data group.
-
-        Args:
-            group (str): Inference data group.
-
-        Returns:
-            list: [description]
-        """
-        # return list(self._dim_vars.keys())
-        dim_vars = self._get_dim_vars(group=group)
-        return list(dim_vars.keys())
+# class Results:
+#     """[summary]
+#     TODO: replace this with utilities which do the same thing to data
+#     then you can just work with inference data yourself.
     
-    def get_var_names(self, group: str='posterior',
-                      dims: Union[str, Tuple[str]]='all') -> List[str]:
-        """Get var names for a given group and dimensions.
-        
-        Args:
-            group (str): Inference data group.
-            dims (str, or tuple of str): Dimensions by which to group variables. If 'all', returns
-                variable names for all model dimensions. If a tuple of
-                dimension names, returns variable names in that dimension
-                group.
-        
-        Returns:
-            list: Variable names for a given group and dimensions.
-        """
-        if dims == 'all':
-            var_names = list(self.data[group].data_vars.keys())
-        else:
-            dim_vars = self._get_dim_vars(group=group)
-            var_names = list(dim_vars[dims])
-#             var_names = list(
-#                 set(self.data[group].data_vars.keys()).intersection(set(self._dim_vars[dims]))
-#             )
-        return var_names
+#     Args:
+#         data (arviz.InferenceData): description
+#         units (dict, optional): description
+#         circ_var_names (list, optional): 
+#     """
+#     def __init__(self, data: az.InferenceData, units: Dict[str, u.Unit]=None,
+#                  circ_var_names: Sequence[str]=None):
+# #         self._tables = tables
+#         self.data: az.InferenceData = data  #: Inference data.
+#         # self.summary = summary
+#         # self.units: Dict[str, u.Unit] = units  #: Astropy units.
+#         # self.circ_var_names: Sequence[str] = circ_var_names
+#         """: Circular variable names for calculating summary statistics."""
 
-    def _validate_var_names(self, group: str='posterior',
-                            var_names: Optional[List[str]]=None,
-                            dims: Union[str, Tuple[str]]='all') -> List[str]:
-        """Validate variable names."""
-        available_vars = self.get_var_names(group=group, dims=dims)
+# #         dim_vars = {}
+# #         for group in ['posterior', 'posterior_predictive']:
+# #             if group not in self.data.groups():
+# #                 continue
+# #             for k in self.data[group].data_vars.keys():
+# #                 dims = self.data[group][k].dims[2:]
+# #                 if dims not in dim_vars.keys():
+# #                     dim_vars[dims] = []
+# #                 if k not in dim_vars[dims]:
+# #                     dim_vars[dims].append(k)
+# #         self._dim_vars = dim_vars
+
+#     def _get_dim_vars(self, group: str='posterior') -> Dict[Tuple[str], List[str]]:
+#         """Get the dimensions and their variable names
+#         """
+#         dim_vars = {}
+#         for k in self.data[group].data_vars.keys():
+#             ns = 2  # Don't count chains and draws
+#             if group in ['observed_data', 'constant_data']:
+#                 ns = 0  # These groups don't have chains and draws
+#             dims = self.data[group][k].dims[ns:]
+#             if dims not in dim_vars.keys():
+#                 dim_vars[dims] = []
+#             if k not in dim_vars[dims]:
+#                 dim_vars[dims].append(k)
+#         return dim_vars
+
+#     def get_dims(self, group: str='posterior') -> List[Tuple[str]]:
+#         """Get available dimension groups for a given inference data group.
+
+#         Args:
+#             group (str): Inference data group.
+
+#         Returns:
+#             list: [description]
+#         """
+#         # return list(self._dim_vars.keys())
+#         dim_vars = self._get_dim_vars(group=group)
+#         return list(dim_vars.keys())
+    
+#     def get_var_names(self, group: str='posterior',
+#                       dims: Union[str, Tuple[str]]='all') -> List[str]:
+#         """Get var names for a given group and dimensions.
         
-        if var_names is None:
+#         Args:
+#             group (str): Inference data group.
+#             dims (str, or tuple of str): Dimensions by which to group variables. If 'all', returns
+#                 variable names for all model dimensions. If a tuple of
+#                 dimension names, returns variable names in that dimension
+#                 group.
+        
+#         Returns:
+#             list: Variable names for a given group and dimensions.
+#         """
+#         if dims == 'all':
 #             var_names = list(self.data[group].data_vars.keys())
-            var_names = available_vars
-            if len(var_names) == 0:
-                if dims == 'all':
-                    msg = f'No variables exist in group \'{group}\'.'
-                else:
-                    msg = f'No variables exist for dims {dims}' + \
-                          f' in group \'{group}\'.'
-                raise ValueError(msg)
-        elif dims != 'all':
-            subset = set(var_names)
-            available = set(available_vars)
-            if not available.intersection(subset) == subset:
-                diff = subset.difference(available)
-                raise ValueError(f'Variable name(s) {diff} not available' +
-                                 f' for dims {dims} in group \'{group}\'.')
-        return var_names
+#         else:
+#             dim_vars = self._get_dim_vars(group=group)
+#             var_names = list(dim_vars[dims])
+# #             var_names = list(
+# #                 set(self.data[group].data_vars.keys()).intersection(set(self._dim_vars[dims]))
+# #             )
+#         return var_names
 
-    def get_summary(self, group: str="posterior",
-                    var_names: Optional[List[str]]=None,
-                    **kwargs) -> Union[xarray.Dataset, pd.DataFrame]:
-        """Get a summary of the inference data for a chosen group.
-
-        Args:
-            group (str): [description]. Defaults to 'posterior'.
-            var_names (list, optional): [description]. Defaults to None (all variable names)
-            **kwargs: Keyword arguments to pass to :func:`az.summary`.
-
-        Returns:
-            xarray.Dataset, or pandas.DataFrame: Summary of inference data.
-        """
-        fmt = kwargs.pop('fmt', 'xarray')
-        round_to = kwargs.pop('round_to', 'none')
-        stat_funcs = {
-            "16th": lambda x: np.quantile(x, .16),
-            "50th": np.median,
-            "84th": lambda x: np.quantile(x, .84),
-        }
-        stat_funcs = kwargs.pop('stat_func', stat_funcs)
+#     def _validate_var_names(self, group: str='posterior',
+#                             var_names: Optional[List[str]]=None,
+#                             dims: Union[str, Tuple[str]]='all') -> List[str]:
+#         """Validate variable names."""
+#         available_vars = self.get_var_names(group=group, dims=dims)
         
-        var_names = self._validate_var_names(group=group, var_names=var_names)
-        circ_var_names = [i for i in self.circ_var_names if i in var_names]
-        circ_var_names = kwargs.pop(
-            'circ_var_names',
-            circ_var_names
-        )
-        return az.summary(self.data, group=group, var_names=var_names, fmt=fmt,
-            round_to=round_to, stat_funcs=stat_funcs,
-            circ_var_names=circ_var_names, **kwargs)
+#         if var_names is None:
+# #             var_names = list(self.data[group].data_vars.keys())
+#             var_names = available_vars
+#             if len(var_names) == 0:
+#                 if dims == 'all':
+#                     msg = f'No variables exist in group \'{group}\'.'
+#                 else:
+#                     msg = f'No variables exist for dims {dims}' + \
+#                           f' in group \'{group}\'.'
+#                 raise ValueError(msg)
+#         elif dims != 'all':
+#             subset = set(var_names)
+#             available = set(available_vars)
+#             if not available.intersection(subset) == subset:
+#                 diff = subset.difference(available)
+#                 raise ValueError(f'Variable name(s) {diff} not available' +
+#                                  f' for dims {dims} in group \'{group}\'.')
+#         return var_names
 
-    def get_table(self, dims: Tuple[str], group: str='posterior',
-                  var_names: Optional[List[str]]=None,
-                  metrics: Optional[List[str]]=None, fmt: str='pandas',
-                  round_to: Union[str, int]='auto',
-                  **kwargs) -> Union[pd.DataFrame, Table]:
-        """[summary]
+#     def get_summary(self, group: str="posterior",
+#                     var_names: Optional[List[str]]=None,
+#                     **kwargs) -> Union[xarray.Dataset, pd.DataFrame]:
+#         """Get a summary of the inference data for a chosen group.
 
-        Args:
-            dims (tuple of str): [description]
-            group (str, optional): [description]. Defaults to 'posterior'.
-            var_names (list of str, optional): [description]. Defaults to None.
-            metrics (list of str, optional): [description]. Defaults to None.
-            fmt (str, optional): [description]. Defaults to 'pandas'.
-            round_to (str, or int, optional): [description]. Defaults to 'auto'.
+#         Args:
+#             group (str): [description]. Defaults to 'posterior'.
+#             var_names (list, optional): [description]. Defaults to None (all variable names)
+#             **kwargs: Keyword arguments to pass to :func:`az.summary`.
 
-        Returns:
-            pandas.DataFrame, or astropy.table.Table]: [description]
-        """
-
-        var_names = self._validate_var_names(group=group, var_names=var_names, dims=dims)
-        summary = self.get_summary(group=group, var_names=var_names, **kwargs)
-
-        if metrics is None:
-            metrics = ['mean', 'sd', '16th', '50th', '84th']
-
-        keep_mcse = False
-        if 'mcse_mean' in metrics:
-            keep_mcse = True
-        else:
-            metrics.append('mcse_mean')
-
-#         dim_vars = [i for i in self._dim_vars[dims] if i in var_names]
-        table = summary[var_names].sel({'metric': metrics}).to_dataframe()
-        if round_to == 'auto':
-            # Rounds to the mcse_mean. I.e. if mcse_mean is in range (0.01, 0.1] then the
-            # metrics are rounded to 2 decimal places
-            level = None
-            precision = np.log10(table.loc['mcse_mean']).astype(int) - 1
-            if isinstance(table.index, pd.MultiIndex):
-                level = 'metric'
-                precision = precision.min()  # Choose min precision = max decimal precision
-            if not keep_mcse:
-                table = table.drop(index='mcse_mean', level=level)
-            table = table.round(-precision)
-
-        elif round_to != 'none':
-            table = table.round(round_to)
+#         Returns:
+#             xarray.Dataset, or pandas.DataFrame: Summary of inference data.
+#         """
+#         fmt = kwargs.pop('fmt', 'xarray')
+#         round_to = kwargs.pop('round_to', 'none')
+#         stat_funcs = {
+#             "16th": lambda x: np.quantile(x, .16),
+#             "50th": np.median,
+#             "84th": lambda x: np.quantile(x, .84),
+#         }
+#         stat_funcs = kwargs.pop('stat_func', stat_funcs)
+#         kind = kwargs.pop('kind', 'stats')  # default just stats, no diagnostics
         
-        if fmt == 'astropy':
-            units = {k: v for k, v in self.units.items() if k in var_names}
-            table = Table.from_pandas(table.reset_index(), units=units)
-        return table
+#         var_names = self._validate_var_names(group=group, var_names=var_names)
+#         # self.data[group]
+#         circ_var_names = [k for k in var_names if self.data[group][k].attrs.get('is_circular', 0) == 1]
+#         # circ_var_names = [i for i in self.circ_var_names if i in var_names]
+#         circ_var_names = kwargs.pop(
+#             'circ_var_names',
+#             circ_var_names
+#         )
+#         return az.summary(self.data, group=group, var_names=var_names, fmt=fmt,
+#             round_to=round_to, stat_funcs=stat_funcs,
+#             circ_var_names=circ_var_names, kind=kind, **kwargs)
 
-    def save(self, path: str, **kwargs):
-        """Save the results.
+#     def get_table(self, dims: Tuple[str], group: str='posterior',
+#                   var_names: Optional[List[str]]=None,
+#                   metrics: Optional[List[str]]=None, fmt: str='pandas',
+#                   round_to: Union[str, int]='auto',
+#                   **kwargs) -> Union[pd.DataFrame, Table]:
+#         """[summary]
 
-        Args:
-            path (str): Path to directory in which to save the results.
-        """
-        self.data.to_netcdf(os.path.join(path, 'data.nc'), **kwargs)
-        save_dict = {
-            'units': {k: v.to_string() for k, v in self.units.items()},
-            'circ_var_names': self.circ_var_names,
-        }
-        with open(os.path.join(path, 'config.json'), 'w') as fp:
-            json.dump(save_dict, fp, indent=2)
+#         Args:
+#             dims (tuple of str): [description]
+#             group (str, optional): [description]. Defaults to 'posterior'.
+#             var_names (list of str, optional): [description]. Defaults to None.
+#             metrics (list of str, optional): [description]. Defaults to None.
+#             fmt (str, optional): [description]. Defaults to 'pandas'.
+#             round_to (str, or int, optional): [description]. Defaults to 'auto'.
 
-    @staticmethod
-    def load(path: str, **kwargs):
-        """Load results.
+#         Returns:
+#             pandas.DataFrame, or astropy.table.Table]: [description]
+#         """
 
-        Args:
-            path (str): Directory from which to load results.
+#         var_names = self._validate_var_names(group=group, var_names=var_names, dims=dims)
+#         summary = self.get_summary(group=group, var_names=var_names, **kwargs)
 
-        Returns:
-            Results: Results object loaded from path.
-        """
-        data = az.from_netcdf(os.path.join(path, 'data.nc'), **kwargs)
-        with open(os.path.join(path, 'config.json'), 'r') as fp:
-            load_dict = json.load(fp)
-        load_dict['units'] = {k: u.Unit(v) for k, v in load_dict['units'].items()}
-        return Results(data, **load_dict)
+#         if metrics is None:
+#             metrics = ['mean', 'sd', '16th', '50th', '84th']
+
+#         # keep_mcse = False
+#         # if 'mcse_mean' in metrics:
+#         #     keep_mcse = True
+#         # else:
+#         #     metrics.append('mcse_mean')
+
+# #         dim_vars = [i for i in self._dim_vars[dims] if i in var_names]
+#         table = summary[var_names].sel({'metric': metrics}).to_dataframe()
+#         if round_to == 'auto':
+#             # Rounds to the mcse_mean. I.e. if mean_err is in range (0.01, 0.1] then the
+#             # metrics are rounded to 2 decimal places
+#             # level = None
+#             mean_err = table.loc['sd'] / np.sqrt(self.data[group].draw.size)
+#             precision = np.log10(mean_err).astype(int) - 1
+#             if isinstance(table.index, pd.MultiIndex):
+#                 # level = 'metric'
+#                 precision = precision.min()  # Choose min precision = max decimal precision
+#             # if not keep_mcse:
+#                 # table = table.drop(index='mcse_mean', level=level)
+#             table = table.round(-precision)
+
+#         elif round_to != 'none':
+#             table = table.round(round_to)
+        
+#         if fmt == 'astropy':
+#             # units = {k: v for k, v in self.units.items() if k in var_names}
+#             units = {k: u.Unit(self.data[group][k].attrs.get('unit', '')) for k in var_names}
+#             table = Table.from_pandas(table.reset_index(), units=units)
+#         return table
+
+#     def to_file(self, filename: str, **kwargs):
+#         """Save the results.
+
+#         Args:
+#             path (str): Path to directory in which to save the results.
+#         """
+#         self.data.to_netcdf(filename, **kwargs)
+#         # save_dict = {
+#         #     'units': {k: v.to_string() for k, v in self.units.items()},
+#         #     'circ_var_names': self.circ_var_names,
+#         # }
+#         # with open(os.path.join(path, 'config.json'), 'w') as fp:
+#         #     json.dump(save_dict, fp, indent=2)
+
+#     @classmethod
+#     def from_file(cls, filename: str, **kwargs):
+#         """Load results.
+
+#         Args:
+#             filename (str): Filename from which to load results.
+
+#         Returns:
+#             Results: Results object loaded from path.
+#         """
+#         data = az.from_netcdf(filename, **kwargs)
+#         # with open(os.path.join(path, 'config.json'), 'r') as fp:
+#         #     load_dict = json.load(fp)
+#         # load_dict['units'] = {k: u.Unit(v) for k, v in load_dict['units'].items()}
+#         return cls(data)  #, **load_dict)
 
 
 class Inference:
@@ -269,23 +277,46 @@ class Inference:
         model (Model): [description]
         seed (int): [description]
     """ 
-    def __init__(self, model: Model, *, seed: int):       
+    def __init__(self, model: Model, *, nu, nu_err=None, seed: int=0):
         self._rng_key = random.PRNGKey(seed)        
         self.model: Model = model  #:Model: Model with which to perform inference.
-        self.samples: Optional[dict] = None  #:dict: Posterior MCMC samples.
-        self.sample_stats: Optional[dict] = None  #:dict: Posterior MCMC sample stats.
+        self.nu = np.asarray(nu)  #::term:`array_like`: Observed mode frequencies
+        self.nu_err = None if nu_err is None else np.asarray(nu_err)
+        
+        self.samples: Optional[dict] = None  #:dict: Posterior samples.
+        self.weighted_samples: Optional[dict] = None  #:dict: Posterior weighted samples.
+        self.sample_stats: Optional[dict] = None  #:dict: Posterior sample stats.
         self.prior_predictive_samples: Optional[dict] = None  #:dict: Prior predictive samples.
         self.predictive_samples: Optional[dict] = None  #:dict: Posterior predictive samples.
         self.mcmc: Optional[MCMC] = None  #:numpyro.infer.MCMC: MCMC inference object.
-        self._model_args: tuple = ()
-        self._model_kwargs: dict = {}
+        # self._model_args: tuple = ()
+        # self._model_kwargs: dict = {}
         self.map_svi: Optional[SVI] = None  #:numpyro.infer.SVI: MAP inference object.
         self.map_result: Optional[svi.SVIRunResult] = None  #:numpyro.infer.svi.SVIRunResult: MAP result.
+        self.ns: Optional[NestedSampler] = None #:numpyro.contrib.nested_sampling.NestedSampler: Nested sampler.
+        # self.trace = self.get_trace()
+        # self.pred_trace = self.get_trace(pred=True)
+        # self.batch_ndims = 1
+        self.sample_method = None
+        
+        # Catch circular-like parameters
+        trace = self.get_trace()
+        for _, value in trace.items():
+            if value['type'] == 'sample':
+                if value['fn'].support == constraints.circular and \
+                    value['fn'].support is not constraints.circular:
+                    # Catches parameters with circular-like support
+                    warnings.warn(f"Parameter \'{value['name']}\' has circular-like " + \
+                        'support but the distribution is not circular. Consider ' + \
+                        'changing its distribution to numpyro.distributions.VonMises ' + \
+                        'for better performance during MCMC.')
 
-    def _get_dims(self, trace):
+        # self.circ_var_names = self.get_circ_var_names()
+
+    def _get_dims(self):
         coords = {}
         dims = {}
-        for k, v in trace.items():
+        for k, v in self.get_trace(pred=True).items():
             name = v["name"]
             if v["type"] == "dimension":
                 coords[name] = v["value"]
@@ -293,8 +324,7 @@ class Inference:
                 dims[name] = v["dims"]
         return dims, coords
 
-    def get_trace(self, model_args: tuple=(),
-                  model_kwargs: dict={}) -> OrderedDict:
+    def get_trace(self, pred=False) -> OrderedDict:
         """[summary]
 
         Args:
@@ -305,12 +335,16 @@ class Inference:
             OrderedDict: [description]
         """
         rng_key, self._rng_key = random.split(self._rng_key)
+        if pred:
+            model = self.model.predict
+        else:
+            model = self.model
         model = hdl.trace(
             hdl.seed(
-                self.model, rng_key
+                model, rng_key
             )
         )
-        trace = model.get_trace(*model_args, **model_kwargs)
+        trace = model.get_trace(nu=self.nu, nu_err=self.nu_err)
         return trace
 
     def get_circ_var_names(self) -> List[str]:
@@ -320,18 +354,20 @@ class Inference:
             list: Circular variable names in the model.
         """
         var_names = []
-        trace = self.get_trace(self._model_args, self._model_kwargs)
-        for key, value in trace.items():
+        trace = self.get_trace()
+        for _, value in trace.items():
             if value['type'] == 'sample':
-                if value['fn'].support == constraints.circular:
-                    # This assumes any fn with support from -pi to +pi is
-                    # circular
+                # if value['fn'].support == constraints.circular:
+                #     warnings.warn(f"Parameter \'{value['name']}\' has circular-like " + \
+                #         'support but the distribution is not circular. Consider ' + \
+                #         'changing its distribution to numpyro.distributions.VonMises ' + \
+                #         'for better performance during MCMC.')
+                if value['fn'].support is constraints.circular:
                     var_names.append(value['name'])
         return var_names
     
     def _auto_reparam(self) -> numpyro.handlers.reparam:
-        var_names = self.get_circ_var_names()
-        return hdl.reparam(config={k: CircularReparam() for k in var_names})
+        return hdl.reparam(config={k: CircularReparam() for k in self.get_circ_var_names()})
 
     def _init_handlers(self, handlers: list,
                        reparam: Union[str, hdl.reparam]='auto') -> list:
@@ -346,72 +382,86 @@ class Inference:
             handlers.append(reparam)
         return handlers
 
-    def get_sampler(self, method: str='NUTS', handlers: Optional[list]=None, 
-                    reparam: Union[str, hdl.reparam]='auto', 
-                    **kwargs) -> numpyro.infer.mcmc.MCMCKernel:
-        """[summary]
+    # def get_sampler(self, model, kind: str='NUTS',
+    #                 **kwargs) -> numpyro.infer.mcmc.MCMCKernel:
+    #     """[summary]
 
-        Args:
-            method (str): Sampling method, choose from ['NUTS']. Defaults to 'NUTS'.
-            handlers (list): List of handlers to apply to the model. Defaults to [].
-            reparam (str, or numpyro.handlers.reparam): If 'auto', automatically reparameterises model. If 'none',
-                no reparameterisation is done. If numpyro.handlers.reparam,
-                this is applied instead.
-            **kwargs: Keyword arguments to pass to sample initialisation.
+    #     Args:
+    #         kind (str): Sampling method, choose from ['NUTS'].
+    #         handlers (list): List of handlers to apply to the model. Defaults to [].
+    #         reparam (str, or numpyro.handlers.reparam): If 'auto', automatically reparameterises model. If 'none',
+    #             no reparameterisation is done. If numpyro.handlers.reparam,
+    #             this is applied instead.
+    #         **kwargs: Keyword arguments to pass to sample initialisation.
 
-        Raises:
-            NotImplementedError: If a sampling method other than 'NUTS' is
-                chosen.
+    #     Raises:
+    #         NotImplementedError: If a sampling method other than 'NUTS' is
+    #             chosen.
 
-        Returns:
-            numpyro.infer.mcmc.MCMCKernel: MCMC sampler.
-        """
-        if method != 'NUTS':
-            raise NotImplementedError(f"Method '{method}' not implemented")
+    #     Returns:
+    #         numpyro.infer.mcmc.MCMCKernel: MCMC sampler.
+    #     """
+    #     if kind != 'NUTS':
+    #         raise NotImplementedError(f"Method '{kind}' not implemented")
 
-        target_accept_prob = kwargs.pop("target_accept_prob", 0.99)
-        init_strategy = kwargs.pop("init_strategy", lambda site=None: \
-            init_to_median(site=site, num_samples=100))
-        step_size = kwargs.pop("step_size", 0.1)
+    #     target_accept_prob = kwargs.pop("target_accept_prob", 0.98)
+    #     init_strategy = kwargs.pop("init_strategy", lambda site=None: \
+    #         init_to_median(site=site, num_samples=100))
+    #     step_size = kwargs.pop("step_size", 0.1)
         
-        # if reparam == 'auto':
-        #     handlers.append(self._auto_reparam())
-        # elif reparam == 'none':
-        #     pass
-        # else:
-        #     handlers.append(reparam)
-        handlers = self._init_handlers(handlers, reparam=reparam)
+    #     # if reparam == 'auto':
+    #     #     handlers.append(self._auto_reparam())
+    #     # elif reparam == 'none':
+    #     #     pass
+    #     # else:
+    #     #     handlers.append(reparam)
+    #     # handlers = self._init_handlers(handlers, reparam=reparam)
 
-        model = self.model
-        for h in handlers:
-            model = h(model)
+    #     # model = self.model
+    #     # for h in handlers:
+    #     #     model = h(model)
 
-        sampler = NUTS(model, target_accept_prob=target_accept_prob,
-                       init_strategy=init_strategy, step_size=step_size,
-                       **kwargs)
-        return sampler
+    #     sampler = NUTS(model, target_accept_prob=target_accept_prob,
+    #                    init_strategy=init_strategy, step_size=step_size,
+    #                    **kwargs)
+    #     return sampler
 
-    def init_mcmc(self, sampler: numpyro.infer.mcmc.MCMCKernel,
-                  num_warmup: int=1000, num_samples: int=1000,
-                  num_chains: int=1, **kwargs):
-        """Initialises the MCMC.
+    def init_mcmc(self, model, num_warmup: int=1000, num_samples: int=1000,
+                  num_chains: int=1, sampler_name='NUTS', sampler_kwargs={},
+                  **kwargs):
+        """Initialises the MCMC sampler.
 
         Args:
-            sampler (numpyro.infer.mcmc.MCMCKernel): [description]
+            model (callable): [desc]
+            sampler_name (str): Choose one of ['NUTS']
             num_warmup (int): [description]. Defaults to 1000.
             num_samples (int): [description]. Defaults to 1000.
             num_chains (int): [description]. Defaults to 1.
         """
+        sampler_name = sampler_name.lower()
+        if sampler_name != 'nuts':
+            raise NotImplementedError(f"Sampler '{sampler_name}' not implemented")
+        
+        # if num_chains > 1:
+            # self.batch_ndims = 2  # I.e. two dims for chains then samples
+        
+        target_accept_prob = sampler_kwargs.pop("target_accept_prob", 0.98)
+        init_strategy = sampler_kwargs.pop("init_strategy", lambda site=None: \
+            init_to_median(site=site, num_samples=100))
+        step_size = sampler_kwargs.pop("step_size", 0.1)
+        sampler = NUTS(model, target_accept_prob=target_accept_prob,
+                       init_strategy=init_strategy, step_size=step_size,
+                       **sampler_kwargs)
+        
         self.mcmc = MCMC(sampler, num_warmup=num_warmup,
                     num_samples=num_samples, num_chains=num_chains,
                     **kwargs)
     
-    def _update_args_kwargs(self, model_args: tuple, model_kwargs: dict):
-        self._model_args = model_args
-        self._model_kwargs.update(model_kwargs)
+    # def _update_args_kwargs(self, model_args: tuple, model_kwargs: dict):
+    #     self._model_args = model_args
+    #     self._model_kwargs.update(model_kwargs)
 
-    def run_mcmc(self, model_args: tuple=(), model_kwargs: dict={}, 
-                 extra_fields: tuple=(), init_params: dict=None) -> tuple:
+    def run_mcmc(self, extra_fields: tuple=(), init_params: dict=None) -> tuple:
         """Runs MCMC for a given set of model arguments.
 
         Args:
@@ -424,9 +474,10 @@ class Inference:
             tuple: [description]
         """
         rng_key, self._rng_key = random.split(self._rng_key)
-        self.mcmc.run(rng_key, *model_args, extra_fields=extra_fields,
-                        init_params=init_params, **model_kwargs)
-        self._update_args_kwargs(model_args, model_kwargs)
+        self.mcmc.run(rng_key, nu=self.nu, nu_err=self.nu_err, 
+                      extra_fields=extra_fields,
+                      init_params=init_params)
+        # self._update_args_kwargs(model_args, model_kwargs)
         # # Filter UserWarnings from numpyro as errors
         # module = r'\bnumpyro\b'
         # category = UserWarning
@@ -448,43 +499,87 @@ class Inference:
         sample_stats = self.mcmc.get_extra_fields(group_by_chain=True)
         return samples, sample_stats
     
-    def sample(self, num_warmup: int=1000, num_samples: int=1000,
-                num_chains: int=1, model_args: tuple=(), model_kwargs: dict={}, 
-                method: str='NUTS', handlers: Optional[list]=None,
-                extra_fields: tuple=(), init_params: dict=None,
-                sampler_kwargs: dict={}, mcmc_kwargs: dict={}):
+    def init_nested(self, model, num_live_points=100, 
+                   max_samples=100000, sampler_name="multi_ellipsoid",
+                   **kwargs):
+        self.ns = NestedSampler(model, num_live_points=num_live_points,
+                                max_samples=max_samples, 
+                                sampler_name=sampler_name, **kwargs)
+    
+    def run_nested(self, num_samples: int=1000):
+        key1, key2, self._rng_key = random.split(self._rng_key, 3)
+        
+        self.ns.run(key1, nu=self.nu, nu_err=self.nu_err)
+        samples = self.ns.get_samples(key2, num_samples)
+        sample_stats = {
+            'likelihood_evals': self.ns._results.num_likelihood_evaluations,
+            'num_weighted_samples': self.ns._results.num_samples,
+            'logZ': self.ns._results.logZ,
+            'logZ_err': self.ns._results.logZerr,
+            'ESS': self.ns._results.ESS,
+            'logX': self.ns._results.log_X,
+            'logL_samples': self.ns._results.log_L_samples,
+            'logp_samples': self.ns._results.log_p,
+            'sampler_efficiency': self.ns._results.sampler_efficiency,
+        }
+        return samples, sample_stats
+
+    def _expand_batch_dims(self, samples):
+        new_samples = {}
+        for k, v in samples.items():
+            # Hack because InferenceData assumes a chains dimension.
+            new_samples[k] = v[None, ...]  # Add a leading dimension to samples
+        return new_samples
+  
+    def sample(self, num_samples: int=1000, method: str='nested', 
+               handlers: Optional[list]=None, reparam='auto',
+               extra_fields: tuple=(), init_params: dict=None,
+               mcmc_kwargs: dict={}, nested_kwargs: dict={}):
         """[summary]
 
         Args:
-            num_warmup (int): Number of warmup steps.
             num_samples (int): Number of samples after warmup.
-            num_chains (int): Number of MCMC chains. If > 1, sampler will attempt
-                to run in parallel on your device.
             model_args (tuple): Positional arguments to pass to the model callable.
             model_kwargs (dict): Keyword arguments to pass to the model callable.
-            method (str): Sampler method, choose from ['NUTS'].
+            method (str): Sampling method, choose from ['mcmc', 'nested'].
             handlers (list, optional): Handlers to apply to the model during inference.
+            reparam (str or numpyro.infer.reparam): Default is 'auto' will automatically
+                reparameterise the model to improve sampling during MCMC.
             extra_fields (tuple): Extra fields to track in sample
                 statistics. Defaults to ().
             init_params (dict, optional): Initial values for the parameters.
             sampler_kwargs (dict): Kwargs passed to :meth:`get_sampler`.
             mcmc_kwargs (dict): Kwargs to pass to :meth:`init_mcmc`.
         """
-        self._update_args_kwargs(model_args, model_kwargs)                           
-        sampler = self.get_sampler(method=method, handlers=handlers,
-                                   **sampler_kwargs)
+        # num_chains = mcmc_kwargs.get('num_chains', 1)
 
-        self.init_mcmc(sampler, num_warmup=num_warmup, num_samples=num_samples,
-                       num_chains=num_chains, **mcmc_kwargs)
+        # Add handlers to model
+        handlers = self._init_handlers(handlers, reparam=reparam)
+        model = self.model
+        for h in handlers:
+            model = h(model)
 
-        self.samples, self.sample_stats = self.run_mcmc(
-            model_args=model_args, model_kwargs=model_kwargs,
-            extra_fields=extra_fields, init_params=init_params,
-        )
+        # self._update_args_kwargs(model_args, model_kwargs)
+        if method == 'mcmc':
+            # sampler = self.get_sampler(model, **sampler_kwargs)
+            self.init_mcmc(model, num_samples=num_samples, **mcmc_kwargs)
+            samples, sample_stats = self.run_mcmc(
+                extra_fields=extra_fields, init_params=init_params,
+            )
+        elif method == 'nested':
+            self.init_nested(model, **nested_kwargs)
+            samples, sample_stats = self.run_nested(num_samples=num_samples)
+            samples = self._expand_batch_dims(samples)  # No chains so add
+            weighted_samples = self.ns.get_weighted_samples()[0]
+            self.weighted_samples = self._expand_batch_dims(weighted_samples)
+        else:
+            raise ValueError(f"Method '{method}' not one of ['mcmc', 'nested'].")
+            
+        self.samples, self.sample_stats = samples, sample_stats
+        self.sample_method = method
         # TODO: warn diverging (and rhat if num_chains > 1)
 
-    def find_map(self, num_steps: int=10000, model_args: tuple=(),
-                 model_kwargs: dict={}, handlers: Optional[list]=None,
+    def find_map(self, num_steps: int=10000, handlers: Optional[list]=None,
                  reparam: Union[str, hdl.reparam]='auto',
                  svi_kwargs: dict={}):
         """EXPERIMENTAL: find MAP.
@@ -509,11 +604,11 @@ class Inference:
         self.map_svi = SVI(model, guide, optim, loss=loss, **svi_kwargs)
         
         rng_key, self._rng_key = random.split(self._rng_key)
-        self.map_result = self.map_svi.run(rng_key, num_steps, *model_args, **model_kwargs)
-        self._update_args_kwargs(model_args, model_kwargs)
+        self.map_result = self.map_svi.run(rng_key, num_steps, nu=self.nu, 
+                                           nu_err=self.nu_err)
+        # self._update_args_kwargs(model_args, model_kwargs)
 
-    def predictive(self, model_args: tuple=(), model_kwargs: dict={},
-                   **kwargs) -> dict:
+    def predictive(self, nu=None, nu_err=None, **kwargs) -> dict:
         """[summary]
 
         Args:
@@ -524,24 +619,26 @@ class Inference:
         Returns:
             dict: [description]
         """
-        posterior_samples = kwargs.pop("posterior_samples", {})
+        posterior_samples = kwargs.pop("posterior_samples", None)
         num_samples = kwargs.pop("num_samples", None)
-        # batch_ndims = kwargs.pop("batch_ndims", 2)
+        batch_ndims = kwargs.pop("batch_ndims", 2)
         return_sites = kwargs.pop("return_sites", None)
-        if return_sites is None:
-            trace = self.get_trace(model_args, model_kwargs)
-            return_sites = []
-            for k, site in trace.items():
-                # Only return non-observed sample sites not in samples and
-                # all deterministic sites.
-                if (site["type"] == "sample"):
-                    if not site["is_observed"] and k not in posterior_samples:
-                        return_sites.append(k)
-                elif (site["type"] == "deterministic"):
-                    return_sites.append(k)
-                
-        predictive = Predictive(self.model, posterior_samples=posterior_samples, 
+        # if return_sites is None:
+        #     trace = self.get_trace()
+        #     return_sites = []
+        #     for k, site in trace.items():
+        #         # Only return non-observed sample sites not in samples and
+        #         # all deterministic sites.
+        #         if (site["type"] == "sample"):
+        #             if not site["is_observed"] and k not in posterior_samples:
+        #                 return_sites.append(k)
+        #         elif (site["type"] == "deterministic"):
+        #             return_sites.append(k)
+
+        predictive = Predictive(self.model.predict, 
+                                posterior_samples=posterior_samples, 
                                 num_samples=num_samples, return_sites=return_sites, 
+                                batch_ndims=batch_ndims,
                                 **kwargs)
         
         if predictive.batch_ndims == 0:
@@ -549,12 +646,11 @@ class Inference:
             predictive._batch_shape = ()
 
         rng_key, self._rng_key = random.split(self._rng_key)
-        samples = predictive(rng_key, *model_args, **model_kwargs)
-        self._update_args_kwargs(model_args, model_kwargs)
+        samples = predictive(rng_key, nu=nu, nu_err=nu_err)
+        # self._update_args_kwargs(model_args, model_kwargs)
         return samples
     
-    def prior_predictive(self, num_samples: int=1000, model_args: tuple=(),
-                         model_kwargs: dict={}, **kwargs):
+    def prior_predictive(self, num_samples: int=1000, **kwargs):
         """[summary]
 
         Args:
@@ -563,28 +659,22 @@ class Inference:
             model_kwargs (dict): Keyword arguments to pass to the model callable.
         """
         self.prior_predictive_samples = self.predictive(
-            model_args=model_args, model_kwargs=model_kwargs,
             num_samples=num_samples, **kwargs
         )
 
-    def posterior_predictive(self, model_args: tuple=(), model_kwargs: dict={},
-                             **kwargs):
+    def posterior_predictive(self, **kwargs):
         """[summary]
 
         Args:
             model_args (tuple): Positional arguments to pass to the model callable.
             model_kwargs (dict): Keyword arguments to pass to the model callable.
         """
-        batch_ndims = 1
-        if self.mcmc.num_chains > 1:
-            batch_ndims = 2
         self.predictive_samples = self.predictive(
-            model_args=model_args, model_kwargs=model_kwargs,
-            posterior_samples=self.samples, batch_ndims=batch_ndims, **kwargs
+            nu=self.nu, nu_err=self.nu_err,
+            posterior_samples=self.samples, **kwargs
         )
 
-    def map_predictive(self, model_args: tuple=(), model_kwargs: dict={},
-                       **kwargs) -> xarray.Dataset:
+    def map_predictive(self, **kwargs) -> xarray.Dataset:
         """EXPERIMENTAL: Get predictive from MAP.
 
         Args:
@@ -598,47 +688,81 @@ class Inference:
         guide = self.map_svi.guide
         params = self.map_result.params
         map_pred = self.predictive(
-            model_args=model_args, model_kwargs=model_kwargs,
             guide=guide, params=params, num_samples=1, batch_ndims=batch_ndims,
             **kwargs
         )
-        trace = self.get_trace(self._model_args, self._model_kwargs)
-        dims, coords = self._get_dims(trace)
+        dims, coords = self._get_dims()
         ds = {}
         for k, v in map_pred.items():
             ds[k] = xarray.DataArray(v, dims=dims.get(k))
         return xarray.Dataset(ds, coords=coords)
 
-    def get_results(self) -> Results:
-        """Get inference results.
+    # def get_results(self) -> Results:
+    #     """Get inference results.
 
-        Returns:
-            Results: Inference results.
-        """
-        data = self.get_data()
-        circ_var_names = self.get_circ_var_names()
-        return Results(data, units=self.model.units, circ_var_names=circ_var_names)
- 
+    #     Returns:
+    #         Results: Inference results.
+    #     """
+    #     data = self.get_data()
+    #     # circ_var_names = self.get_circ_var_names()
+    #     return Results(data)  #, units=self.model.units, circ_var_names=self.circ_var_names)
+
     def get_data(self) -> az.InferenceData:
         """Get inference data.
 
         Returns:
             arviz.InferenceData: Inference data.
         """
-        trace = self.get_trace(self._model_args, self._model_kwargs)
-        dims, coords = self._get_dims(trace)
-        data = ModifiedNumPyroConverter(posterior=self.mcmc, prior=self.prior_predictive_samples,
-                        posterior_predictive=self.predictive_samples,
-                        coords=coords, dims=dims).to_inference_data()
+        dims, coords = self._get_dims()
+
+        # data = ModifiedNumPyroConverter(posterior=self.mcmc, prior=self.prior_predictive_samples,
+        #                 posterior_predictive=self.predictive_samples,
+        #                 coords=coords, dims=dims).to_inference_data()
         # data = az.from_numpyro(posterior=self.mcmc, prior=self.prior_predictive_samples,
         #                 posterior_predictive=self.predictive_samples, constant_data=constant_data,
         #                 coords=coords, dims=dims)
-        if 'observed_data' not in data:
-            # Check for observed data in trace
-            observed_data = {}
-            for k, site in trace.items():
-                if site.get('is_observed', False):
-                    observed_data[k] = site['value']
-            if len(observed_data) > 0:
-                data.add_group(observed_data=observed_data)
+        observed_data = {'nu': self.nu}
+        constant_data = {'nu_err': np.zeros_like(self.nu) if self.nu_err is None else self.nu_err}
+        data = az.from_dict(posterior=self.samples, 
+                            prior_predictive=self.prior_predictive_samples,
+                            posterior_predictive=self.predictive_samples,
+                            sample_stats=self.sample_stats, 
+                            observed_data=observed_data,
+                            constant_data=constant_data,
+                            dims=dims, coords=coords)
+
+        # Add method info
+        if self.sample_method is not None:
+            data.sample_stats.attrs['method'] = self.sample_method
+        
+        if self.sample_method == 'nested':
+            # The weights are just the logP in sampler stats
+            data.add_groups({'weighted_posterior': self.weighted_samples}, coords=coords, dims=dims)
+
+        circ_var_names = self.get_circ_var_names()
+        # Add unit, symbol and circular attributes to groups
+        for group in data.groups():
+            for key in data[group].keys():
+                sub_key = key
+                if key.endswith('_pred'):
+                    sub_key = key[:-5]
+                else:
+                    sub_key = key
+
+                unit = self.model.units.get(sub_key, u.Unit())
+                sym = self.model.symbols.get(sub_key, '')
+                circ = 1 if sub_key in circ_var_names else 0
+                
+                data[group][key].attrs['unit'] = unit.to_string()
+                data[group][key].attrs['symbol'] = sym
+                data[group][key].attrs['is_circular'] = circ
+            
+        # if 'observed_data' not in data:
+        #     # Check for observed data in trace
+        #     observed_data = {}
+        #     for k, site in trace.items():
+        #         if site.get('is_observed', False):
+        #             observed_data[k] = site['value']
+        #     if len(observed_data) > 0:
+        #         data.add_group(observed_data=observed_data)
         return data
