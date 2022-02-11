@@ -2,8 +2,6 @@
 """
 from __future__ import annotations
 
-import arviz as az
-import numpy as np
 from typing import List, Dict, Optional
 from arviz.data.io_numpyro import NumPyroConverter
 from arviz.data.base import dict_to_dataset

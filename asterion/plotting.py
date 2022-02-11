@@ -11,85 +11,6 @@ from matplotlib.ticker import MaxNLocator
 import astropy.units as u
 import arviz as az
 from arviz.labels import MapLabeller
-
-# def plot_glitch(infer: dict, group='posterior', kind: str='He',
-#                 quantiles: Optional[list]=[.16, .84], 
-#                 ax: plt.Axes=None) -> plt.Axes:
-#     """Plot the glitch.
-
-#     Args:
-#         infer (Inference): Inference class
-#         group (str): One of ['posterior', 'prior'].
-#         kind (str): Kind of glitch to plot. One of ['He', 'CZ'].
-#         quantiles (iterable, optional): Quantiles to plot as confidence
-#             intervals. Defaults to the 68% confidence interval.
-#         ax (matplotlib.axes.Axes): Axis on which to plot the glitch.
-
-#     Returns:
-#         matplotlib.axes.Axes: Axis on which the glitch is plot.
-#     """
-#     if group == 'posterior':
-#         samples = infer.predictive_samples
-#     elif group == 'prior':
-#         samples = infer.prior_predictive_samples
-#     else:
-#         raise ValueError(f"Group '{group}' is not one of ['posterior', 'prior'].")
-
-#     nu = infer.nu
-#     nu_err = infer.nu_err
-#     n = infer.model.n
-#     n_pred = infer.model.n_pred
-    
-#     if ax is None:
-#         ax = plt.gca()
-
-#     kindl = kind.lower()
-    
-#     # Account for case where first dimension is num_chains
-#     shape = samples['nu'].shape
-#     assert len(shape) > 1
-#     num_chains = 1
-#     if len(shape) == 3:
-#         num_chains = shape[0]
-#     new_shape = (num_chains * shape[-2], shape[-1])
-
-#     dnu = samples['dnu_'+kindl].reshape(new_shape)
-
-#     if nu is not None and group != 'prior':
-#         res = nu - samples['nu'].reshape(new_shape)
-#         dnu_obs = dnu + res
-        
-#         # TODO: good way to show model error on dnu_obs here??
-#         ax.errorbar(n, np.median(dnu_obs, axis=0),
-#                     yerr=nu_err, color='C0', marker='o',
-#                     linestyle='none', label='observed')
-    
-#     # TODO: if not pred, then just show the model dnu with errorbars
-#     # according to quantiles
-#     if 'nu_pred' in samples.keys():
-#         shape = samples['nu_pred'].shape
-#         new_shape = (num_chains * shape[-2], shape[-1])
-#         dnu_pred = samples['dnu_'+kindl+'_pred'].reshape(new_shape)
-#         dnu_med = np.median(dnu_pred, axis=0)
-#         ax.plot(n_pred, dnu_med, label='median', color='C1')
-
-#         if quantiles is not None:
-#             dnu_quant = np.quantile(dnu_pred, quantiles, axis=0)
-#             num_quant = len(quantiles)//2
-#             alphas = np.linspace(0.1, 0.5, num_quant*2+1)
-#             for i in range(num_quant):
-#                 delta = quantiles[-i-1] - quantiles[i]
-#                 ax.fill_between(n_pred, dnu_quant[i], dnu_quant[-i-1],
-#                                 color='C1', alpha=alphas[2*i+1],
-#                                 label=f'{delta:.1%} CI')
-    
-#     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-#     ax.set_xlabel(r'$n$')
-#     var = r'$\delta\nu_\mathrm{\,'+kind+r'}$'
-#     unit = f"({infer.model.units[f'dnu_{kindl}'].to_string(format='latex_inline')})"
-#     ax.set_ylabel(' '.join([var, unit]))
-#     ax.legend()
-#     return ax
     
 def plot_glitch(data: az.InferenceData, group='posterior', kind: str='He',
                 quantiles: Optional[list]=[.16, .84], 
@@ -123,14 +44,6 @@ def plot_glitch(data: az.InferenceData, group='posterior', kind: str='He',
         ax = plt.gca()
 
     kindl = kind.lower()
-    
-    # Account for case where first dimension is num_chains
-    # shape = samples['nu'].shan
-    # assert len(shape) > 1
-    # num_chains = 1
-    # if len(shape) == 3:
-        # num_chains = shape[0]
-    # new_shape = (num_chains * shape[-2], shape[-1])
 
     dim = ('chain', 'draw')  # dim over which to take stats
     dnu = predictive['dnu_'+kindl]
@@ -144,10 +57,6 @@ def plot_glitch(data: az.InferenceData, group='posterior', kind: str='He',
                     yerr=nu_err, color='C0', marker='o',
                     linestyle='none', label='observed')
     
-    # TODO: if not pred, then just show the model dnu with errorbars
-    # according to quantiles
-    # shape = samples['nu_pred'].shape
-    # new_shape = (num_chains * shape[-2], shape[-1])
     dnu_pred = predictive['dnu_'+kindl+'_pred']
     dnu_med = dnu_pred.median(dim=dim)
     ax.plot(n_pred, dnu_med, label='median', color='C1')
@@ -166,7 +75,6 @@ def plot_glitch(data: az.InferenceData, group='posterior', kind: str='He',
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     ax.set_xlabel(r'$n$')
     L = [dnu.attrs['symbol']]
-    # var = r'$\delta\nu_\mathrm{\,'+kind+r'}$'
 
     unit = u.Unit(dnu.attrs['unit'])
     if str(unit) != '':

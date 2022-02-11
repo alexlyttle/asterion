@@ -1,37 +1,13 @@
 from __future__ import annotations
 
-import os
-
-import numpy as np
-
-from jax import random
-import json
-import numpyro
-
-from numpyro import handlers as hdl
-from numpyro.infer import MCMC, NUTS, init_to_median, Predictive, SVI
-from numpyro.distributions import constraints
-from numpyro.infer import svi
-from numpyro.contrib.nested_sampling import NestedSampler
-
-from collections import OrderedDict
-
-import arviz as az
-from numpyro.infer.svi import SVIRunResult
-
-from .models import Model
-
-from typing import Optional, Sequence, Dict, Union, List, Tuple
-
-from .io import ModifiedNumPyroConverter
-
-import warnings
 import xarray
-from numpyro.infer.reparam import CircularReparam
-
-from astropy.table import Table
+import numpy as np
+import arviz as az
 import astropy.units as u
 import pandas as pd
+
+from typing import Optional, Sequence, Dict, Union, List, Tuple
+from astropy.table import Table
 
 def _get_dim_vars(data, group: str='posterior') -> Dict[Tuple[str], List[str]]:
     """Get the dimensions and their variable names
@@ -58,6 +34,7 @@ def get_dims(data, group: str='posterior') -> List[Tuple[str]]:
         list: [description]
     """
     # return list(self._dim_vars.keys())
+    
     dim_vars = _get_dim_vars(data, group=group)
     return list(dim_vars.keys())
 

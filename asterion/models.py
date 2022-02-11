@@ -2,33 +2,19 @@
 """
 from __future__ import annotations
 
-import numpy as np
-
-import jax.numpy as jnp
-from jax import random
-
 import numpyro
 import numpyro.distributions as dist
-from numpyro.distributions.distribution import Distribution
-
-from numpyro.primitives import Messenger, plate, apply_stack
-
-from typing import Callable, Optional, Dict
-from .annotations import DistLike
-
-from .gp import GP, SquaredExponential
-
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-
-import warnings
-
+import numpy as np
+import jax.numpy as jnp
 import astropy.units as u
 
 from collections.abc import Iterable
 from numpy.typing import ArrayLike
+from numpyro.primitives import Messenger, apply_stack
+from typing import Callable, Optional, Dict
 
-import arviz as az
+from .annotations import DistLike
+from .gp import GP, SquaredExponential
 
 __all__ = [
     "distribution",

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Callable, Optional, Union
 import numpyro 
 import numpyro.distributions as dist
 import jax 
 import jax.numpy as jnp
 
+from typing import Callable, Optional, Union
 from numpy.typing import ArrayLike
 
 from .kernels import Kernel, WhiteNoise

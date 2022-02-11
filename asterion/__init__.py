@@ -4,11 +4,18 @@ Warning:
     This module is a work-in-progress, use with caution.
 """
 import os
-import numpyro
 
-from ._version import __version__
+PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+import numpyro
 
 numpyro.enable_x64()
 numpyro.set_host_device_count(10)
 
-PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+from ._version import __version__
+from .results import get_dims, get_summary, get_table, get_var_names
+from .inference import Inference
+from .models import (Model, AsyFunction, HeGlitchFunction, CZGlitchFunction, 
+                     GlitchModel)
+from .prior import TauPrior
+from .plotting import plot_corner, plot_glitch, get_labeller

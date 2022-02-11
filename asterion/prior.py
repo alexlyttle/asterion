@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from scipy import rand
+import os
+import jax.numpy as jnp
+
+from jax import random
+
+from . import PACKAGE_DIR
 from .nn import BayesianNN
 from .annotations import DistLike
 from .models import distribution
-from jax import random
-import jax.numpy as jnp
-from numpyro import handlers
-from . import PACKAGE_DIR
-import os
 
 
 class TauPrior:
