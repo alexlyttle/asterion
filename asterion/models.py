@@ -70,8 +70,8 @@ class dimension(Messenger):
 
     def __init__(self, name: str, size: int, coords: Optional[ArrayLike]=None,
                  dim: Optional[ArrayLike]=None):
-        self.name: str = name  #:str: Name of the dimension.
-        self.size: int = size  #:int: Size of the dimension.
+        self.name: str = name
+        self.size: int = size
         self.dim: int = -1 if dim is None else dim
         """:int: Location in which to insert the dimension."""
         
@@ -147,10 +147,14 @@ class Model:
 
     A prior is a model which returns a parameter or function when called and
     has no observed sample sites.
+    
+    Attributes:
+        symbols (dict): Dictionary mapping model variable names to their
+            mathematical symbols.
+        units (dict): Dictionary mapping model variable names to their units.
     """
     units: Dict[str, u.Unit] = {}
     symbols: Dict[str, str] = {}
-    """:dict: Astropy units corresponding to each model parameter."""
 
     def predict(self, *args, **kwargs):
         """Model predictions. By default this calls the model.
@@ -654,6 +658,8 @@ class GlitchModel(Model):
     #     return ax
 
     def predict(self, nu: ArrayLike=None, nu_err: ArrayLike=None):
+        # In some models we may not want to pass nu to make predictions.
+        # The predict method allows for control over this.
         return self(nu=nu, nu_err=nu_err, pred=True)
 
     def __call__(self, nu: ArrayLike=None,

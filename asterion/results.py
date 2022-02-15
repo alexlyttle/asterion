@@ -1,3 +1,6 @@
+"""The results module contains functions for inspecting, summarising, and 
+tabulating inference data.
+"""
 from __future__ import annotations
 
 import xarray
@@ -6,11 +9,11 @@ import arviz as az
 import astropy.units as u
 import pandas as pd
 
-from typing import Optional, Sequence, Dict, Union, List, Tuple
+from typing import Optional, Dict, Union, List, Tuple
 from astropy.table import Table
 
 def _get_dim_vars(data, group: str='posterior') -> Dict[Tuple[str], List[str]]:
-    """Get the dimensions and their variable names
+    """Get the dimensions and their variable names.
     """
     dim_vars = {}
     for k in data[group].data_vars.keys():
@@ -28,10 +31,11 @@ def get_dims(data, group: str='posterior') -> List[Tuple[str]]:
     """Get available dimension groups for a given inference data group.
 
     Args:
+        data (arviz.InferenceData): Inference data object.
         group (str): Inference data group.
 
     Returns:
-        list: [description]
+        list of tuple: [description]
     """
     # return list(self._dim_vars.keys())
     
@@ -43,23 +47,21 @@ def get_var_names(data, group: str='posterior',
     """Get var names for a given group and dimensions.
     
     Args:
+        data (arviz.InferenceData): Inference data object.
         group (str): Inference data group.
-        dims (str, or tuple of str): Dimensions by which to group variables. If 'all', returns
-            variable names for all model dimensions. If a tuple of
-            dimension names, returns variable names in that dimension
+        dims (str, or tuple of str): Dimensions by which to group variables. 
+            If 'all', returns variable names for all model dimensions. If a
+            tuple of dimension names, returns variable names in that dimension
             group.
     
     Returns:
-        list: Variable names for a given group and dimensions.
+        list of str: Variable names for a given group and dimensions.
     """
     if dims == 'all':
         var_names = list(data[group].data_vars.keys())
     else:
         dim_vars = _get_dim_vars(data, group=group)
         var_names = list(dim_vars[dims])
-#             var_names = list(
-#                 set(self.data[group].data_vars.keys()).intersection(set(self._dim_vars[dims]))
-#             )
     return var_names
 
 def _validate_var_names(data, group: str='posterior',
@@ -93,82 +95,96 @@ def get_summary(data, group: str="posterior",
     """Get a summary of the inference data for a chosen group.
 
     Args:
-        group (str): [description]. Defaults to 'posterior'.
-        var_names (list, optional): [description]. Defaults to None (all variable names)
-        **kwargs: Keyword arguments to pass to :func:`az.summary`.
+        data (arviz.InferenceData): Inference data object.
+        group (str, optional): [description]. Defaults to 'posterior'.
+        var_names (list, optional): [description]. Defaults to None (all 
+            variable names)
+        **kwargs: Keyword arguments to pass to :func:`arviz.summary`.
 
     Returns:
         xarray.Dataset, or pandas.DataFrame: Summary of inference data.
+    
+    See Also:
+        :func:`arviz.summary`: The function for which this wraps.
     """
     fmt = kwargs.pop('fmt', 'xarray')
     round_to = kwargs.pop('round_to', 'none')
     stat_funcs = {
+        'mean': np.mean,
+        'sd': lambda x: np.std(x, ddof=1),
         "16th": lambda x: np.quantile(x, .16),
         "50th": np.median,
         "84th": lambda x: np.quantile(x, .84),
     }
-    stat_funcs = kwargs.pop('stat_func', stat_funcs)
+    stat_funcs = kwargs.pop('stat_funcs', stat_funcs)
+    extend = kwargs.pop('extend', False)
     kind = kwargs.pop('kind', 'stats')  # default just stats, no diagnostics
     
     var_names = _validate_var_names(data, group=group, var_names=var_names)
 
     # self.data[group]
-    circ_var_names = [k for k in var_names if data[group][k].attrs.get('is_circular', 0) == 1]
+    circ_var_names = [
+        k for k in var_names if data[group][k].attrs.get('is_circular', 0) == 1
+    ]
     # circ_var_names = [i for i in self.circ_var_names if i in var_names]
     circ_var_names = kwargs.pop(
         'circ_var_names',
         circ_var_names
     )
-    return az.summary(data, group=group, var_names=var_names, fmt=fmt,
-        round_to=round_to, stat_funcs=stat_funcs,
+    summary = az.summary(data, group=group, var_names=var_names, fmt=fmt,
+        round_to=round_to, stat_funcs=stat_funcs, extend=extend,
         circ_var_names=circ_var_names, kind=kind, **kwargs)
+    
+    # Check for duplicated metric names which are a pain to deal with.
+    unique, counts = np.unique(summary.metric, return_counts=True)
+    is_dup = (counts > 1)
+    if is_dup.any():
+        dup = list(unique[is_dup])
+        raise ValueError(f"Metric names {dup} are duplicated.")
+    return summary
 
-def get_table(data, dims: Tuple[str], group: str='posterior',
-                var_names: Optional[List[str]]=None,
-                metrics: Optional[List[str]]=None, fmt: str='pandas',
+def get_table(data, *, dims: Tuple[str], group: str='posterior',
+                var_names: Optional[List[str]]=None, fmt: str='pandas',
                 round_to: Union[str, int]='auto',
                 **kwargs) -> Union[pd.DataFrame, Table]:
-    """[summary]
+    """Get a table of results for parameters in data corresponding to a chosen
+    model dimension. Two-dimensional tables 
 
     Args:
-        dims (tuple of str): [description]
-        group (str, optional): [description]. Defaults to 'posterior'.
-        var_names (list of str, optional): [description]. Defaults to None.
-        metrics (list of str, optional): [description]. Defaults to None.
-        fmt (str, optional): [description]. Defaults to 'pandas'.
-        round_to (str, or int, optional): [description]. Defaults to 'auto'.
+        data (arviz.InferenceData): Inference data object.
+        dims (tuple of str): The parameter dimensions for the table. E.g. pass
+            () to return a table of 0-dimensional parameters in data, or pass 
+            ('n',) for 1-dimensional parameters along dimension 'n'.
+        group (str, optional): Group in data to tabulate. Defaults to 
+            'posterior'.
+        var_names (list of str, optional): Variable names in data to show in
+            table. By default all variables along the chosen dim are shown.
+            Defaults to None.
+        fmt (str, optional): Table format, one of ['pandas', 'astropy']. 
+            Defaults to 'pandas'.
+        round_to (str, or int, optional): Precision of table data. Defaults to 
+            'auto' which chooses the precision for each variable based on the
+            error on the mean.
+        **kwargs: Keyword arguments to pass to :func:`get_summary`.
 
     Returns:
         pandas.DataFrame, or astropy.table.Table]: [description]
     """
 
-    var_names = _validate_var_names(data, group=group, var_names=var_names, dims=dims)
+    var_names = _validate_var_names(data, group=group, var_names=var_names, 
+                                    dims=dims)
     summary = get_summary(data, group=group, var_names=var_names, **kwargs)
-
-    if metrics is None:
-        metrics = ['mean', 'sd', '16th', '50th', '84th']
-
-    # keep_mcse = False
-    # if 'mcse_mean' in metrics:
-    #     keep_mcse = True
-    # else:
-    #     metrics.append('mcse_mean')
-
-#         dim_vars = [i for i in self._dim_vars[dims] if i in var_names]
-    table = summary[var_names].sel({'metric': metrics}).to_dataframe()
+    table = summary[var_names].to_dataframe()
     if round_to == 'auto':
-        # Rounds to the mcse_mean. I.e. if mean_err is in range (0.01, 0.1] then the
-        # metrics are rounded to 2 decimal places
-        # level = None
-        if 'sd' not in metrics:
-            raise ValueError('Automatic rounding requires \'sd\' in \'metrics\'.')
+        # Rounds to the error on the mean. I.e. if mean_err is in range 
+        # (0.01, 0.1] then the metrics are rounded to 2 decimal places
+        if 'sd' not in summary.metric:
+            raise ValueError('Automatic rounding requires the standard ' + \
+                'deviation \'sd\'.')
         mean_err = table.loc['sd'] / np.sqrt(data[group].draw.size)
         precision = np.log10(mean_err).astype(int) - 1
         if isinstance(table.index, pd.MultiIndex):
-            # level = 'metric'
             precision = precision.min()  # Choose min precision = max decimal precision
-        # if not keep_mcse:
-            # table = table.drop(index='mcse_mean', level=level)
         table = table.round(-precision)
 
     elif round_to != 'none':
@@ -176,6 +192,8 @@ def get_table(data, dims: Tuple[str], group: str='posterior',
     
     if fmt == 'astropy':
         # units = {k: v for k, v in self.units.items() if k in var_names}
-        units = {k: u.Unit(data[group][k].attrs.get('unit', '')) for k in var_names}
+        units = {
+            k: u.Unit(data[group][k].attrs.get('unit', '')) for k in var_names
+        }
         table = Table.from_pandas(table.reset_index(), units=units)
     return table

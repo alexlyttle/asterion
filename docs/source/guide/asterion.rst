@@ -21,14 +21,6 @@ asterion.annotations
    :undoc-members:
    :show-inheritance:
 
-asterion.io
-===========
-
-.. automodule:: asterion.io
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 asterion.inference
 ==================
 
@@ -45,3 +37,27 @@ asterion.models
    :undoc-members:
    :show-inheritance:
    :special-members: __call__
+
+asterion.plotting
+==================
+
+.. automodule:: asterion.plotting
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+asterion.prior
+==================
+
+.. automodule:: asterion.prior
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+asterion.results
+==================
+
+.. automodule:: asterion.results
+   :members:
+   :undoc-members:
+   :show-inheritance:

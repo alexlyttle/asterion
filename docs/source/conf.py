@@ -39,7 +39,7 @@ release = __version__
 extensions = [
     'sphinx.ext.autodoc',      # Automatically generate documentation
     'sphinx.ext.napoleon',     # Support for Google-style docstrings
-    'autodocsumm',  # Add nice summaries of classes, methods and attributes
+    # 'autodocsumm',  # Add nice summaries of classes, methods and attributes
     'sphinx.ext.intersphinx',  # Link to external documentation
     'sphinx.ext.viewcode',     # View source code
     'sphinx.ext.mathjax',      # Render math
@@ -92,17 +92,17 @@ html_css_files = [
 
 # -- Autodoc options ---------------------------------------------------------
 
-autodoc_typehints = 'none'  # show type hints in doc body
+autodoc_typehints = 'description'  # show type hints in doc body
 # autodoc_typehints_description_target = 'documented'
 autodoc_inherit_docstrings = True
 autodoc_default_options = {
     # -- autodocsumm options -------------------------------------------------
-    'autosummary': True,  # Add summaries automatically
-    'autosummary-nosignatures': True,
+    # 'autosummary': True,  # Add summaries automatically
+    # 'autosummary-nosignatures': True,
     # 'autosummary-sections': 'Classes ;; Functions ;; Data',
 }
 # autodoc_type_aliases = {
-#     "DistLike": "asterion.annotations.DistLike",
+    # "DistLike": "asterion.annotations.DistLike",
 #     "ArrayLike": "numpy.typing.ArrayLike",
 # }
 
@@ -117,6 +117,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "astropy": ("https://docs.astropy.org/en/stable/", None),
+    "corner": ("https://corner.readthedocs.io/en/stable/", None),
 }
 
 

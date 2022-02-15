@@ -33,6 +33,6 @@ class TauPrior:
         samples = prior.predict(key, x, kind=kind, num_samples=num_samples)
         tau_he = samples['y'][..., 0] - 6  # log mega-seconds
         tau_cz = samples['y'][..., 1] - 6  # log mega-seconds
-        log_tau_he = distribution((tau_he.mean(), tau_he.std()))
-        log_tau_cz = distribution((tau_cz.mean(), tau_cz.std()))
+        log_tau_he = distribution((tau_he.mean(), tau_he.std(ddof=1)))
+        log_tau_cz = distribution((tau_cz.mean(), tau_cz.std(ddof=1)))
         return log_tau_he, log_tau_cz
