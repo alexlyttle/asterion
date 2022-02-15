@@ -1,5 +1,6 @@
 numpy
 matplotlib
+corner
 arviz
 astropy
 h5py
