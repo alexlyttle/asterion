@@ -92,15 +92,16 @@ html_css_files = [
 
 # -- Autodoc options ---------------------------------------------------------
 
-autodoc_typehints = 'description'  # show type hints in doc body
+autodoc_typehints = 'description'  # show type hints in doc body when not 
+                                   # specified in docstrings
 # autodoc_typehints_description_target = 'documented'
 autodoc_inherit_docstrings = True
-autodoc_default_options = {
+# autodoc_default_options = {
     # -- autodocsumm options -------------------------------------------------
     # 'autosummary': True,  # Add summaries automatically
     # 'autosummary-nosignatures': True,
     # 'autosummary-sections': 'Classes ;; Functions ;; Data',
-}
+# }
 # autodoc_type_aliases = {
     # "DistLike": "asterion.annotations.DistLike",
 #     "ArrayLike": "numpy.typing.ArrayLike",
@@ -125,7 +126,7 @@ intersphinx_mapping = {
 
 # napoleon_type_aliases = {}
 # napoleon_preprocess_types = True
-
+# napoleon_attr_annotations = True
 
 # -- NBSphinx options --------------------------------------------------------
 
