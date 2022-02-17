@@ -71,7 +71,7 @@ def plot_glitch(data: az.InferenceData, group='posterior', kind: str='He',
 
     # Fill quantiles with alpha decreasing away from the median
     dnu_quant = dnu_pred.quantile(quantiles, dim=dim)
-    num_quant = len(quantiles)
+    num_quant = len(quantiles)//2
     alphas = np.linspace(0.1, 0.5, num_quant*2+1)
     for i in range(num_quant):
         delta = quantiles[-i-1] - quantiles[i]
