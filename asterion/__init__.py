@@ -8,9 +8,7 @@ import os
 PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 import numpyro
-
 numpyro.enable_x64()
-numpyro.set_host_device_count(10)
 
 from ._version import __version__
 from .priors import TauPrior, AsyFunction, HeGlitchFunction, CZGlitchFunction
