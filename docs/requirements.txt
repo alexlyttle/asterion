@@ -1,5 +1,4 @@
 furo
 ipykernel
 nbsphinx
-autodocsumm
 sphinx-inline-tabs

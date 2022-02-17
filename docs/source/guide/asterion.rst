@@ -46,10 +46,10 @@ asterion.plotting
    :undoc-members:
    :show-inheritance:
 
-asterion.prior
+asterion.priors
 ==================
 
-.. automodule:: asterion.prior
+.. automodule:: asterion.priors
    :members:
    :undoc-members:
    :show-inheritance:
