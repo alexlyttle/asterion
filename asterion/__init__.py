@@ -13,9 +13,8 @@ numpyro.enable_x64()
 numpyro.set_host_device_count(10)
 
 from ._version import __version__
-from .results import get_dims, get_summary, get_table, get_var_names
+from .priors import TauPrior, AsyFunction, HeGlitchFunction, CZGlitchFunction
+from .models import Model, GlitchModel
 from .inference import Inference
-from .models import (Model, AsyFunction, HeGlitchFunction, CZGlitchFunction, 
-                     GlitchModel)
-from .prior import TauPrior
 from .plotting import plot_corner, plot_glitch, get_labeller
+from .results import get_dims, get_summary, get_table, get_var_names
