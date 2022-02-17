@@ -23,7 +23,7 @@ from .models import Model
 
 from typing import Optional, Sequence, Dict, Union, List, Tuple
 
-import warnings
+import warnings, time
 import xarray
 
 import astropy.units as u
@@ -93,7 +93,9 @@ class Inference:
         # self.ns: Optional[NestedSampler] = None
 
         self.sample_metadata = {}
-        
+        self._support_warnings()
+
+    def _support_warnings(self):
         # Catch circular-like parameters
         trace = self.get_trace()
         for _, value in trace.items():
@@ -101,12 +103,13 @@ class Inference:
                 if value['fn'].support == constraints.circular and \
                     value['fn'].support is not constraints.circular:
                     # Catches parameters with circular-like support
-                    warnings.warn(f"Parameter \'{value['name']}\' has circular-like " + \
-                        'support but the distribution is not circular. Consider ' + \
-                        'changing its distribution to numpyro.distributions.VonMises ' + \
-                        'for better performance during MCMC.')
-
-
+                    warnings.warn(f"Parameter \'{value['name']}\' has " +
+                        'circular-like support but the distribution is ' +
+                        'not circular. Consider changing its distribution ' +
+                        'to numpyro.distributions.VonMises for better ' +
+                        'performance during MCMC. Ignore this message if ' + 
+                        'using nested sampling (default behaviour).')
+ 
     def _get_dims(self):
         coords = {}
         dims = {}
@@ -122,11 +125,11 @@ class Inference:
         """[summary]
 
         Args:
-            model_args (tuple): [description]. Defaults to ().
-            model_kwargs (dict): [description]. Defaults to {}.
+            pred (bool, optional): Whether to trace the predictive model or
+                not. Default is False.
 
         Returns:
-            OrderedDict: [description]
+            OrderedDict: Model trace.
         """
         rng_key, self._rng_key = random.split(self._rng_key)
         if pred:
@@ -161,16 +164,18 @@ class Inference:
         return var_names
     
     def _auto_reparam(self) -> numpyro.handlers.reparam:
+        """Automatically reparameterise circular parameters."""
         return hdl.reparam(config={k: CircularReparam() for k in self.get_circ_var_names()})
 
     def _init_handlers(self, handlers: list,
                        reparam: Union[str, hdl.reparam]='auto') -> list:
+        """Initialise handlers with/without reparameterisation."""
         # handlers = handlers.copy()
         if handlers is None:
             handlers = []
         if reparam == 'auto':
             handlers.append(self._auto_reparam())
-        elif reparam == 'none':
+        elif reparam == 'none' or reparam is None:
             pass
         else:
             handlers.append(reparam)
@@ -221,6 +226,7 @@ class Inference:
     #     return sampler
 
     def _expand_batch_dims(self, samples):
+        """Expand the batch dimensions of samples (add leading dimension)."""
         new_samples = {}
         for k, v in samples.items():
             # Hack because InferenceData assumes a chains dimension.
@@ -356,7 +362,14 @@ class Inference:
                    **kwargs)
         
         key1, key2, self._rng_key = random.split(self._rng_key, 3)
+        print(f'Running nested sampling using the \'{sampler}\' sampler ' + 
+              f'with {num_live_points} live points ' +
+              f'and {max_samples} maximum samples...')
+        start_time = time.time()
         nested_sampler.run(key1, nu=self.nu, nu_err=self.nu_err)
+        end_time = time.time()
+        print(f'Completed in {end_time - start_time:.1f} seconds.')
+
         samples = nested_sampler.get_samples(key2, num_samples)
         weighted_samples = nested_sampler.get_weighted_samples()[0]
 
@@ -487,17 +500,19 @@ class Inference:
         num_samples = kwargs.pop("num_samples", None)
         batch_ndims = kwargs.pop("batch_ndims", 2)
         return_sites = kwargs.pop("return_sites", None)
-        # if return_sites is None:
-        #     trace = self.get_trace()
-        #     return_sites = []
-        #     for k, site in trace.items():
-        #         # Only return non-observed sample sites not in samples and
-        #         # all deterministic sites.
-        #         if (site["type"] == "sample"):
-        #             if not site["is_observed"] and k not in posterior_samples:
-        #                 return_sites.append(k)
-        #         elif (site["type"] == "deterministic"):
-        #             return_sites.append(k)
+        
+        posterior = {} if posterior_samples is None else posterior_samples
+        if return_sites is None:
+            trace = self.get_trace(pred=True)
+            return_sites = []
+            for k, site in trace.items():
+                # Only return non-observed sample sites not in samples and
+                # all deterministic sites.
+                if (site["type"] == "sample"):
+                    if not site["is_observed"] and k not in posterior:
+                        return_sites.append(k)
+                elif (site["type"] == "deterministic"):
+                    return_sites.append(k)
 
         predictive = Predictive(self.model.predict, 
                                 posterior_samples=posterior_samples, 
