@@ -11,31 +11,46 @@
     :target: https://github.com/alexlyttle/asterion/blob/main/LICENSE
     :alt: License
 
+.. asterion_label
 ########
 Asterion
 ########
 
-Warning: This package is an early build, use with caution!
+Fit acoustic glitches present in the radial mode frequencies of solar-like oscillators.
 
-Fit the asteroseismic helium-II ionisation zone glitch present in the mode frequencies of solar-like oscillators.
+.. warning::
+    
+    This package is in early development, expect frequent changes to functionality!
+
+Do you have some asteroseismic mode frequencies for a particular star? Do you want to fit a model to those modes?
+You need not look any further because this is the Python package for you. With this package you can fit a model
+of the glitch in mode frequencies caused by the helium-II ionisation zone and base of the convective zone in the
+stellar envelope. This model yields posterior estimates for the amplitudes of these glitches, which you can 
+use to study surface helium content [references].
 
 .. installation_label
 Installation
 ============
 
-This module is actively being developed. To install the latest build, run the following command,
+To install, run one of the following.
+
+Latest
+------
 
 .. code-block:: shell
 
     pip install git+https://github.com/alexlyttle/asterion@main#egg=asterion
 
-An official release on PyPI for this package will be coming soon.
+Stable
+------
+
+An official release on PyPI for this package is coming soon...
 
 .. getting_started_label
 Getting started
 ===============
 
-Asterion is built to fit acoustic glitches in the asterosesimic mode frequencies of solar-like oscillators. Before you start, make sure you have all of the required inputs and any of the optional inputs.
+Before you start, make sure you have all of the required inputs and any of the optional inputs.
 
 Required Inputs
 ---------------
@@ -139,111 +154,16 @@ Contributing
 ============
 
 If you find an issue with this package, please `search for or raise it on GitHub <https://github.com/alexlyttle/asterion/issues>`_.
-If you would like to contribute to the package, please find an issue and let us know in the comments.
+If you would like to contribute to the package, please find an issue and let us know in the comments, or fork the repository and make a pull request. 
 
-#. To start making changes, fork the repository using the link in the top-right of our `GitHub page <https://github.com/alexlyttle/asterion>`_.
+.. contributing_end_label
 
-#. Then, clone your fork,
+Detailed guidance on contributing to Asterion can be found `here <https://asterion.readthedocs.io/en/latest/dev/contributing.html>`_.
 
-   .. code-block:: shell
+.. authors_label
+Authors and license
+===================
 
-       git clone https://github.com/<your-username>/asterion.git
-       cd asterion
+Copyright © 2022, Alexander Lyttle @ University of Birmingham
 
-#. We recommend setting up a virtual python environment to use while developing ``asterion``. For example,
-
-   .. code-block:: shell
-
-       mkdir ~/.venvs
-       python -m venv ~/.venvs/asterion
-
-   To activate the environment and work on the package,
-
-   .. code-block:: shell
-
-       source ~/.venvs/asterion/bin/activate
-
-   When you have finished working, deactivate the environment with the command ``deactivate``.
-
-#. Install the package (activate the virtual environment first if applicable),
-
-   .. code-block:: shell
-
-       pip install -e .
-
-#. Add the main repository to your git environment,
-
-   .. code-block:: shell
-
-       git remote add upstream https://github.com/alexlyttle/asterion.git
-       git remote -v
-
-   The output should look like this,
-
-   .. code-block::
-
-       origin      https://github.com/<your-username>/asterion.git (fetch)
-       origin      https://github.com/<your-username>/asterion.git (push)
-       upstream    https://github.com/alexlyttle/asterion.git (fetch)
-       upstream    https://github.com/alexlyttle/asterion.git (push)
-
-#. Create a branch to work on your changes. Pull the latest version of the source code,
-
-   .. code-block:: shell
-
-       git checkout main
-       git pull upstream main
-   
-   Then, create your branch,
-
-   .. code-block:: shell
-
-       git checkout -b <branch-name> 
-
-#. Before adding your changes, run the unit tests (coming soon)...
-
-#. Add and commit your changes. Please be specific in the commit message,
-
-   .. code-block:: shell
-
-       git add <added-or-modified-file>
-       git commit -m "<description of your changes>"
-
-#. Push changes to GitHub and open a pull request (you may open it as a draft if you are not ready for review),
-
-   .. code-block:: shell
-
-       git push origin <branch-name>
-   
-   Then, go `here <https://github.com/alexlyttle/asterion>`_ and click on the button "Compare and open a pull request" to submit your changes.
-
-Tests
------
-
-Unit tests are coming soon.
-
-Documentation
--------------
-
-To modify and update the documentation you need to install the package with the ``docs`` option:
-
-.. code-block:: shell
-
-    pip install -e '.[docs]'
-
-Once you have made changes to documentation, run the following commands to update the HTML documentation and check that the docs compile locally:
-
-.. code-block:: shell
-
-    cd docs
-    make clean
-    make html
-
-**Optional**: If you have added a submodule or subpackage to ``asterion``, run the following command in the main project directory to update the API documentation:
-
-.. code-block:: shell
-
-    sphinx-apidoc -f -M -H "API reference" --tocfile api -t docs/source/_templates -o docs/source/guide asterion
-
-This recursively searches ``asterion`` and generates a subsection for each submodule and subpackage. Then, build the docs to check it compiles locally.
-
+Licensed under the `MIT license <https://github.com/alexlyttle/asterion/blob/main/LICENSE>`_

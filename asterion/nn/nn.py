@@ -1,3 +1,4 @@
+"""Bayesian neural networks."""
 from __future__ import annotations
 
 import numpyro, h5py

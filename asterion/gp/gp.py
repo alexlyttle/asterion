@@ -1,3 +1,4 @@
+"""Gaussian processes."""
 from __future__ import annotations
 
 import numpyro 
@@ -124,14 +125,14 @@ class GP:
 
             import numpyro
             import numpyro.distributions as dist
-            from asterion.gp import GP, SquaredExponential
+            from asterion.gp import GP, kernels
 
             def model(x, x_pred=None, y=None):
                 var = numpyro.sample('var', dist.HalfNormal(1.0))
                 length = numpyro.sample('length', dist.Normal(100.0, 1.0))
                 noise = numpyro.sample('noise', dist.HalfNormal(0.1))
 
-                kernel = SquaredExponential(var, length)
+                kernel = kernels.SquaredExponential(var, length)
                 gp = GP(kernel)
                 gp.sample('y', x, noise=noise, obs=y)
 

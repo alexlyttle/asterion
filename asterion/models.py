@@ -13,8 +13,10 @@ from numpy.typing import ArrayLike
 from typing import Callable, Optional, Dict
 
 from .annotations import DistLike
-from .gp import GP, SquaredExponential
-from .priors import AsyFunction, CZGlitchFunction, HeGlitchFunction, TauPrior, distribution, Prior, ZerosFunction
+from .gp import GP
+from .gp.kernels import SquaredExponential
+from .priors import (AsyFunction, CZGlitchFunction, HeGlitchFunction, TauPrior, 
+                     distribution, Prior, ZerosFunction)
 from .messengers import dimension
 
 __all__ = [
@@ -122,23 +124,15 @@ class GlitchModel(Model):
         #     contribution to the modes from the glitch due to the base of the
         #     convection zone.
             
-        background = AsyFunction(delta_nu, epsilon=epsilon)
+        self.background: Prior = AsyFunction(delta_nu, epsilon=epsilon)
         
         key = random.PRNGKey(seed)
         prior = TauPrior(nu_max, teff)
         log_tau_he, log_tau_cz = prior.condition(key, kind='optimized', 
                                                  num_samples=1000)
         
-        he_glitch = HeGlitchFunction(nu_max, log_tau=log_tau_he)
-        cz_glitch = CZGlitchFunction(nu_max, log_tau=log_tau_cz)
-        
-        self.background: Model = background
-        # if he_glitch is None:
-        #     he_glitch = ZerosFunction()
-        # if cz_glitch is None:
-        #     cz_glitch = ZerosFunction()
-        self.he_glitch: Model = he_glitch
-        self.cz_glitch: Model = cz_glitch
+        self.he_glitch: Prior = HeGlitchFunction(nu_max, log_tau=log_tau_he)
+        self.cz_glitch: Prior = CZGlitchFunction(nu_max, log_tau=log_tau_cz)
 
         self._nu_max = distribution(nu_max)
         
@@ -171,6 +165,7 @@ class GlitchModel(Model):
             self.units.update(prior.units)
             self.symbols.update(prior.symbols)
 
+        self._kernel_var = 0.1 * self.background.delta_nu.mean
         # super().__init__(symbols=symbols, units=units)
         # self._init_arguments(n, nu_max, delta_nu, teff=teff, epsilon=epsilon,
         #                      num_pred=num_pred, seed=seed)
@@ -210,8 +205,8 @@ class GlitchModel(Model):
             nu_bkg = bkg_func(n)
             return nu_bkg + he_glitch_func(nu_bkg) + cz_glitch_func(nu_bkg)
 
-        var = numpyro.param('kernel_var', 10.0)
-        length = numpyro.param('kernel_length', 4.0)
+        var = numpyro.param('kernel_var', self._kernel_var)
+        length = numpyro.param('kernel_length', 5.0)
 
         # noise = numpyro.sample('noise', dist.HalfNormal(0.1))
         # if nu_err is not None:

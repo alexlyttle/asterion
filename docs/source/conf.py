@@ -40,11 +40,14 @@ extensions = [
     'sphinx.ext.autodoc',      # Automatically generate documentation
     'sphinx.ext.napoleon',     # Support for Google-style docstrings
     # 'autodocsumm',  # Add nice summaries of classes, methods and attributes
+    'autoapi.extension',
+    # 'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',  # Link to external documentation
     'sphinx.ext.viewcode',     # View source code
     'sphinx.ext.mathjax',      # Render math
     'nbsphinx',                # Generate notebooks
-    'sphinx_inline_tabs',      # Inline tabs (introduces .. tab:: domain)
+    # 'sphinx_inline_tabs',      # Inline tabs (introduces .. tab:: domain)
+    'sphinx_search.extension',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -106,7 +109,7 @@ autodoc_inherit_docstrings = True
     # "DistLike": "asterion.annotations.DistLike",
 #     "ArrayLike": "numpy.typing.ArrayLike",
 # }
-
+# autosummary_generate = True
 
 # -- InterSphinx options -----------------------------------------------------
 
@@ -131,3 +134,11 @@ intersphinx_mapping = {
 # -- NBSphinx options --------------------------------------------------------
 
 nbsphinx_execute = "never"
+
+
+# -- AutoAPI options ---------------------------------------------------------
+
+autoapi_dirs = ['../../asterion']
+autoapi_root = 'guide/api'
+autoapi_options = ['members', 'show-inheritance', 'imported-members']
+autoapi_member_order = 'groupwise'
