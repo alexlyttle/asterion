@@ -26,6 +26,9 @@ with open('requirements.txt') as file:
 with open('docs/requirements.txt') as file:
     docs_require = file.read().splitlines()
 
+with open('tests/requirements.txt') as file:
+    tests_require = file.read().splitlines()
+
 setuptools.setup(
     name=name,
     version=__version__,
@@ -37,6 +40,7 @@ setuptools.setup(
     install_requires=install_requires,
     extras_require={
         'docs': docs_require,
+        'tests': tests_require,
     },
     package_data={
         '': ['*.hdf5'],
