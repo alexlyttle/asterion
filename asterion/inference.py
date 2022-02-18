@@ -340,9 +340,10 @@ class Inference:
         Returns:
             numpyro.contrib.nested_sampling.NestedSampler: [description]
         """
+        depth = kwargs.pop('depth', 7)
         return NestedSampler(model, num_live_points=num_live_points,
                              max_samples=max_samples, sampler_name=sampler, 
-                             **kwargs)
+                             depth=depth, **kwargs)
     
     def run_nested(self, model: Model, num_live_points: int=100, num_samples: int=1000,
                    max_samples: int=100000, sampler: str="multi_ellipsoid",
