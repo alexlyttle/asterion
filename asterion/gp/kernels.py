@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import jax.numpy as jnp
+from numpy.typing import ArrayLike
 
 __all__ = [
     'Kernel',
@@ -51,12 +52,13 @@ class WhiteNoise(Kernel):
     Args:
         scale (float, or :term:`array_like`): The scale of the white noise 
             (:math:`\sigma`).
+    
+    Attributes:
+        scale (jaxlib.xla_extension.DeviceArray): The scale of the white noise.
+        
     """
     def __init__(self, scale):
-        self.scale = jnp.array(scale)
-        # self.heteroscedastic = (self.scale.shape != ())
-        self.heteroscedastic = False  # TODO no need for this.
-        # assert len(self.scale.shape) < 2
+        self.scale: ArrayLike = jnp.array(scale)
 
     def __call__(self, x, xp=None):
         """Returns the white noise covariance matrix.
@@ -73,13 +75,8 @@ class WhiteNoise(Kernel):
         Returns:
             jax.numpy.ndarray: Covariance matrix.
         """
-#         cov = jnp.zeros((x.shape[0], xp.shape[0]))
         if x is xp or xp is None:
-#             jnp.fill_diagonal(cov, self.scale**2)
-            if self.heteroscedastic and x.shape[0] != self.scale.shape[0]:
-                raise ValueError(f"Inputs must have shape {self.scale.shape}")
             return self.scale**2 * jnp.eye(x.shape[0])
-        
         return jnp.zeros((x.shape[0], xp.shape[0]))
 
 
@@ -91,12 +88,18 @@ class SquaredExponential(Kernel):
         k(x_i, x_j) = \sigma^2 \exp\left[ \frac{(x_j - x_i)^2}{2 \lambda^2} \right]
     
     Args:
-        var (float): Variance (or amplitude, :math:`\sigma^2`) of the kernel.
-        length (float): Length-scale (:math:`\lambda`) of the kernel.
+        var (:term:`array_like`): Variance (or amplitude, :math:`\sigma^2`) of
+            the kernel.
+        length (:term:`array_like`): Length-scale (:math:`\lambda`) of the
+            kernel.
+    
+    Attributes:
+        var (:term:`array_like`): Variance of the kernel.
+        length (:term:`array_like`): Length-scale of hte kernel.
     """
     def __init__(self, var, length):
-        self.var = var
-        self.length = length
+        self.var: ArrayLike = var
+        self.length: ArrayLike = length
 
     def __call__(self, x, xp):
         """Returns the squared exponential covariance matrix.
