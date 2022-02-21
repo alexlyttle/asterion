@@ -39,3 +39,10 @@ Contents
 
 .. include:: ../../README.rst
    :start-after: .. authors_label
+
+Acknowledgements
+----------------
+
+* Fonts
+   * Regular - Atkinson Hyperlegible, a font built with accessibility in mind
+   * Monospace - Custom build of Iosevka inspired by `The Darnedest Thing <http://thedarnedestthing.com/hyperlegible%20dyslexic>`_
