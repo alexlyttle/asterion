@@ -61,12 +61,13 @@ exclude_patterns = []
 # Don't prepend module names to functions
 add_module_names = False
 
+# Suppress these warnings
+suppress_warnings = ["autoapi.python_import_resolution"]
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
 html_theme = 'furo'
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -81,7 +82,9 @@ html_theme_options = {
     "dark_logo": "images/asterion-white624x328.png",
     "sidebar_hide_name": True,
     "light_css_variables": {
+        # Legible font for better accessibility
         "font-stack": "Atkinson Hyperlegible, sans-serif",
+        "font-stack--monospace": "Iosevka Hyperlegible Web, monospace",
     },
 }
 
