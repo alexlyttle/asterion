@@ -37,10 +37,10 @@ release = __version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'autoapi.extension',
     'sphinx.ext.autodoc',      # Automatically generate documentation
     'sphinx.ext.napoleon',     # Support for Google-style docstrings
     # 'autodocsumm',  # Add nice summaries of classes, methods and attributes
-    'autoapi.extension',
     # 'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',  # Link to external documentation
     'sphinx.ext.viewcode',     # View source code
@@ -63,6 +63,7 @@ add_module_names = False
 
 # Suppress these warnings
 suppress_warnings = ["autoapi.python_import_resolution"]
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -98,7 +99,7 @@ html_css_files = [
 
 # -- Autodoc options ---------------------------------------------------------
 
-autodoc_typehints = 'description'  # show type hints in doc body when not 
+autodoc_typehints = 'none'  # show type hints in doc body when not 
                                    # specified in docstrings
 # autodoc_typehints_description_target = 'documented'
 autodoc_inherit_docstrings = True
@@ -113,6 +114,8 @@ autodoc_inherit_docstrings = True
 #     "ArrayLike": "numpy.typing.ArrayLike",
 # }
 # autosummary_generate = True
+autodoc_typehints_format = 'short'
+
 
 # -- InterSphinx options -----------------------------------------------------
 
@@ -125,6 +128,8 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "astropy": ("https://docs.astropy.org/en/stable/", None),
     "corner": ("https://corner.readthedocs.io/en/stable/", None),
+    "xarray": ("https://xarray.pydata.org/en/stable/", None),
+    "pandas": ("https://pandas.pydata.org/docs/dev/", None),
 }
 
 
@@ -133,6 +138,8 @@ intersphinx_mapping = {
 # napoleon_type_aliases = {}
 # napoleon_preprocess_types = True
 # napoleon_attr_annotations = True
+napoleon_numpy_docstring = False
+
 
 # -- NBSphinx options --------------------------------------------------------
 
