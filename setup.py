@@ -1,9 +1,12 @@
 import setuptools
+from ast import literal_eval
 
 name = 'asterion'
 
-__version__ = None
-exec(open(f'{name}/_version.py').read())
+with open(f'{name}/version.py') as file:
+    # Assuming version.py follows format __version__ = '<version_string>'
+    line = file.readline().strip()
+    version = literal_eval(line.split(' = ')[1])
 
 description = 'Fits the asteroseismic helium-II ionisation zone glitch ' + \
               'present in the mode frequencies of solar-like oscillators.'
@@ -12,7 +15,7 @@ packages = setuptools.find_packages(include=[name, f'{name}.*'])
 
 author = 'Alex Lyttle'
 
-url = 'https://github.com/alexlyttle/helium-glitch-fitter'
+url = 'https://github.com/alexlyttle/asterion'
 
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -31,7 +34,7 @@ with open('tests/requirements.txt') as file:
 
 setuptools.setup(
     name=name,
-    version=__version__,
+    version=version,
     description=description,
     packages=packages,
     author=author,
@@ -46,6 +49,6 @@ setuptools.setup(
         '': ['*.hdf5'],
     },
     include_package_data=True,
-    python_requires='>=3.6',
+    python_requires='>=3.8',
     licence='MIT',
 )
