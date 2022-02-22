@@ -3,18 +3,24 @@ tabulating inference data.
 """
 from __future__ import annotations
 
-import xarray
-import numpy as np
 import arviz as az
 import astropy.units as u
+import numpy as np
 import pandas as pd
+import xarray
 
-from typing import Optional, Dict, Union, List, Tuple
 from astropy.table import Table
+from typing import Optional, Dict, Union, List, Tuple
+
+__all__ = [
+    'get_dims',
+    'get_var_names',
+    'get_summary',
+    'get_table',
+]
 
 def _get_dim_vars(data, group: str='posterior') -> Dict[Tuple[str], List[str]]:
-    """Get the dimensions and their variable names.
-    """
+    """Get the dimensions and their variable names."""
     dim_vars = {}
     for k in data[group].data_vars.keys():
         ns = 2  # Don't count chains and draws
@@ -35,7 +41,7 @@ def get_dims(data, group: str='posterior') -> List[Tuple[str]]:
         group (str): Inference data group.
 
     Returns:
-        list of tuple: [description]
+        list[tuple]: [description]
     """
     # return list(self._dim_vars.keys())
     
@@ -49,13 +55,13 @@ def get_var_names(data, group: str='posterior',
     Args:
         data (arviz.InferenceData): Inference data object.
         group (str): Inference data group.
-        dims (str, or tuple of str): Dimensions by which to group variables. 
+        dims (str, or tuple[str]): Dimensions by which to group variables. 
             If 'all', returns variable names for all model dimensions. If a
             tuple of dimension names, returns variable names in that dimension
             group.
     
     Returns:
-        list of str: Variable names for a given group and dimensions.
+        list[str]: Variable names for a given group and dimensions.
     """
     if dims == 'all':
         var_names = list(data[group].data_vars.keys())
@@ -96,7 +102,7 @@ def get_summary(data, group: str="posterior",
 
     Args:
         data (arviz.InferenceData): Inference data object.
-        group (str, optional): [description]. Defaults to 'posterior'.
+        group (str): [description]. Defaults to 'posterior'.
         var_names (list, optional): [description]. Defaults to None (all 
             variable names)
         **kwargs: Keyword arguments to pass to :func:`arviz.summary`.
@@ -152,17 +158,17 @@ def get_table(data, *, dims: Tuple[str], group: str='posterior',
 
     Args:
         data (arviz.InferenceData): Inference data object.
-        dims (tuple of str): The parameter dimensions for the table. E.g. pass
+        dims (tuple[str]): The parameter dimensions for the table. E.g. pass
             () to return a table of 0-dimensional parameters in data, or pass 
             ('n',) for 1-dimensional parameters along dimension 'n'.
-        group (str, optional): Group in data to tabulate. Defaults to 
+        group (str): Group in data to tabulate. Defaults to 
             'posterior'.
-        var_names (list of str, optional): Variable names in data to show in
+        var_names (list[str], optional): Variable names in data to show in
             table. By default all variables along the chosen dim are shown.
             Defaults to None.
-        fmt (str, optional): Table format, one of ['pandas', 'astropy']. 
+        fmt (str): Table format, one of ['pandas', 'astropy']. 
             Defaults to 'pandas'.
-        round_to (str, or int, optional): Precision of table data. Defaults to 
+        round_to (str, or int): Precision of table data. Defaults to 
             'auto' which chooses the precision for each variable based on the
             error on the mean.
         **kwargs: Keyword arguments to pass to :func:`get_summary`.

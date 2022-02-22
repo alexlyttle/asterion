@@ -1,23 +1,22 @@
 """Probabilistic models for asteroseismic oscillation mode frequencies.
 """
 from __future__ import annotations
-from jax import random
 
 import numpyro
-import numpyro.distributions as dist
 import numpy as np
 import astropy.units as u
 
-from collections.abc import Iterable
 from numpy.typing import ArrayLike
-from typing import Callable, Optional, Dict
+from typing import Optional
+from jax import random
 
 from .annotations import DistLike
 from .gp import GP
 from .gp.kernels import SquaredExponential
 from .priors import (AsyFunction, CZGlitchFunction, HeGlitchFunction, TauPrior, 
-                     distribution, Prior, ZerosFunction)
+                     Prior)
 from .messengers import dimension
+from .utils import distribution
 
 __all__ = [
     "Model",
@@ -83,7 +82,7 @@ class GlitchModel(Model):
             If None (default), a prior of Normal(5000, 700) is assumed.
         epsilon (:term:`dist_like`, optional): Prior on the asymptotic phase
             parameter.
-        num_pred (int, optional): The number of points in radial order for
+        num_pred (int): The number of points in radial order for
             which to make predictions.
 
     Attributes:
@@ -123,7 +122,7 @@ class GlitchModel(Model):
         #     called, returns a function :math:`f_\mathrm{He}` describing the
         #     contribution to the modes from the glitch due to the base of the
         #     convection zone.
-            
+
         self.background: Prior = AsyFunction(delta_nu, epsilon=epsilon)
         
         key = random.PRNGKey(seed)
@@ -174,7 +173,7 @@ class GlitchModel(Model):
         # In some models we may not want to pass nu to make predictions.
         # The predict method allows for control over this.
         return self(nu=nu, nu_err=nu_err, pred=True)
-
+        
     def __call__(self, nu: ArrayLike=None,
                  nu_err: ArrayLike=None, pred: bool=False):
         """Sample the model for given observables.

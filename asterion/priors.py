@@ -11,14 +11,11 @@ import astropy.units as u
 from jax import random
 from typing import Callable, Dict, Iterable, Optional
 from numpy.typing import ArrayLike
-from pprint import pformat
 
-from . import PACKAGE_DIR
+from .utils import PACKAGE_DIR, distribution
 from .nn import BayesianNN
-from .annotations import DistLike
 
 __all__ = [
-    "distribution",
     "Prior",
     "ZerosFunction",
     "AsyFunction",
@@ -26,32 +23,6 @@ __all__ = [
     "CZGlitchFunction",
     "TauPrior",
 ]
-
-def distribution(
-    value: DistLike,
-    default_dist: Optional[dist.Distribution]=None,
-) -> dist.Distribution:
-    """Return a numpyro distribition.
-
-    If value is not a distribution, this returns the default distribution,
-    unpacking value as its arguments.
-
-    Args:
-        value (:term:`dist_like`): Iterable of args to pass to default_dist, 
-            or a Distribution.
-        default_dist (numpyro.distributions.distribution.Distribution, \
-optional): Default distribution. Defaults to dist.Normal if None.
-
-    Returns:
-        numpyro.distributions.distribution.Distribution: [description]
-    """
-    if default_dist is None:
-        default_dist = dist.Normal
-    if not isinstance(value, dist.Distribution):
-        if not isinstance(value, Iterable):
-            value = (value,)
-        value = default_dist(*value)
-    return value
 
 
 class Prior:
@@ -61,11 +32,9 @@ class Prior:
     has no observed sample sites.
     
     Args:
-        symbols (dict, optional): Dictionary mapping model variable names to 
-            their mathematical symbols.
-        units (dict, optional): Dictionary mapping model variable names to
-            their units.
- 
+        *args: Positional arguments to display in the object representation.
+        **kwargs: Keyword arguments to display in the object representation.
+
     Attributes:
         symbols (dict): Dictionary mapping model variable names to their
             mathematical symbols.
@@ -128,10 +97,11 @@ class AsyFunction(Prior):
     Args:
         delta_nu (:term:`dist_like`): Prior for the large frequency separation
             :math:`\\Delta\\nu`. Pass either the arguments of
-            :class:`dist.Normal` or a :class:`dist.Distribution`.
+            :class:`dist.Normal`, or a :class:`dist.Distribution`.
         epsilon (:term:`dist_like`): Prior for the phase term
-            :math:`\\epsilon`. Pass either the arguments of :class:`dist.Gamma`
-            or a :class:`dist.Distribution`. Defaults to :code:`(14., 10.)`.
+            :math:`\\epsilon`. Pass either the arguments of
+            :class:`dist.LogNormal`, or a :class:`dist.Distribution`. Defaults
+            to :code:`(np.log(1.4), 0.4)`.
     
     Attributes:
         delta_nu (numpyro.distributions.distribution.Distribution): The
@@ -185,7 +155,7 @@ class _GlitchFunction(Prior):
     Args:
         log_tau (:term:`dist_like`): The prior for the acoustic depth of the
             glitch, :math:`\\tau`. Pass either the arguments of
-            :class:`dist.Normal` or a :class:`dist.Distribution`.
+            :class:`dist.Normal`, or a :class:`dist.Distribution`.
         phi (:term:`dist_like`): The prior for the phase of the glitch,
             :math:`\\phi`. Pass either the arguments of :class:`dist.Uniform`
             or a :class:`dist.Distribution`.
@@ -258,13 +228,13 @@ class HeGlitchFunction(_GlitchFunction):
     Args:
         nu_max (:term:`dist_like`): The prior for the frequency at maximum
             power, :math:`\\nu_\\max`. Pass either the arguments of
-            :class:`dist.Normal` or a :class:`dist.Distribution`.
+            :class:`dist.Normal`, or a :class:`dist.Distribution`.
         log_tau (:term:`dist_like`): The prior for the acoustic depth of the
             glitch, :math:`\\tau_\\mathrm{He}`. Pass either the arguments of
-            :class:`dist.Normal` or a :class:`dist.Distribution`.
+            :class:`dist.Normal`, or a :class:`dist.Distribution`.
         phi (:term:`dist_like`): The prior for the phase of the glitch,
             :math:`\\phi_\\mathrm{He}`. Pass either the arguments of
-            :class:`dist.Uniform` or a :class:`dist.Distribution`.
+            :class:`dist.Uniform`, or a :class:`dist.Distribution`.
     
     Attributes:
         log_a (numpyro.distributions.distribution.Distribution): The
@@ -379,10 +349,10 @@ class CZGlitchFunction(_GlitchFunction):
             :class:`dist.Normal` or a :class:`dist.Distribution`.
         log_tau (:term:`dist_like`): The prior for the acoustic depth of the
             glitch, :math:`\\tau_\\mathrm{BCZ}`. Pass either the arguments of
-            :class:`dist.Normal` or a :class:`dist.Distribution`.
+            :class:`dist.Normal`, or a :class:`dist.Distribution`.
         phi (:term:`dist_like`): The prior for the phase of the glitch,
             :math:`\\phi_\\mathrm{BCZ}`. Pass either the arguments of
-            :class:`dist.Uniform` or a :class:`dist.Distribution`.
+            :class:`dist.Uniform`, or a :class:`dist.Distribution`.
     
     Attributes:
         log_a (numpyro.distributions.distribution.Distribution): The

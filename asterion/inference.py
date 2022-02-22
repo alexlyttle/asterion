@@ -3,30 +3,21 @@
 """
 from __future__ import annotations
 
+import arviz as az
+import astropy.units as u
 import numpy as np
+import numpyro, time, xarray, warnings
 
+from collections import OrderedDict
 from jax import random
-import numpyro
-
 from numpyro import handlers as hdl
 from numpyro.infer import MCMC, NUTS, init_to_median, Predictive, SVI
 from numpyro.distributions import constraints
 from numpyro.contrib.nested_sampling import NestedSampler
-from numpyro.infer.svi import SVIRunResult
 from numpyro.infer.reparam import Reparam, CircularReparam
-
-from collections import OrderedDict
-
-import arviz as az
+from typing import Optional, Union, List
 
 from .models import Model
-
-from typing import Optional, Sequence, Dict, Union, List, Tuple
-
-import warnings, time
-import xarray
-
-import astropy.units as u
 
 __all__ = [
     "Inference",
@@ -41,7 +32,7 @@ class Inference:
         nu (:term:`array_like`): Asteroseismic mode frequencies.
         nu_err (:term:`array_like`, optional): Observational uncertainty on
             the asteroseismic mode frequencies.
-        seed (int, optional): Seed for pseudo-random number generation.
+        seed (int): Seed for pseudo-random number generation.
     
     Example:
         .. code-block:: python
@@ -66,13 +57,13 @@ class Inference:
     Attributes:
         model (Model): Model with which to perform inference.
         nu (numpy.ndarray): Observed mode frequencies.
-        nu_err (numpy.ndarray or None): Uncertainty on observed mode frequencies.
-        samples (dict or None): Posterior samples.
-        weighted_samples (dict or None): Posterior weighted samples.
-        sample_stats (dict or None): Posterior sample statistics.
-        prior_predictive_samples (dict or None): Prior predictive samples.
-        predictive_samples (dict or None): Posterior predictive samples.
-        sample_method (str or None): Posterior sampling method.
+        nu_err (numpy.ndarray, optional): Uncertainty on observed mode frequencies.
+        samples (dict, optional): Posterior samples.
+        weighted_samples (dict, optional): Posterior weighted samples.
+        sample_stats (dict, optional): Posterior sample statistics.
+        prior_predictive_samples (dict, optional): Prior predictive samples.
+        predictive_samples (dict, optional): Posterior predictive samples.
+        sample_method (str, optional): Posterior sampling method.
     """ 
     def __init__(self, model: Model, *, nu, nu_err=None, seed: int=0):
         self._rng_key = random.PRNGKey(seed)        
@@ -93,9 +84,8 @@ class Inference:
         # self.ns: Optional[NestedSampler] = None
 
         self.sample_metadata = {}
-        self._support_warnings()
 
-    def _support_warnings(self):
+    def _mcmc_support_warnings(self):
         # Catch circular-like parameters
         trace = self.get_trace()
         for _, value in trace.items():
@@ -107,8 +97,7 @@ class Inference:
                         'circular-like support but the distribution is ' +
                         'not circular. Consider changing its distribution ' +
                         'to numpyro.distributions.VonMises for better ' +
-                        'performance during MCMC. Ignore this message if ' + 
-                        'using nested sampling (default behaviour).')
+                        'performance during MCMC.')
  
     def _get_dims(self):
         coords = {}
@@ -125,7 +114,7 @@ class Inference:
         """[summary]
 
         Args:
-            pred (bool, optional): Whether to trace the predictive model or
+            pred (bool): Whether to trace the predictive model or
                 not. Default is False.
 
         Returns:
@@ -181,50 +170,6 @@ class Inference:
             handlers.append(reparam)
         return handlers
 
-    # def get_sampler(self, model, kind: str='NUTS',
-    #                 **kwargs) -> numpyro.infer.mcmc.MCMCKernel:
-    #     """[summary]
-
-    #     Args:
-    #         kind (str): Sampling method, choose from ['NUTS'].
-    #         handlers (list): List of handlers to apply to the model. Defaults to [].
-    #         reparam (str, or numpyro.handlers.reparam): If 'auto', automatically reparameterises model. If 'none',
-    #             no reparameterisation is done. If numpyro.handlers.reparam,
-    #             this is applied instead.
-    #         **kwargs: Keyword arguments to pass to sample initialisation.
-
-    #     Raises:
-    #         NotImplementedError: If a sampling method other than 'NUTS' is
-    #             chosen.
-
-    #     Returns:
-    #         numpyro.infer.mcmc.MCMCKernel: MCMC sampler.
-    #     """
-    #     if kind != 'NUTS':
-    #         raise NotImplementedError(f"Method '{kind}' not implemented")
-
-    #     target_accept_prob = kwargs.pop("target_accept_prob", 0.98)
-    #     init_strategy = kwargs.pop("init_strategy", lambda site=None: \
-    #         init_to_median(site=site, num_samples=100))
-    #     step_size = kwargs.pop("step_size", 0.1)
-        
-    #     # if reparam == 'auto':
-    #     #     handlers.append(self._auto_reparam())
-    #     # elif reparam == 'none':
-    #     #     pass
-    #     # else:
-    #     #     handlers.append(reparam)
-    #     # handlers = self._init_handlers(handlers, reparam=reparam)
-
-    #     # model = self.model
-    #     # for h in handlers:
-    #     #     model = h(model)
-
-    #     sampler = NUTS(model, target_accept_prob=target_accept_prob,
-    #                    init_strategy=init_strategy, step_size=step_size,
-    #                    **kwargs)
-    #     return sampler
-
     def _expand_batch_dims(self, samples):
         """Expand the batch dimensions of samples (add leading dimension)."""
         new_samples = {}
@@ -243,12 +188,14 @@ class Inference:
             num_warmup (int): [description]. Defaults to 1000.
             num_samples (int): [description]. Defaults to 1000.
             num_chains (int): [description]. Defaults to 1.
-            sampler (str or numpyro.infer.mcmc.MCMCKernel): Choose one of ['NUTS']
-                or pass a numpyro mcmc kernel.
+            sampler (str, or numpyro.infer.mcmc.MCMCKernel): Choose one of
+                ['NUTS'], or pass a numpyro mcmc kernel.
             sampler_kwargs (dict): Keyword arguments to pass to the chosen sampler.
             **kwargs: Keyword arguments to pass to mcmc instance.
             
         """
+        self._mcmc_support_warnings()
+
         if isinstance(sampler, str):
             sampler = sampler.lower()
             if sampler != 'nuts':
@@ -332,9 +279,9 @@ class Inference:
 
         Args:
             model (Model): [description]
-            num_live_points (int, optional): [description]. Defaults to 100.
-            max_samples (int, optional): [description]. Defaults to 100000.
-            sampler (str, optional): [description]. Defaults to "multi_ellipsoid".
+            num_live_points (int): [description]. Defaults to 100.
+            max_samples (int): [description]. Defaults to 100000.
+            sampler (str): [description]. Defaults to "multi_ellipsoid".
             **kwargs: Keyword arguments to pass to nested sampler instance.
 
         Returns:
@@ -352,10 +299,10 @@ class Inference:
 
         Args:
             model (Model): [description]
-            num_live_points (int, optional): [description]. Defaults to 100.
-            num_samples (int, optional): [description]. Defaults to 1000.
-            max_samples (int, optional): [description]. Defaults to 100000.
-            sampler (str, optional): [description]. Defaults to "multi_ellipsoid".
+            num_live_points (int): [description]. Defaults to 100.
+            num_samples (int): [description]. Defaults to 1000.
+            max_samples (int): [description]. Defaults to 100000.
+            sampler (str): [description]. Defaults to "multi_ellipsoid".
             **kwargs: Keyword arguments to pass to nested sampler instance.
         """
         nested_sampler = self.init_nested(model, num_live_points=num_live_points, 
@@ -407,7 +354,7 @@ class Inference:
         Args:
             handlers (list, optional): [description]. Defaults to 
                 None.
-            reparam (str or numpyro.infer.reparam.Reparam, optional): 
+            reparam (str, or numpyro.infer.reparam.Reparam): 
                 [description]. Defaults to 'auto'.
 
         Returns:
@@ -426,12 +373,16 @@ class Inference:
 
         Args:
             num_samples (int): Number of samples after warmup.
-            method (str, optional): Sampling method, choose from ['mcmc', 'nested'].
-            handlers (list, optional): Handlers to apply to the model during inference.
-            reparam (str or numpyro.infer.reparam): Default is 'auto' will automatically
-                reparameterise the model to improve sampling during MCMC.
+            method (str): Sampling method, choose from
+                ['mcmc', 'nested'].
+            handlers (list, optional): Handlers to apply to the model during
+                inference.
+            reparam (str, or numpyro.infer.reparam.Reparam): Default is 'auto'
+                will automatically reparameterise the model to improve sampling
+                during MCMC.
             **kwargs: Keyword arguments to pass to the sampling method.
         """
+        numpyro.infer.reparam.Reparam
         # num_chains = mcmc_kwargs.get('num_chains', 1)
 
         # Add handlers to model

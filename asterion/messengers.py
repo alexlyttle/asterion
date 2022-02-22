@@ -25,13 +25,13 @@ class dimension(Messenger):
         self.name: str = name
         self.size: int = size
         self.dim: int = -1 if dim is None else dim
-        """:int: Location in which to insert the dimension."""
+        """int: Location in which to insert the dimension."""
         
         assert self.dim < 0
         if coords is None:
             coords = np.arange(self.size)
         self.coords: np.ndarray = np.array(coords)
-        """:numpy.ndarray: Coordinates for the dimension."""
+        """numpy.ndarray: Coordinates for the dimension."""
 
         msg = self._get_message()
         apply_stack(msg)

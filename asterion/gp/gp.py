@@ -11,7 +11,6 @@ from numpy.typing import ArrayLike
 
 from .kernels import Kernel, WhiteNoise
 
-
 __all__ = [
     'GP',
 ]
@@ -114,9 +113,9 @@ class GP:
     Args:
         kernel (Kernel, or callable): Kernel function,
             default is the squared exponential kernel.
-        mean (float, or callable, optional): Mean model function. If float,
+        mean (float, or callable): Mean model function. If float,
             mean function is constant at this value. Default is 0.0.
-        jitter (float, or callable, optional): Small amount to add to the
+        jitter (float, or callable): Small amount to add to the
             covariance. If float, this is multiplied by the identity matrix.
             Default is 1e-6.
 
@@ -145,15 +144,15 @@ class GP:
         kernel (callable): Kernel function.
         mean (callable): Mean function.
         jitter (callable): Jitter function.
-        noise (callable or None): Independent noise function passed to
+        noise (callable, optional): Independent noise function passed to
             :meth:`distribution` or :meth:`sample`.
-        x (:term:`array_like` or None): Input array passed to
+        x (:term:`array_like`, optional): Input array passed to
             :meth:`distribution` or :meth:`sample`.
-        y (jax.numpy.ndarray or None): Output of :meth:`sample`
+        y (jax.numpy.ndarray, optional): Output of :meth:`sample`
             to be used during predictions.
-        loc (jax.numpy.ndarray or None): Output of 
+        loc (jax.numpy.ndarray, optional): Output of 
             :attr:`mean` :code:`(x)`.
-        cov (jax.numpy.ndarray or None): Output of
+        cov (jax.numpy.ndarray, optional): Output of
             :attr:`kernel` :code:`(x, xp)`.
     """
     def __init__(self, kernel: Union[Kernel, Callable], mean: Union[float, Callable]=0.0,
