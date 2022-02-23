@@ -10,7 +10,7 @@ from numpy.typing import ArrayLike
 from typing import Optional
 from jax import random
 
-from .annotations import DistLike
+from .typing import DistLike
 from .gp import GP
 from .gp.kernels import SquaredExponential
 from .priors import (AsyFunction, CZGlitchFunction, HeGlitchFunction, TauPrior, 

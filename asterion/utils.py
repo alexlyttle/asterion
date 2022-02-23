@@ -2,7 +2,7 @@ import os
 import numpyro.distributions as dist
 
 from typing import Optional, Iterable
-from .annotations import DistLike
+from .typing import DistLike
 
 PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
 
