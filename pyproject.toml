@@ -1,0 +1,8 @@
+[tool.black]
+line-length = 79
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:JAX on Mac ARM machines:UserWarning",
+    "ignore:the imp module is deprecated:DeprecationWarning",
+]
