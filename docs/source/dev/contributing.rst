@@ -81,7 +81,17 @@
 Tests
 -----
 
-Unit tests are coming soon.
+To change or run the tests, install the package with the following option,
+
+.. code-block:: shell
+
+    pip install -e '.[tests]'
+
+Once you have made changes to the codebase or tests, run them using :code:`pytest`,
+
+.. code-block:: shell
+
+    pytest .
 
 Documentation
 -------------
