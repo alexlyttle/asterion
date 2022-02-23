@@ -48,7 +48,7 @@ def _validate_predictive_group(data: az.InferenceData, group: str):
                        "'Inference.{key}()' to sample the predictive.")
     return predictive
 
-def plot_glitch(data: az.InferenceData, group='posterior', kind: str='He',
+def plot_glitch(data: az.InferenceData, group='posterior', kind: str='both',
                 quantiles: Optional[List[float]]=None, 
                 ax: plt.Axes=None) -> plt.Axes:
     """Plot the glitch from either the prior or posterior predictive contained
@@ -57,11 +57,14 @@ def plot_glitch(data: az.InferenceData, group='posterior', kind: str='He',
     Args:
         data (arviz.InferenceData): Inference data object.
         group (str): One of ['posterior', 'prior'].
-        kind (str): Kind of glitch to plot. One of ['He', 'CZ'].
+        kind (str): Kind of glitch to plot. One of ['both', 'He', 'CZ'].
         quantiles (iterable, optional): Quantiles to plot as confidence
             intervals. If None, defaults to the 68% confidence interval. Pass
             an empty list to plot no confidence intervals.
         ax (matplotlib.axes.Axes): Axis on which to plot the glitch.
+
+    Raises:
+        ValueError: If kind is not valid.
 
     Returns:
         matplotlib.axes.Axes: Axis on which the glitch is plot.
@@ -80,9 +83,19 @@ def plot_glitch(data: az.InferenceData, group='posterior', kind: str='He',
         ax = plt.gca()
 
     kindl = kind.lower()
-    dnu_key = 'dnu_'+kindl
+    if kindl == 'both':
+        dnu = predictive.get('dnu_he', 0.0) + predictive.get('dnu_cz', 0.0)
+        dnu_pred = predictive.get('dnu_he_pred', 0.0) + \
+            predictive.get('dnu_cz_pred', 0.0)
+    elif kindl in {'he', 'cz'}:
+        dnu_key = 'dnu_'+kindl
+        dnu = predictive[dnu_key]
+        dnu_pred = predictive[dnu_key+'_pred']
+    else:
+        raise ValueError(f"Kind '{kindl}' is not one of " + 
+                         "['both', 'he', 'cz'].")
+
     dim = ('chain', 'draw')  # dim over which to take stats
-    dnu = predictive[dnu_key]
 
     if group != 'prior':
         # Plot observed - prior predictive should be independent of obs
@@ -94,9 +107,8 @@ def plot_glitch(data: az.InferenceData, group='posterior', kind: str='He',
                     yerr=nu_err, color='C0', marker='o',
                     linestyle='none', label='observed')
     
-    dnu_pred = predictive[dnu_key+'_pred']
     dnu_med = dnu_pred.median(dim=dim)
-    ax.plot(n_pred, dnu_med, label='median', color='C1')
+    ax.plot(n_pred, dnu_med, label='model', color='C1')
 
     # Fill quantiles with alpha decreasing away from the median
     dnu_quant = dnu_pred.quantile(quantiles, dim=dim)
@@ -108,12 +120,11 @@ def plot_glitch(data: az.InferenceData, group='posterior', kind: str='He',
                         color='C1', alpha=alphas[2*i+1],
                         label=f'{delta:.1%} CI')
     
-    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))  # integer x-ticks
     ax.set_xlabel(r'$n$')
     
-    ylabel = [dnu.attrs.get('symbol', dnu_key)]
-
-    unit = u.Unit(dnu.attrs.get('unit', ''))
+    ylabel = [dnu.attrs.get('symbol', r'$\delta\nu$')]
+    unit = u.Unit(dnu.attrs.get('unit', 'uHz'))
     if str(unit) != '':
         ylabel.append(unit.to_string(format='latex_inline'))
 
@@ -143,8 +154,11 @@ def plot_echelle(data: az.InferenceData, group='posterior',
             an empty list to plot no confidence intervals.
         ax (matplotlib.axes.Axes): Axis on which to plot the echelle.
 
+    Raises:
+        ValueError: If kind is not valid.
+
     Returns:
-        matplotlib.axes.Axes: Axis on which the echelle is plot.
+        matplotlib.axes.Axes: Axis on which the echelle is plot.    
     """
     if ax is None:
         ax = plt.gca()
@@ -168,18 +182,23 @@ def plot_echelle(data: az.InferenceData, group='posterior',
                     xerr=nu_err, color='C0', marker='o',
                     linestyle='none', label='observed')
     
-    if kind == 'full':
+    kindl = kind.lower()
+    if kindl == 'full':
         y = predictive['nu_pred']
-    elif kind == 'background':
+    elif kindl == 'background':
         y = predictive['nu_bkg_pred']
-    elif kind == 'glitchless':
+    elif kindl == 'glitchless':
         y = predictive['nu_pred'] - predictive.get('dnu_he_pred', 0.0) - \
             predictive.get('dnu_cz_pred', 0.0)
         y.attrs['unit'] = predictive['nu_pred'].attrs['unit']
+    else:
+        raise ValueError(f"Kind '{kindl}' is not one of " + 
+                         "['full', 'background', 'glitchless'].")
 
     y_mod = (y - n_pred*delta_nu)%delta_nu
     y_med = y.median(dim=dim)
-    ax.plot(y_mod.median(dim=dim), y_med, label=kind, color='C1')
+    ax.plot(y_mod.median(dim=dim), y_med, label=' '.join([kindl, 'model']), 
+            color='C1')
 
     y_mod_quant = y_mod.quantile(quantiles, dim=dim)
     num_quant = len(quantiles)//2
@@ -190,14 +209,14 @@ def plot_echelle(data: az.InferenceData, group='posterior',
                         color='C1', alpha=alphas[2*i+1],
                         label=f'{delta:.1%} CI')
 
-    xlabel = [r'$\nu\,\mathrm{mod}\,{' + f'{delta_nu:.2f}' + '}$']
+    xlabel = [r'$\nu\,\mathrm{mod}.\,{' + f'{delta_nu:.2f}' + '}$']
     unit = u.Unit(y.attrs.get('unit', ''))
     if str(unit) != '':
         xlabel.append(unit.to_string(format='latex_inline'))
     ax.set_xlabel('/'.join(xlabel))
     
     ylabel = [r'$\nu$']
-    unit = u.Unit(nu.attrs.get('unit', ''))
+    unit = u.Unit(nu.attrs.get('unit', 'uHz'))
     if str(unit) != '':
         ylabel.append(unit.to_string(format='latex_inline'))
     ax.set_ylabel('/'.join(ylabel))
