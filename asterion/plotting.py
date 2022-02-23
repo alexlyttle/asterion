@@ -49,7 +49,7 @@ def _validate_predictive_group(data: az.InferenceData, group: str):
     return predictive
 
 def plot_glitch(data: az.InferenceData, group='posterior', kind: str='both',
-                quantiles: Optional[List[float]]=None, 
+                quantiles: Optional[List[float]]=None,
                 ax: plt.Axes=None) -> plt.Axes:
     """Plot the glitch from either the prior or posterior predictive contained
     in inference data. 
@@ -81,7 +81,7 @@ def plot_glitch(data: az.InferenceData, group='posterior', kind: str='both',
     
     if ax is None:
         ax = plt.gca()
-
+    
     kindl = kind.lower()
     if kindl == 'both':
         dnu = predictive.get('dnu_he', 0.0) + predictive.get('dnu_cz', 0.0)
@@ -158,7 +158,7 @@ def plot_echelle(data: az.InferenceData, group='posterior',
         ValueError: If kind is not valid.
 
     Returns:
-        matplotlib.axes.Axes: Axis on which the echelle is plot.    
+        matplotlib.axes.Axes: Axis on which the echelle is plot.
     """
     if ax is None:
         ax = plt.gca()
