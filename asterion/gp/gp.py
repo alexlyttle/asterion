@@ -1,9 +1,9 @@
 """Gaussian processes."""
 from __future__ import annotations
 
-import numpyro 
+import numpyro
 import numpyro.distributions as dist
-import jax 
+import jax
 import jax.numpy as jnp
 
 from typing import Callable, Optional, Union
@@ -12,7 +12,7 @@ from numpy.typing import ArrayLike
 from .kernels import Kernel, WhiteNoise
 
 __all__ = [
-    'GP',
+    "GP",
 ]
 
 
@@ -155,9 +155,14 @@ class GP:
         cov (jax.numpy.ndarray, optional): Output of
             :attr:`kernel` :code:`(x, xp)`.
     """
-    def __init__(self, kernel: Union[Kernel, Callable], mean: Union[float, Callable]=0.0,
-                 jitter: Union[float, Callable]=1e-6):
-        
+
+    def __init__(
+        self,
+        kernel: Union[Kernel, Callable],
+        mean: Union[float, Callable] = 0.0,
+        jitter: Union[float, Callable] = 1e-6,
+    ):
+
         if not callable(kernel):
             raise TypeError("Argument 'kernel' is not callable")
         self.kernel: Callable = kernel
@@ -174,13 +179,13 @@ class GP:
             _jitter = jitter
 
         self.jitter: Callable = _jitter
-        
+
         self.noise: Optional[Callable] = None
-        
+
         self.x: Optional[ArrayLike] = None
-        
+
         self.y: Optional[ArrayLike] = None
-        
+
         self.loc: Optional[ArrayLike] = None
 
         self.cov: Optional[ArrayLike] = None
@@ -196,17 +201,21 @@ class GP:
         gp = GP(kernel, mean=mean, jitter=jitter)
         return gp
 
-    def _validate_noise(self,
-                        noise: Optional[Union[Callable, float]]) -> Callable:
+    def _validate_noise(
+        self, noise: Optional[Union[Callable, float]]
+    ) -> Callable:
         if noise is None or noise is False:
             noise = WhiteNoise(0.0)
         elif not callable(noise):
             noise = WhiteNoise(noise)
         return noise
 
-    def distribution(self, x: ArrayLike,
-                     noise: Optional[Union[Callable, float]]=None,
-                     **kwargs) -> dist.MultivariateNormal:
+    def distribution(
+        self,
+        x: ArrayLike,
+        noise: Optional[Union[Callable, float]] = None,
+        **kwargs,
+    ) -> dist.MultivariateNormal:
         """Distribution for the GP. Calling this method updates :attr:`x`,
         :attr:`noise`, :attr:`loc` and :attr:`cov`.
 
@@ -218,7 +227,7 @@ class GP:
                 scale for WhiteNoise. Defaults to no noise.
             **kwargs: Keyword arguments to pass to
                 numpyro.distribitions.MultivariateNormal.
-        
+
         Returns:
             numpyro.distributions.MultivariateNormal: GP distribution.
         """
@@ -227,20 +236,25 @@ class GP:
         self.loc = self.mean(x)
         self.cov = self.kernel(x, x) + self.noise(x) + self.jitter(x)
         return dist.MultivariateNormal(self.loc, self.cov, **kwargs)
-    
-    def sample(self, name: str, x: ArrayLike,
-               noise: Optional[Union[Callable, float]]=None,
-               obs: Optional[ArrayLike]=None,
-               rng_key: Optional[jnp.ndarray]=None,
-               sample_shape: tuple=(), infer: Optional[dict]=None,
-               obs_mask: Optional[ArrayLike]=None,
-               **kwargs) -> jnp.ndarray:
+
+    def sample(
+        self,
+        name: str,
+        x: ArrayLike,
+        noise: Optional[Union[Callable, float]] = None,
+        obs: Optional[ArrayLike] = None,
+        rng_key: Optional[jnp.ndarray] = None,
+        sample_shape: tuple = (),
+        infer: Optional[dict] = None,
+        obs_mask: Optional[ArrayLike] = None,
+        **kwargs,
+    ) -> jnp.ndarray:
         """Sample from the GP likelihood. Calling this method updates
         :attr:`x`, :attr:`noise`, :attr:`loc` and :attr:`cov` and assigns the
         result to :attr:`y`.
 
         Args:
-            name (str): Name of the sample site. 
+            name (str): Name of the sample site.
             x (:term:`array_like`): Input array.
             noise (:term:`array_like` or callable, optional): Noise term to add
                 to the diagonal. If :term:`array_like`, it is assumed as the
@@ -259,25 +273,35 @@ class GP:
 
         Returns:
             jax.numpy.ndarray: A sample from the GP likelihood.
-        
+
         See also:
             numpyro.sample: For details on some optional keyword arguments.
         """
         fn = self.distribution(x, noise=noise, **kwargs)
-        self.y = numpyro.sample(name, fn, obs=obs, rng_key=rng_key,
-                                sample_shape=sample_shape, infer=infer,
-                                obs_mask=obs_mask)
+        self.y = numpyro.sample(
+            name,
+            fn,
+            obs=obs,
+            rng_key=rng_key,
+            sample_shape=sample_shape,
+            infer=infer,
+            obs_mask=obs_mask,
+        )
         return self.y
 
-    def _build_conditional(self, x: ArrayLike,
-                           noise: Optional[Union[float, Callable]]=None,
-                           gp=None, diag: bool=False):
+    def _build_conditional(
+        self,
+        x: ArrayLike,
+        noise: Optional[Union[float, Callable]] = None,
+        gp=None,
+        diag: bool = False,
+    ):
         """Make a prediction for the loc and cov of f(x) given y,
-        
+
         loc = mp + kxp·(kxx + nx)^{-1}·(y - mx),
         cov = kpp + np - kxp·(kxx + nx)^{-1}·kxp^T,
         var = sqrt(diag(cov)),
-        
+
         where mx = mean(x), mp = mean(x_pred), kxx = kernel(x, x),
         kxp = kernel(x, x_pred), kpp = kernel(x_pred, x_pred),
         nx = noise(x), and np = noise(x_pred).
@@ -288,10 +312,10 @@ class GP:
                 prediction. If callable, must be a function of (x_pred, x_pred).
                 Otherwise, pass the scale parameter for WhiteNoise.
                 Default is None (no noise).
-            gp (GP, optional): The GP from which to make predictions. 
-                For example, used in GP addition. Default is self. 
+            gp (GP, optional): The GP from which to make predictions.
+                For example, used in GP addition. Default is self.
             diag: If True, returns the variance. Default is False.
-        
+
         Returns:
             loc: The mean of the prediction.
             cov or var: The covariance or variance of the prediction.
@@ -299,21 +323,23 @@ class GP:
         if gp is None:
             # Predict given a different GP (e.g. additive)
             gp = self
-        
-        if gp.x is None:
-            raise ValueError("GP must be sampled to make predictions," + 
-                             " consider the `gp` keyword argument")
 
-        kxx = gp.cov    
+        if gp.x is None:
+            raise ValueError(
+                "GP must be sampled to make predictions,"
+                + " consider the `gp` keyword argument"
+            )
+
+        kxx = gp.cov
         L = jax.scipy.linalg.cho_factor(kxx, lower=True)
         A = jax.scipy.linalg.cho_solve(L, gp.y - gp.loc)
-        
+
         # Cross terms and prediction terms are always self.
         kxp = self.kernel(gp.x, x)
         v = jax.scipy.linalg.cho_solve(L, kxp.T)
 
         kpp = self.kernel(x, x) + self.jitter(x)
-        
+
         noise = self._validate_noise(noise)
         if noise is True:
             noise = gp.noise
@@ -322,27 +348,32 @@ class GP:
 
         loc = self.mean(x) + jnp.dot(kxp, A)
         cov = kpp - jnp.dot(kxp, v)
-          
+
         if diag:
             var = jnp.diag(cov)
             return loc, var
 
         return loc, cov
 
-    def conditional(self, x: ArrayLike,
-                    noise: Optional[Union[float, Callable]]=None,
-                    diag: bool=False, gp=None, **kwargs) -> dist.Distribution:
+    def conditional(
+        self,
+        x: ArrayLike,
+        noise: Optional[Union[float, Callable]] = None,
+        diag: bool = False,
+        gp=None,
+        **kwargs,
+    ) -> dist.Distribution:
         """Make a conditional distribution for y' = f(x') + noise',
-        
+
         y' | y ~ N(
         mp + kxp·(kxx + nx)^{-1}·(y - mx),
         kpp + np - kxp·(kxx + nx)^{-1}·kxp^T
         ),
-        
+
         where mx = mean(x), mp = mean(x_pred), kxx = kernel(x, x),
         kxp = kernel(x, x_pred), kpp = kernel(x_pred, x_pred),
         nx = noise(x), and np = noise(x_pred).
-        
+
         Args:
             x (:term:`array_like`): The x values for which to make predictions.
             noise (bool, :term:`array_like`, or callable, optional): If True,
@@ -354,7 +385,7 @@ class GP:
             diag (bool): If True, diagonalises the variance. Default is False.
             **kwargs: Keyword arguments to pass to :class:`dist.Normal` or
                 :class:`dist.MultivariateNormal`.
-        
+
         Returns:
             numpyro.distributions.MultivariateNormal: The conditional GP
                 distribution.
@@ -364,12 +395,19 @@ class GP:
             return dist.Normal(*args, **kwargs)
 
         return dist.MultivariateNormal(*args, **kwargs)
-    
-    def predict(self, name: str, x: ArrayLike,
-                noise: Optional[Union[float, Callable]]=None, gp=None,
-                diag: bool=False, rng_key: Optional[jnp.ndarray]=None, 
-                sample_shape: tuple=(), infer: Optional[dict]=None,
-                **kwargs) -> jnp.ndarray:
+
+    def predict(
+        self,
+        name: str,
+        x: ArrayLike,
+        noise: Optional[Union[float, Callable]] = None,
+        gp=None,
+        diag: bool = False,
+        rng_key: Optional[jnp.ndarray] = None,
+        sample_shape: tuple = (),
+        infer: Optional[dict] = None,
+        **kwargs,
+    ) -> jnp.ndarray:
         """Sample from the GP conditional distribution.
 
         Args:
@@ -397,5 +435,6 @@ class GP:
             numpyro.sample: For details on some optional keyword arguments.
         """
         fn = self.conditional(x, noise=noise, gp=gp, diag=diag, **kwargs)
-        return numpyro.sample(name, fn, rng_key=rng_key, sample_shape=sample_shape,
-                              infer=infer)
+        return numpyro.sample(
+            name, fn, rng_key=rng_key, sample_shape=sample_shape, infer=infer
+        )

@@ -33,12 +33,12 @@ class Inference:
         nu_err (:term:`array_like`, optional): Observational uncertainty on
             the asteroseismic mode frequencies.
         seed (int): Seed for pseudo-random number generation.
-    
+
     Example:
         .. code-block:: python
 
             from asterion import Model, Inference
-            
+
             nu = [111.1, 122.2, 133.3, 144.4, 155.5]
             nu_err = 0.01
             model = Model(...)  # Construct the model here
@@ -64,9 +64,10 @@ class Inference:
         prior_predictive_samples (dict, optional): Prior predictive samples.
         predictive_samples (dict, optional): Posterior predictive samples.
         sample_method (str, optional): Posterior sampling method.
-    """ 
-    def __init__(self, model: Model, *, nu, nu_err=None, seed: int=0):
-        self._rng_key = random.PRNGKey(seed)        
+    """
+
+    def __init__(self, model: Model, *, nu, nu_err=None, seed: int = 0):
+        self._rng_key = random.PRNGKey(seed)
         self.model: Model = model
         self.nu = np.asarray(nu)
         self.nu_err = None if nu_err is None else np.asarray(nu_err)
@@ -74,7 +75,7 @@ class Inference:
         self.samples: Optional[dict] = None
         self.weighted_samples: Optional[dict] = None
         self.sample_stats: Optional[dict] = None
-        self.prior_predictive_samples: Optional[dict] = None  
+        self.prior_predictive_samples: Optional[dict] = None
         self.predictive_samples: Optional[dict] = None
         # self.mcmc: Optional[MCMC] = None
 
@@ -89,16 +90,20 @@ class Inference:
         # Catch circular-like parameters
         trace = self.get_trace()
         for _, value in trace.items():
-            if value['type'] == 'sample':
-                if value['fn'].support == constraints.circular and \
-                    value['fn'].support is not constraints.circular:
+            if value["type"] == "sample":
+                if (
+                    value["fn"].support == constraints.circular
+                    and value["fn"].support is not constraints.circular
+                ):
                     # Catches parameters with circular-like support
-                    warnings.warn(f"Parameter \'{value['name']}\' has " +
-                        'circular-like support but the distribution is ' +
-                        'not circular. Consider changing its distribution ' +
-                        'to numpyro.distributions.VonMises for better ' +
-                        'performance during MCMC.')
- 
+                    warnings.warn(
+                        f"Parameter '{value['name']}' has "
+                        + "circular-like support but the distribution is "
+                        + "not circular. Consider changing its distribution "
+                        + "to numpyro.distributions.VonMises for better "
+                        + "performance during MCMC."
+                    )
+
     def _get_dims(self):
         coords = {}
         dims = {}
@@ -125,11 +130,7 @@ class Inference:
             model = self.model.predict
         else:
             model = self.model
-        model = hdl.trace(
-            hdl.seed(
-                model, rng_key
-            )
-        )
+        model = hdl.trace(hdl.seed(model, rng_key))
         trace = model.get_trace(nu=self.nu, nu_err=self.nu_err)
         return trace
 
@@ -142,29 +143,32 @@ class Inference:
         var_names = []
         trace = self.get_trace()
         for _, value in trace.items():
-            if value['type'] == 'sample':
+            if value["type"] == "sample":
                 # if value['fn'].support == constraints.circular:
                 #     warnings.warn(f"Parameter \'{value['name']}\' has circular-like " + \
                 #         'support but the distribution is not circular. Consider ' + \
                 #         'changing its distribution to numpyro.distributions.VonMises ' + \
                 #         'for better performance during MCMC.')
-                if value['fn'].support is constraints.circular:
-                    var_names.append(value['name'])
+                if value["fn"].support is constraints.circular:
+                    var_names.append(value["name"])
         return var_names
-    
+
     def _auto_reparam(self) -> numpyro.handlers.reparam:
         """Automatically reparameterise circular parameters."""
-        return hdl.reparam(config={k: CircularReparam() for k in self.get_circ_var_names()})
+        return hdl.reparam(
+            config={k: CircularReparam() for k in self.get_circ_var_names()}
+        )
 
-    def _init_handlers(self, handlers: list,
-                       reparam: Union[str, hdl.reparam]='auto') -> list:
+    def _init_handlers(
+        self, handlers: list, reparam: Union[str, hdl.reparam] = "auto"
+    ) -> list:
         """Initialise handlers with/without reparameterisation."""
         # handlers = handlers.copy()
         if handlers is None:
             handlers = []
-        if reparam == 'auto':
+        if reparam == "auto":
             handlers.append(self._auto_reparam())
-        elif reparam == 'none' or reparam is None:
+        elif reparam == "none" or reparam is None:
             pass
         else:
             handlers.append(reparam)
@@ -178,9 +182,16 @@ class Inference:
             new_samples[k] = v[None, ...]  # Add a leading dimension to samples
         return new_samples
 
-    def init_mcmc(self, model, num_warmup: int=1000, num_samples: int=1000,
-                  num_chains: int=1, sampler='NUTS', sampler_kwargs={},
-                  **kwargs) -> MCMC:
+    def init_mcmc(
+        self,
+        model,
+        num_warmup: int = 1000,
+        num_samples: int = 1000,
+        num_chains: int = 1,
+        sampler="NUTS",
+        sampler_kwargs={},
+        **kwargs,
+    ) -> MCMC:
         """Initialises the MCMC sampler.
 
         Args:
@@ -192,37 +203,55 @@ class Inference:
                 ['NUTS'], or pass a numpyro mcmc kernel.
             sampler_kwargs (dict): Keyword arguments to pass to the chosen sampler.
             **kwargs: Keyword arguments to pass to mcmc instance.
-            
+
         """
         self._mcmc_support_warnings()
 
         if isinstance(sampler, str):
             sampler = sampler.lower()
-            if sampler != 'nuts':
+            if sampler != "nuts":
                 raise ValueError(f"Sampler '{sampler}' not supported.")
             target_accept_prob = sampler_kwargs.pop("target_accept_prob", 0.98)
-            init_strategy = sampler_kwargs.pop("init_strategy", lambda site=None: \
-                init_to_median(site=site, num_samples=100))
+            init_strategy = sampler_kwargs.pop(
+                "init_strategy",
+                lambda site=None: init_to_median(site=site, num_samples=100),
+            )
             step_size = sampler_kwargs.pop("step_size", 0.1)
-            sampler = NUTS(model, target_accept_prob=target_accept_prob,
-                        init_strategy=init_strategy, step_size=step_size,
-                        **sampler_kwargs)            
-            
+            sampler = NUTS(
+                model,
+                target_accept_prob=target_accept_prob,
+                init_strategy=init_strategy,
+                step_size=step_size,
+                **sampler_kwargs,
+            )
+
         # if num_chains > 1:
-            # self.batch_ndims = 2  # I.e. two dims for chains then samples
-        
-        return MCMC(sampler, num_warmup=num_warmup,
-                    num_samples=num_samples, num_chains=num_chains,
-                    **kwargs)
-    
+        # self.batch_ndims = 2  # I.e. two dims for chains then samples
+
+        return MCMC(
+            sampler,
+            num_warmup=num_warmup,
+            num_samples=num_samples,
+            num_chains=num_chains,
+            **kwargs,
+        )
+
     # def _update_args_kwargs(self, model_args: tuple, model_kwargs: dict):
     #     self._model_args = model_args
     #     self._model_kwargs.update(model_kwargs)
 
-    def run_mcmc(self, model, num_warmup: int=1000, num_samples: int=1000,
-                 num_chains: int=1, sampler='NUTS', sampler_kwargs={},
-                 extra_fields: tuple=(), init_params: dict=None,
-                 **kwargs) -> tuple:
+    def run_mcmc(
+        self,
+        model,
+        num_warmup: int = 1000,
+        num_samples: int = 1000,
+        num_chains: int = 1,
+        sampler="NUTS",
+        sampler_kwargs={},
+        extra_fields: tuple = (),
+        init_params: dict = None,
+        **kwargs,
+    ) -> tuple:
         """Runs MCMC for a given set of model arguments.
 
         Args:
@@ -239,14 +268,24 @@ class Inference:
         Returns:
             tuple: [description]
         """
-        mcmc = self.init_mcmc(model, num_warmup=num_warmup, 
-                              num_samples=num_samples, num_chains=num_chains,
-                              sampler=sampler,
-                              sampler_kwargs=sampler_kwargs, **kwargs)
-        
+        mcmc = self.init_mcmc(
+            model,
+            num_warmup=num_warmup,
+            num_samples=num_samples,
+            num_chains=num_chains,
+            sampler=sampler,
+            sampler_kwargs=sampler_kwargs,
+            **kwargs,
+        )
+
         rng_key, self._rng_key = random.split(self._rng_key)
-        mcmc.run(rng_key, nu=self.nu, nu_err=self.nu_err, 
-                 extra_fields=extra_fields, init_params=init_params)
+        mcmc.run(
+            rng_key,
+            nu=self.nu,
+            nu_err=self.nu_err,
+            extra_fields=extra_fields,
+            init_params=init_params,
+        )
         # self._update_args_kwargs(model_args, model_kwargs)
         # # Filter UserWarnings from numpyro as errors
         # module = r'\bnumpyro\b'
@@ -268,13 +307,20 @@ class Inference:
         self.samples = mcmc.get_samples(group_by_chain=True)
         self.sample_stats = mcmc.get_extra_fields(group_by_chain=True)
         self.sample_metadata = {
-            'method': 'MCMC',
-            'sampler': sampler if isinstance(sampler, str) else sampler.__name__,
+            "method": "MCMC",
+            "sampler": sampler
+            if isinstance(sampler, str)
+            else sampler.__name__,
         }
 
-    def init_nested(self, model: Model, num_live_points: int=100, 
-                   max_samples: int=100000, sampler: str="multi_ellipsoid",
-                   **kwargs) -> NestedSampler:
+    def init_nested(
+        self,
+        model: Model,
+        num_live_points: int = 100,
+        max_samples: int = 100000,
+        sampler: str = "multi_ellipsoid",
+        **kwargs,
+    ) -> NestedSampler:
         """[summary]
 
         Args:
@@ -287,14 +333,25 @@ class Inference:
         Returns:
             numpyro.contrib.nested_sampling.NestedSampler: [description]
         """
-        depth = kwargs.pop('depth', 7)
-        return NestedSampler(model, num_live_points=num_live_points,
-                             max_samples=max_samples, sampler_name=sampler, 
-                             depth=depth, **kwargs)
-    
-    def run_nested(self, model: Model, num_live_points: int=100, num_samples: int=1000,
-                   max_samples: int=100000, sampler: str="multi_ellipsoid",
-                   **kwargs):
+        depth = kwargs.pop("depth", 7)
+        return NestedSampler(
+            model,
+            num_live_points=num_live_points,
+            max_samples=max_samples,
+            sampler_name=sampler,
+            depth=depth,
+            **kwargs,
+        )
+
+    def run_nested(
+        self,
+        model: Model,
+        num_live_points: int = 100,
+        num_samples: int = 1000,
+        max_samples: int = 100000,
+        sampler: str = "multi_ellipsoid",
+        **kwargs,
+    ):
         """[summary]
 
         Args:
@@ -305,18 +362,24 @@ class Inference:
             sampler (str): [description]. Defaults to "multi_ellipsoid".
             **kwargs: Keyword arguments to pass to nested sampler instance.
         """
-        nested_sampler = self.init_nested(model, num_live_points=num_live_points, 
-                   max_samples=max_samples, sampler=sampler,
-                   **kwargs)
-        
+        nested_sampler = self.init_nested(
+            model,
+            num_live_points=num_live_points,
+            max_samples=max_samples,
+            sampler=sampler,
+            **kwargs,
+        )
+
         key1, key2, self._rng_key = random.split(self._rng_key, 3)
-        print(f'Running nested sampling using the \'{sampler}\' sampler ' + 
-              f'with {num_live_points} live points ' +
-              f'and {max_samples} maximum samples...')
+        print(
+            f"Running nested sampling using the '{sampler}' sampler "
+            + f"with {num_live_points} live points "
+            + f"and {max_samples} maximum samples..."
+        )
         start_time = time.time()
         nested_sampler.run(key1, nu=self.nu, nu_err=self.nu_err)
         end_time = time.time()
-        print(f'Completed in {end_time - start_time:.1f} seconds.')
+        print(f"Completed in {end_time - start_time:.1f} seconds.")
 
         samples = nested_sampler.get_samples(key2, num_samples)
         weighted_samples = nested_sampler.get_weighted_samples()[0]
@@ -330,31 +393,34 @@ class Inference:
         self.samples = self._expand_batch_dims(samples)
         self.weighted_samples = self._expand_batch_dims(weighted_samples)
         self.sample_metadata = {
-            'method': 'nested',
-            'sampler': sampler,
-            'num_likelihood_evals': int(
+            "method": "nested",
+            "sampler": sampler,
+            "num_likelihood_evals": int(
                 nested_sampler._results.num_likelihood_evaluations
             ),
-            'num_weighted_samples': int(num_weighted_samples),
-            'logZ': float(nested_sampler._results.logZ),  # evidence
-            'logZ_err': float(nested_sampler._results.logZerr),
-            'ESS': float(nested_sampler._results.ESS),
+            "num_weighted_samples": int(num_weighted_samples),
+            "logZ": float(nested_sampler._results.logZ),  # evidence
+            "logZ_err": float(nested_sampler._results.logZerr),
+            "ESS": float(nested_sampler._results.ESS),
         }
         self.sample_stats = {
-            'logX': logX,
-            'logL': logL,
-            'lp': logp,  # log joint posterior (i.e. sample weights)
-            'sampler_efficiency': eff,
+            "logX": logX,
+            "logL": logL,
+            "lp": logp,  # log joint posterior (i.e. sample weights)
+            "sampler_efficiency": eff,
         }
-    
-    def _add_handlers_to_model(self, handlers: Optional[list]=None, 
-                               reparam: Union[str, Reparam]='auto') -> Model:
+
+    def _add_handlers_to_model(
+        self,
+        handlers: Optional[list] = None,
+        reparam: Union[str, Reparam] = "auto",
+    ) -> Model:
         """[summary]
 
         Args:
-            handlers (list, optional): [description]. Defaults to 
+            handlers (list, optional): [description]. Defaults to
                 None.
-            reparam (str, or numpyro.infer.reparam.Reparam): 
+            reparam (str, or numpyro.infer.reparam.Reparam):
                 [description]. Defaults to 'auto'.
 
         Returns:
@@ -366,9 +432,14 @@ class Inference:
             model = h(model)
         return model
 
-    def sample(self, num_samples: int=1000, method: str='nested', 
-               handlers: Optional[list]=None, reparam='auto',
-               **kwargs):
+    def sample(
+        self,
+        num_samples: int = 1000,
+        method: str = "nested",
+        handlers: Optional[list] = None,
+        reparam="auto",
+        **kwargs,
+    ):
         """[summary]
 
         Args:
@@ -393,25 +464,31 @@ class Inference:
         model = self._add_handlers_to_model(handlers=handlers, reparam=reparam)
 
         # self._update_args_kwargs(model_args, model_kwargs)
-        if method == 'mcmc':
+        if method == "mcmc":
             # sampler = self.get_sampler(model, **sampler_kwargs)
             # mcmc = self.init_mcmc(model, num_samples=num_samples, **mcmc_kwargs)
             self.run_mcmc(
-                model, num_samples=num_samples, **kwargs,
+                model,
+                num_samples=num_samples,
+                **kwargs,
             )
-        elif method == 'nested':
+        elif method == "nested":
             # ns = self.init_nested(model, **nested_kwargs)
-            self.run_nested(
-                model, num_samples=num_samples, **kwargs
-            )
+            self.run_nested(model, num_samples=num_samples, **kwargs)
         else:
-            raise ValueError(f"Method '{method}' not one of ['mcmc', 'nested'].")
+            raise ValueError(
+                f"Method '{method}' not one of ['mcmc', 'nested']."
+            )
 
-        # TODO: diagnostics and warnings 
+        # TODO: diagnostics and warnings
 
-    def find_map(self, num_steps: int=10000, handlers: Optional[list]=None,
-                 reparam: Union[str, hdl.reparam]='auto',
-                 svi_kwargs: dict={}):
+    def find_map(
+        self,
+        num_steps: int = 10000,
+        handlers: Optional[list] = None,
+        reparam: Union[str, hdl.reparam] = "auto",
+        svi_kwargs: dict = {},
+    ):
         """EXPERIMENTAL: find MAP.
 
         Args:
@@ -424,14 +501,15 @@ class Inference:
 
         guide = numpyro.infer.autoguide.AutoDelta(model)
 
-        optim = svi_kwargs.pop('optim', numpyro.optim.Minimize())
-        loss = svi_kwargs.pop('loss', numpyro.infer.Trace_ELBO())
+        optim = svi_kwargs.pop("optim", numpyro.optim.Minimize())
+        loss = svi_kwargs.pop("loss", numpyro.infer.Trace_ELBO())
         map_svi = SVI(model, guide, optim, loss=loss, **svi_kwargs)
-        
+
         rng_key, self._rng_key = random.split(self._rng_key)
-        map_result = map_svi.run(rng_key, num_steps, nu=self.nu, 
-                                           nu_err=self.nu_err)
-        
+        map_result = map_svi.run(
+            rng_key, num_steps, nu=self.nu, nu_err=self.nu_err
+        )
+
         self._map_loss = map_result.losses
         self._map_guide = map_svi.guide
         self._map_params = map_result.params
@@ -452,7 +530,7 @@ class Inference:
         num_samples = kwargs.pop("num_samples", None)
         batch_ndims = kwargs.pop("batch_ndims", 2)
         return_sites = kwargs.pop("return_sites", None)
-        
+
         posterior = {} if posterior_samples is None else posterior_samples
         if return_sites is None:
             trace = self.get_trace(pred=True)
@@ -460,18 +538,21 @@ class Inference:
             for k, site in trace.items():
                 # Only return non-observed sample sites not in samples and
                 # all deterministic sites.
-                if (site["type"] == "sample"):
+                if site["type"] == "sample":
                     if not site["is_observed"] and k not in posterior:
                         return_sites.append(k)
-                elif (site["type"] == "deterministic"):
+                elif site["type"] == "deterministic":
                     return_sites.append(k)
 
-        predictive = Predictive(self.model.predict, 
-                                posterior_samples=posterior_samples, 
-                                num_samples=num_samples, return_sites=return_sites, 
-                                batch_ndims=batch_ndims,
-                                **kwargs)
-        
+        predictive = Predictive(
+            self.model.predict,
+            posterior_samples=posterior_samples,
+            num_samples=num_samples,
+            return_sites=return_sites,
+            batch_ndims=batch_ndims,
+            **kwargs,
+        )
+
         if predictive.batch_ndims == 0:
             # Fix bug in Predictive for computing batch shape
             predictive._batch_shape = ()
@@ -480,8 +561,8 @@ class Inference:
         samples = predictive(rng_key, nu=nu, nu_err=nu_err)
         # self._update_args_kwargs(model_args, model_kwargs)
         return samples
-    
-    def prior_predictive(self, num_samples: int=1000, **kwargs):
+
+    def prior_predictive(self, num_samples: int = 1000, **kwargs):
         """[summary]
 
         Args:
@@ -499,8 +580,10 @@ class Inference:
             **kwargs: Keyword arguments to pass to Predictive instance.
         """
         self.predictive_samples = self.predictive(
-            nu=self.nu, nu_err=self.nu_err,
-            posterior_samples=self.samples, **kwargs
+            nu=self.nu,
+            nu_err=self.nu_err,
+            posterior_samples=self.samples,
+            **kwargs,
         )
 
     def map_predictive(self, **kwargs) -> xarray.Dataset:
@@ -517,8 +600,11 @@ class Inference:
         guide = self._map_guide
         params = self._map_params
         map_pred = self.predictive(
-            guide=guide, params=params, num_samples=1, batch_ndims=batch_ndims,
-            **kwargs
+            guide=guide,
+            params=params,
+            num_samples=1,
+            batch_ndims=batch_ndims,
+            **kwargs,
         )
         dims, coords = self._get_dims()
         ds = {}
@@ -533,42 +619,51 @@ class Inference:
             arviz.InferenceData: Inference data.
         """
         dims, coords = self._get_dims()
-        observed_data = {'nu': self.nu}
-        constant_data = {'nu_err': np.zeros_like(self.nu) \
-            if self.nu_err is None else self.nu_err}
-        data = az.from_dict(posterior=self.samples, 
-                            prior_predictive=self.prior_predictive_samples,
-                            posterior_predictive=self.predictive_samples,
-                            sample_stats=self.sample_stats, 
-                            observed_data=observed_data,
-                            constant_data=constant_data,
-                            dims=dims, coords=coords)
+        observed_data = {"nu": self.nu}
+        constant_data = {
+            "nu_err": np.zeros_like(self.nu)
+            if self.nu_err is None
+            else self.nu_err
+        }
+        data = az.from_dict(
+            posterior=self.samples,
+            prior_predictive=self.prior_predictive_samples,
+            posterior_predictive=self.predictive_samples,
+            sample_stats=self.sample_stats,
+            observed_data=observed_data,
+            constant_data=constant_data,
+            dims=dims,
+            coords=coords,
+        )
 
         # Add sample metadata info
         if self.sample_stats is not None:
             data.sample_stats.attrs.update(self.sample_metadata)
 
-        if self.sample_metadata.get('method', None) == 'nested':
+        if self.sample_metadata.get("method", None) == "nested":
             # The weights are just the logP in sampler stats
-            data.add_groups({'weighted_posterior': self.weighted_samples}, 
-                            coords=coords, dims=dims)
+            data.add_groups(
+                {"weighted_posterior": self.weighted_samples},
+                coords=coords,
+                dims=dims,
+            )
 
         circ_var_names = self.get_circ_var_names()
         # Add unit, symbol and circular attributes to groups
         for group in data.groups():
             for key in data[group].keys():
                 sub_key = key
-                if key.endswith('_pred'):
+                if key.endswith("_pred"):
                     sub_key = key[:-5]
                 else:
                     sub_key = key
 
                 unit = self.model.units.get(sub_key, u.Unit())
-                sym = self.model.symbols.get(sub_key, '')
+                sym = self.model.symbols.get(sub_key, "")
                 circ = 1 if sub_key in circ_var_names else 0
-                
-                data[group][key].attrs['unit'] = unit.to_string()
-                data[group][key].attrs['symbol'] = sym
-                data[group][key].attrs['is_circular'] = circ
+
+                data[group][key].attrs["unit"] = unit.to_string()
+                data[group][key].attrs["symbol"] = sym
+                data[group][key].attrs["is_circular"] = circ
 
         return data

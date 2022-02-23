@@ -6,9 +6,10 @@ from .typing import DistLike
 
 PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
 def distribution(
     value: DistLike,
-    default_dist: Optional[dist.Distribution]=None,
+    default_dist: Optional[dist.Distribution] = None,
 ) -> dist.Distribution:
     """Return a numpyro distribition.
 
@@ -31,4 +32,3 @@ optional): Default distribution. Defaults to dist.Normal if None.
             value = (value,)
         value = default_dist(*value)
     return value
-

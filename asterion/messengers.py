@@ -20,13 +20,18 @@ class dimension(Messenger):
             negative.
     """
 
-    def __init__(self, name: str, size: int, coords: Optional[ArrayLike]=None,
-                 dim: Optional[ArrayLike]=None):
+    def __init__(
+        self,
+        name: str,
+        size: int,
+        coords: Optional[ArrayLike] = None,
+        dim: Optional[ArrayLike] = None,
+    ):
         self.name: str = name
         self.size: int = size
         self.dim: int = -1 if dim is None else dim
         """int: Location in which to insert the dimension."""
-        
+
         assert self.dim < 0
         if coords is None:
             coords = np.arange(self.size)
@@ -36,7 +41,7 @@ class dimension(Messenger):
         msg = self._get_message()
         apply_stack(msg)
         super().__init__()
-    
+
     def _get_message(self) -> dict:
         msg = {
             "name": self.name,
@@ -45,7 +50,7 @@ class dimension(Messenger):
             "value": self.coords,
         }
         return msg
-        
+
     def __enter__(self) -> dict:
         super().__enter__()
         return self._get_message()
@@ -75,16 +80,18 @@ class dimension(Messenger):
         if "dims" not in msg.keys():
             dims = [f"{msg['name']}_dim_{i}" for i in range(len(shape))]
             msg["dims"] = dims
-        
+
         if "dim_stack" not in msg.keys():
             msg["dim_stack"] = []
-        
+
         dim = self.dim
         while dim in msg["dim_stack"]:
             dim -= 1
 
         msg["dim_stack"].append(dim)
         msg["dims"][dim] = self.name
-        
+
         if shape[dim] != self.size:
-            raise ValueError(f"Dimension {dim} of site \'{msg['name']}\' should have length {self.size}")
+            raise ValueError(
+                f"Dimension {dim} of site '{msg['name']}' should have length {self.size}"
+            )

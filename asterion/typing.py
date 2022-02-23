@@ -10,7 +10,7 @@ __all__ = [
     "DistLike",
 ]
 
-DistLike = Union[Iterable, Distribution]  
+DistLike = Union[Iterable, Distribution]
 """A generic type for a distribution object which is accepted as the argument
 of :func:`asterion.models.distribution`.
 """
