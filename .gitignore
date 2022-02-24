@@ -9,4 +9,5 @@ notebook/data/
 out/
 .python-version
 *.nc
+!tau_prior.nc
 *.diff
