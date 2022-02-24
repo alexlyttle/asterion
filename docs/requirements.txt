@@ -1,5 +1,5 @@
 sphinx==4.4.0
 nbsphinx==0.8.8
-furo==2022.1.2
+furo==2022.2.23
 sphinx-autoapi==1.8.4
 readthedocs-sphinx-search==0.1.1
