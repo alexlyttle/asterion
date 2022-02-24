@@ -57,7 +57,8 @@ class Inference:
     Attributes:
         model (Model): Model with which to perform inference.
         nu (numpy.ndarray): Observed mode frequencies.
-        nu_err (numpy.ndarray, optional): Uncertainty on observed mode frequencies.
+        nu_err (numpy.ndarray, optional): Uncertainty on observed mode
+            frequencies.
         samples (dict, optional): Posterior samples.
         weighted_samples (dict, optional): Posterior weighted samples.
         sample_stats (dict, optional): Posterior sample statistics.
@@ -144,11 +145,6 @@ class Inference:
         trace = self.get_trace()
         for _, value in trace.items():
             if value["type"] == "sample":
-                # if value['fn'].support == constraints.circular:
-                #     warnings.warn(f"Parameter \'{value['name']}\' has circular-like " + \
-                #         'support but the distribution is not circular. Consider ' + \
-                #         'changing its distribution to numpyro.distributions.VonMises ' + \
-                #         'for better performance during MCMC.')
                 if value["fn"].support is constraints.circular:
                     var_names.append(value["name"])
         return var_names
@@ -201,7 +197,8 @@ class Inference:
             num_chains (int): [description]. Defaults to 1.
             sampler (str, or numpyro.infer.mcmc.MCMCKernel): Choose one of
                 ['NUTS'], or pass a numpyro mcmc kernel.
-            sampler_kwargs (dict): Keyword arguments to pass to the chosen sampler.
+            sampler_kwargs (dict): Keyword arguments to pass to the chosen
+                sampler.
             **kwargs: Keyword arguments to pass to mcmc instance.
 
         """
@@ -260,9 +257,12 @@ class Inference:
             num_samples (int): [description]. Defaults to 1000.
             num_chains (int): [description]. Defaults to 1.
             sampler (str): Choose one of ['NUTS']
-            sampler_kwargs (dict): Keyword arguments to pass to the chosen sampler.
-            extra_fields (tuple): Extra fields to report in sample_stats. Defaults to ().
-            init_params (dict): Initial parameter values prior to sampling. Defaults to None.
+            sampler_kwargs (dict): Keyword arguments to pass to the chosen
+                sampler.
+            extra_fields (tuple): Extra fields to report in sample_stats.
+                Defaults to ().
+            init_params (dict): Initial parameter values prior to sampling.
+                Defaults to None.
             **kwargs: Keyword arguments to pass to mcmc instance.
 
         Returns:
@@ -286,23 +286,6 @@ class Inference:
             extra_fields=extra_fields,
             init_params=init_params,
         )
-        # self._update_args_kwargs(model_args, model_kwargs)
-        # # Filter UserWarnings from numpyro as errors
-        # module = r'\bnumpyro\b'
-        # category = UserWarning
-        # warnings.filterwarnings("error", module=module, category=category)
-        # try:
-        #     self.mcmc.run(rng_key, *model_args, extra_fields=extra_fields,
-        #                   init_params=init_params, **model_kwargs)
-        # except UserWarning as w:
-        #     msg = w.args[0]
-        #     if "CircularReparam" in msg:
-        #         # TODO: make these more helpful
-        #         msg = 'Add prior reparameteriser to the list of handlers.'
-        #         raise RuntimeError(msg)
-        #     raise w
-        # # Reset warnings filter
-        # warnings.filterwarnings("default", module=module, category=category)
 
         self.samples = mcmc.get_samples(group_by_chain=True)
         self.sample_stats = mcmc.get_extra_fields(group_by_chain=True)
@@ -453,27 +436,16 @@ class Inference:
                 during MCMC.
             **kwargs: Keyword arguments to pass to the sampling method.
         """
-        numpyro.infer.reparam.Reparam
-        # num_chains = mcmc_kwargs.get('num_chains', 1)
-
         # Add handlers to model
-        # handlers = self._init_handlers(handlers, reparam=reparam)
-        # model = self.model
-        # for h in handlers:
-        #     model = h(model)
         model = self._add_handlers_to_model(handlers=handlers, reparam=reparam)
 
-        # self._update_args_kwargs(model_args, model_kwargs)
         if method == "mcmc":
-            # sampler = self.get_sampler(model, **sampler_kwargs)
-            # mcmc = self.init_mcmc(model, num_samples=num_samples, **mcmc_kwargs)
             self.run_mcmc(
                 model,
                 num_samples=num_samples,
                 **kwargs,
             )
         elif method == "nested":
-            # ns = self.init_nested(model, **nested_kwargs)
             self.run_nested(model, num_samples=num_samples, **kwargs)
         else:
             raise ValueError(
@@ -513,14 +485,15 @@ class Inference:
         self._map_loss = map_result.losses
         self._map_guide = map_svi.guide
         self._map_params = map_result.params
-        # self._update_args_kwargs(model_args, model_kwargs)
 
     def predictive(self, nu=None, nu_err=None, **kwargs) -> dict:
         """[summary]
 
         Args:
-            model_args (tuple): Positional arguments to pass to the model callable.
-            model_kwargs (dict): Keyword arguments to pass to the model callable.
+            model_args (tuple): Positional arguments to pass to the model
+                callable.
+            model_kwargs (dict): Keyword arguments to pass to the model
+                callable.
             **kwargs: Kwargs to pass to Predictive.
 
         Returns:

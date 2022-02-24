@@ -14,6 +14,7 @@ from numpy.typing import ArrayLike
 
 from .utils import PACKAGE_DIR, distribution
 from .nn import BayesianNN
+from .typing import DistLike
 
 __all__ = [
     "Prior",
@@ -283,27 +284,8 @@ class HeGlitchFunction(_GlitchFunction):
 
         log_numax = jnp.log10(distribution(nu_max).mean)
         # Attempt rough guess of glitch params
-        # self.log_a: dist.Distribution = dist.Normal(-1.10 - 0.35*log_numax, 0.8)
         self.log_a: dist.Distribution = dist.Normal(-log_numax, 1.0)
-
-        # self.log_b: dist.Distribution = dist.Normal(0.719 - 2.14*log_numax, 0.8)
         self.log_b: dist.Distribution = dist.Normal(-6.4, 1.0)
-        # self.log_tau = dist.Normal(0.44 - 1.03*log_numax, 0.1)
-
-    # @staticmethod
-    # def amplitude(nu: ArrayLike, a: ArrayLike, b: ArrayLike) -> jnp.ndarray:
-    #     r"""The amplitude of the glitch,
-    #     :math:`a_\\mathrm{He} \\nu \\exp(-b_\\mathrm{He} \\nu^2)`.
-
-    #     Args:
-    #         nu (:term:`array_like`): Mode frequency, :math:`\\nu`.
-    #         a (:term:`array_like`): Amplitude, :math:`a_\\mathrm{He}`.
-    #         b (:term:`array_like`): Decay, :math:`b_\\mathrm{He}`.
-
-    #     Returns:
-    #         jax.numpy.ndarray: Helium glitch amplitude.
-    #     """
-    #     return a * nu * jnp.exp(- b * nu**2)
 
     def amplitude(self, nu: ArrayLike) -> jnp.ndarray:
         r"""The amplitude of the glitch,
@@ -405,22 +387,6 @@ class CZGlitchFunction(_GlitchFunction):
         # Rough guess of glitch params
         self.log_a: dist.Distribution = dist.Normal(2.0 * log_numax - 1.5, 1.0)
 
-        # self.log_tau = dist.Normal(0.77 - 0.99*log_numax, 0.1)
-
-    # @staticmethod
-    # def amplitude(nu: ArrayLike, a: ArrayLike) -> jnp.ndarray:
-    #     """The amplitude of the glitch,
-    #     :math:`a_\\mathrm{CZ} / \\nu^{-2}`.
-
-    #     Args:
-    #         nu (:term:`array_like`): Mode frequency, :math:`\\nu`.
-    #         a (:term:`array_like`): Amplitude, :math:`a_\\mathrm{CZ}`.
-
-    #     Returns:
-    #         jax.numpy.ndarray: Base of the convective zone glitch amplitude.
-    #     """
-    #     return jnp.divide(a, nu**2)
-
     def amplitude(self, nu: ArrayLike) -> jnp.ndarray:
         """The amplitude of the glitch,
         :math:`a_\\mathrm{CZ} / \\nu^{-2}`.
@@ -453,11 +419,11 @@ class CZGlitchFunction(_GlitchFunction):
 
 
 class TauPrior(Prior):
-    """[summary]
+    """Prior on the acoustic depths of helium and BCZ glitches.
 
     Args:
-        nu_max (:term:`dist_like`): [description]
-        teff (:term:`dist_like`): [description]
+        nu_max (:term:`dist_like`): Frequency at maximum power (uHz).
+        teff (:term:`dist_like`): Effective temperature (K).
     """
 
     def __init__(self, nu_max: DistLike, teff: DistLike = None) -> None:

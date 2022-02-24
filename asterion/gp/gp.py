@@ -1,4 +1,3 @@
-"""Gaussian processes."""
 from __future__ import annotations
 
 import numpyro
@@ -30,9 +29,9 @@ class GP:
     where :math:`m(x)` and :math:`k(x, x')` are the mean and covariance
     of :math:`f(x)` and :math:`f(x')`. I.e. :math:`k(x, x') = \mathrm{Cov}(f(x), f(x'))`.
 
-    The kernel implies a distribution over all possible functional forms of :math:`f`.
-    For example, :math:`f` given :math:`x` is drawn from a multivariate
-    normal distribution,
+    The kernel implies a distribution over all possible functional forms of
+    :math:`f`. For example, :math:`f` given :math:`x` is drawn from a
+    multivariate normal distribution,
 
     .. math::
 

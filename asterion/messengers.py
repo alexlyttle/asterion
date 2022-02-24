@@ -93,5 +93,6 @@ class dimension(Messenger):
 
         if shape[dim] != self.size:
             raise ValueError(
-                f"Dimension {dim} of site '{msg['name']}' should have length {self.size}"
+                f"Dimension {dim} of site '{msg['name']}' should have "
+                + f"length {self.size}"
             )

@@ -68,8 +68,8 @@ class WhiteNoise(Kernel):
 
         Args:
             x (:term:`array_like`): First input vector.
-            xp (:term:`array_like`, optional): Second input vector. If x is not xp,
-                returns zeros((x.shape[0], xp.shape[0])).
+            xp (:term:`array_like`, optional): Second input vector. If x is not
+                xp, returns zeros((x.shape[0], xp.shape[0])).
 
         Raises:
             ValueError: Inputs x and xp must have the same shape as the
@@ -112,6 +112,5 @@ class SquaredExponential(Kernel):
             jax.numpy.ndarray: Covariance matrix.
         """
         exponant = jnp.power((xp[:, None] - x) / self.length, 2.0)
-        # exponant = jnp.power((xp[..., None] - x[..., None, :]) / self.length, 2.0)
         cov = self.var * jnp.exp(-0.5 * exponant)
         return cov
