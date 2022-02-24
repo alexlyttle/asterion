@@ -1,14 +1,14 @@
-"""[summary]
+"""Fitting acoustic glitches to the mode frequencies of solar-like oscillators.
 
 Warning:
     This module is a work-in-progress, use with caution.
 """
-import os
 import numpyro
 
-from ._version import __version__
-
 numpyro.enable_x64()
-numpyro.set_host_device_count(10)
 
-PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+from .version import __version__
+from .models import GlitchModel
+from .inference import Inference
+from .plotting import plot_corner, plot_echelle, plot_glitch, get_labeller
+from .results import get_dims, get_summary, get_table, get_var_names

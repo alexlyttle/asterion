@@ -1,5 +1,5 @@
 furo
 ipykernel
 nbsphinx
-autodocsumm
-sphinx-inline-tabs
+readthedocs-sphinx-search
+sphinx-autoapi

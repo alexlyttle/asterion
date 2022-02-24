@@ -1,8 +1,6 @@
-Contributing
-============
-
-If you find an issue with this package, please `search for or raise it on GitHub <https://github.com/alexlyttle/asterion/issues>`_.
-If you would like to contribute to the package, please find an issue and let us know in the comments.
+.. include:: ../../../README.rst
+    :start-after: .. contributing_label
+    :end-before: .. contributing_end_label
 
 #. To start making changes, fork the repository using the link in the top-right of our `GitHub page <https://github.com/alexlyttle/asterion>`_.
 
@@ -83,7 +81,17 @@ If you would like to contribute to the package, please find an issue and let us 
 Tests
 -----
 
-Unit tests are coming soon.
+To change or run the tests, install the package with the following option,
+
+.. code-block:: shell
+
+    pip install -e '.[tests]'
+
+Once you have made changes to the codebase or tests, run them using :code:`pytest`,
+
+.. code-block:: shell
+
+    pytest .
 
 Documentation
 -------------
@@ -101,11 +109,3 @@ Once you have made changes to documentation, run the following commands to updat
     cd docs
     make clean
     make html
-
-**Optional**: If you have added a submodule or subpackage to ``asterion``, run the following command in the main project directory to update the API documentation:
-
-.. code-block:: shell
-
-    sphinx-apidoc -f -M -H "API reference" --tocfile api -t docs/source/_templates -o docs/source/guide asterion
-
-This recursively searches ``asterion`` and generates a subsection for each submodule and subpackage. Then, build the docs to check it compiles locally.

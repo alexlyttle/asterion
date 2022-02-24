@@ -3,19 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to the Asterion documentation
-=====================================
+.. include:: ../../README.rst
+   :start-after: .. asterion_label
+   :end-before: .. installation_label
 
-A Bayesian package for modelling asteroseismic oscillation mode frequencies.
-
-Introduction
-------------
-
-Do you have some asteroseismic mode frequencies for a particular star? Do you want to fit a model to those modes?
-You need not look any further because this is the Python package for you. With this package you can fit a model
-of the glitch in mode frequencies caused by the helium-II ionisation zone and base of the convective zone in the
-stellar envelope. This model yields posterior estimates for the amplitudes of these glitches, which you can 
-use to study surface helium content [references].
+Contents
+========
 
 .. toctree::
    :maxdepth: 1
@@ -24,7 +17,7 @@ use to study surface helium content [references].
 
    guide/installation
    guide/getting_started
-   guide/api
+   guide/api/index
    guide/glossary
 
 .. toctree::
@@ -44,10 +37,14 @@ use to study surface helium content [references].
    dev/*
    GitHub repository <https://github.com/alexlyttle/asterion>
 
+.. include:: ../../README.rst
+   :start-after: .. authors_label
 
-Indices and tables
-------------------
+Acknowledgements
+================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+Fonts
+-----
+
+* Regular - Atkinson Hyperlegible, a font built with accessibility in mind
+* Monospace - Custom build of Iosevka inspired by `The Darnedest Thing <http://thedarnedestthing.com/hyperlegible%20dyslexic>`_

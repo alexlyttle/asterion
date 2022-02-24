@@ -1,5 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=auto');
 
-/* body{
-    font-family: 'Atkinson Hyperlegible', sans-serif;
-} */
+/* Add custom build of iosevka in the 'hyperlegible' style as monospace fonts */
+@font-face {
+	font-family: 'Iosevka Hyperlegible Web';
+	font-display: swap;
+	font-weight: 400;
+	font-stretch: expanded;
+	font-style: normal;
+	src: url('fonts/ttf/iosevka-hyperlegible-extended.ttf') format('truetype'), url('fonts/woff2/iosevka-hyperlegible-extended.woff2') format('woff2');
+}
+
+@font-face {
+	font-family: 'Iosevka Hyperlegible Web';
+	font-display: swap;
+	font-weight: 400;
+	font-stretch: expanded;
+	font-style: italic;
+	src: url('fonts/ttf/iosevka-hyperlegible-extendeditalic.ttf') format('truetype'), url('fonts/woff2/iosevka-hyperlegible-extendeditalic.woff2') format('woff2');
+}
+
+@font-face {
+	font-family: 'Iosevka Hyperlegible Web';
+	font-display: swap;
+	font-weight: 700;
+	font-stretch: expanded;
+	font-style: normal;
+	src: url('fonts/ttf/iosevka-hyperlegible-extendedbold.ttf') format('truetype'), url('fonts/woff2/iosevka-hyperlegible-extendedbold.woff2') format('woff2');
+}
+
+@font-face {
+	font-family: 'Iosevka Hyperlegible Web';
+	font-display: swap;
+	font-weight: 700;
+	font-stretch: expanded;
+	font-style: italic;
+	src: url('fonts/ttf/iosevka-hyperlegible-extendedbolditalic.ttf') format('truetype'), url('fonts/woff2/iosevka-hyperlegible-extendedbolditalic.woff2') format('woff2');
+}

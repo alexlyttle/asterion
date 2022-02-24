@@ -1,0 +1,2 @@
+include README.rst
+include asterion/data/tau_prior.hdf5

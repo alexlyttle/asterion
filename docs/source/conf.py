@@ -37,14 +37,17 @@ release = __version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'autoapi.extension',
     'sphinx.ext.autodoc',      # Automatically generate documentation
     'sphinx.ext.napoleon',     # Support for Google-style docstrings
-    'autodocsumm',  # Add nice summaries of classes, methods and attributes
+    # 'autodocsumm',  # Add nice summaries of classes, methods and attributes
+    # 'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',  # Link to external documentation
     'sphinx.ext.viewcode',     # View source code
     'sphinx.ext.mathjax',      # Render math
     'nbsphinx',                # Generate notebooks
-    'sphinx_inline_tabs',      # Inline tabs (introduces .. tab:: domain)
+    # 'sphinx_inline_tabs',      # Inline tabs (introduces .. tab:: domain)
+    'sphinx_search.extension',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -58,12 +61,14 @@ exclude_patterns = []
 # Don't prepend module names to functions
 add_module_names = False
 
+# Suppress these warnings
+suppress_warnings = ["autoapi.python_import_resolution"]
+
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
 html_theme = 'furo'
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -78,7 +83,9 @@ html_theme_options = {
     "dark_logo": "images/asterion-white624x328.png",
     "sidebar_hide_name": True,
     "light_css_variables": {
+        # Legible font for better accessibility
         "font-stack": "Atkinson Hyperlegible, sans-serif",
+        "font-stack--monospace": "Iosevka Hyperlegible Web, monospace",
     },
 }
 
@@ -92,19 +99,22 @@ html_css_files = [
 
 # -- Autodoc options ---------------------------------------------------------
 
-autodoc_typehints = 'none'  # show type hints in doc body
+autodoc_typehints = 'none'  # show type hints in doc body when not 
+                                   # specified in docstrings
 # autodoc_typehints_description_target = 'documented'
 autodoc_inherit_docstrings = True
-autodoc_default_options = {
+# autodoc_default_options = {
     # -- autodocsumm options -------------------------------------------------
-    'autosummary': True,  # Add summaries automatically
-    'autosummary-nosignatures': True,
+    # 'autosummary': True,  # Add summaries automatically
+    # 'autosummary-nosignatures': True,
     # 'autosummary-sections': 'Classes ;; Functions ;; Data',
-}
+# }
 # autodoc_type_aliases = {
-#     "DistLike": "asterion.annotations.DistLike",
+    # "DistLike": "asterion.annotations.DistLike",
 #     "ArrayLike": "numpy.typing.ArrayLike",
 # }
+# autosummary_generate = True
+autodoc_typehints_format = 'short'
 
 
 # -- InterSphinx options -----------------------------------------------------
@@ -117,6 +127,9 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "astropy": ("https://docs.astropy.org/en/stable/", None),
+    "corner": ("https://corner.readthedocs.io/en/stable/", None),
+    "xarray": ("https://xarray.pydata.org/en/stable/", None),
+    "pandas": ("https://pandas.pydata.org/docs/dev/", None),
 }
 
 
@@ -124,8 +137,18 @@ intersphinx_mapping = {
 
 # napoleon_type_aliases = {}
 # napoleon_preprocess_types = True
+# napoleon_attr_annotations = True
+napoleon_numpy_docstring = False
 
 
 # -- NBSphinx options --------------------------------------------------------
 
 nbsphinx_execute = "never"
+
+
+# -- AutoAPI options ---------------------------------------------------------
+
+autoapi_dirs = ['../../asterion']
+autoapi_root = 'guide/api'
+autoapi_options = ['members', 'show-inheritance', 'imported-members']
+autoapi_member_order = 'groupwise'

@@ -8,3 +8,5 @@ docs/build/
 notebook/data/
 out/
 .python-version
+*.nc
+*.diff
