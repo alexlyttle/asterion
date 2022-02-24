@@ -45,8 +45,10 @@ class Model(Prior):
         """Call the model during inference.
 
         Args:
-            nu (:term:`array_like`, optional): Observed radial mode frequencies.
-            nu_err (:term:`array_like`, optional): Gaussian observational uncertainties (sigma) for nu.
+            nu (:term:`array_like`, optional): Observed radial mode
+                frequencies.
+            nu_err (:term:`array_like`, optional): Gaussian observational
+                uncertainties (sigma) for nu.
 
         Raises:
             NotImplementedError: This is an abstract class and cannot be
@@ -89,6 +91,11 @@ class GlitchModel(Model):
             parameter.
         num_pred (int): The number of points in radial order for
             which to make predictions.
+        seed (int): The seed used to generate samples from the prior on the
+            glitch periods (acoustic depths) tau_he and tau_cz.
+        window_width (float): The number of delta_nu either side of nu_max over
+            which to average the helium glitch amplitude for the parameter
+            'he_amplitude'.
 
     Attributes:
         n (numpy.ndarray): Radial order of model observations.
@@ -97,6 +104,9 @@ class GlitchModel(Model):
         he_glitch (Prior): Prior on the helium glitch function.
         cz_glitch (Prior): Prior on the base of convective zone glitch
             function.
+        window_width (float): The number of delta_nu either side of nu_max over
+            which to average the helium glitch amplitude for the parameter
+            'he_amplitude'.
     """
 
     def __init__(
@@ -106,11 +116,9 @@ class GlitchModel(Model):
         delta_nu: DistLike,
         teff: Optional[DistLike] = None,
         epsilon: Optional[DistLike] = None,
-        # background: Prior,
-        # he_glitch: Optional[Prior]=None,
-        # cz_glitch: Optional[Prior]=None,
         num_pred: int = 250,
         seed: int = 0,
+        window_width: float = 5.0,
     ):
         super().__init__(
             n,
@@ -123,18 +131,6 @@ class GlitchModel(Model):
         )
         self.n = np.asarray(n)
         self.n_pred = np.linspace(n[0], n[-1], num_pred)
-
-        # background (Prior): Background prior model which, when called, returns
-        #     a function :math:`f_\mathrm{bkg}` describing the smoothly varying
-        #     (non-glitch) component of the oscillation modes.
-        # he_glitch (Prior): Glitch prior model which, when called, returns a
-        #     function :math:`f_\mathrm{He}` describing the contribution to the
-        #     modes from the glitch due to the second ionisation of helium in the
-        #     stellar convective envelope.
-        # cz_glitch (Prior): Convective zone glitch prior model which, when
-        #     called, returns a function :math:`f_\mathrm{He}` describing the
-        #     contribution to the modes from the glitch due to the base of the
-        #     convection zone.
 
         self.background: Prior = AsyFunction(delta_nu, epsilon=epsilon)
 
@@ -156,9 +152,7 @@ class GlitchModel(Model):
             "dnu_he": u.microhertz,
             "dnu_cz": u.microhertz,
             "he_nu_max": u.microhertz,
-            # 'cz_nu_max': u.microhertz,
             "he_amplitude": u.microhertz,
-            # 'noise': u.microhertz,
         }
 
         self.symbols = {
@@ -168,9 +162,7 @@ class GlitchModel(Model):
             "dnu_he": r"$\delta\nu_\mathrm{He}$",
             "dnu_cz": r"$\delta\nu_\mathrm{BCZ}$",
             "he_nu_max": r"$A_\mathrm{He}(\nu_\max)$",
-            # 'cz_nu_max': r'$A_\mathrm{BCZ}(\nu_\max)$',
             "he_amplitude": r"$\langle A_\mathrm{He} \rangle$",
-            # 'noise': r'$\sigma_\mathrm{WN}$',
         }
 
         for prior in [self.background, self.he_glitch, self.cz_glitch]:
@@ -179,9 +171,8 @@ class GlitchModel(Model):
             self.symbols.update(prior.symbols)
 
         self._kernel_var = 0.1 * self.background.delta_nu.mean
-        # super().__init__(symbols=symbols, units=units)
-        # self._init_arguments(n, nu_max, delta_nu, teff=teff, epsilon=epsilon,
-        #                      num_pred=num_pred, seed=seed)
+        self._kernel_length = 5.0
+        self.window_width = window_width
 
     def predict(self, nu: ArrayLike = None, nu_err: ArrayLike = None):
         # In some models we may not want to pass nu to make predictions.
@@ -197,11 +188,14 @@ class GlitchModel(Model):
         """Sample the model for given observables.
 
         Args:
-            nu (:term:`array_like`, optional): Observed radial mode frequencies.
-            nu_err (:term:`array_like`, optional): Gaussian observational uncertainties (sigma) for nu.
-            pred (bool): If True, make predictions nu and nu_pred from n and num_pred.
+            nu (:term:`array_like`, optional): Observed radial mode
+                frequencies.
+            nu_err (:term:`array_like`, optional): Gaussian observational
+                uncertainties (sigma) for nu.
+            pred (bool): If True, make predictions nu and nu_pred from n and
+                num_pred.
         """
-        # TODO it would be more general for all models to take an obs dict as
+        # TODO it may be more general for all models to take an obs dict as
         # argument and every parameter to do obs.get('name', None)
         n = self.n
         n_pred = self.n_pred
@@ -211,25 +205,21 @@ class GlitchModel(Model):
 
         _nu_max = numpyro.sample("_nu_max", self._nu_max)
         numpyro.deterministic("he_nu_max", self.he_glitch.amplitude(_nu_max))
-        # numpyro.deterministic('cz_nu_max', self.cz_glitch.amplitude(_nu_max))
 
-        low = _nu_max - 5 * self.background._delta_nu
-        high = _nu_max + 5 * self.background._delta_nu
+        low = _nu_max - self.window_width * self.background._delta_nu
+        high = _nu_max + self.window_width * self.background._delta_nu
         numpyro.deterministic(
             "he_amplitude", self.he_glitch._average_amplitude(low, high)
         )
 
+        # The mean function for the GP
         def mean(n):
             nu_bkg = bkg_func(n)
             return nu_bkg + he_glitch_func(nu_bkg) + cz_glitch_func(nu_bkg)
 
         var = numpyro.param("kernel_var", self._kernel_var)
-        length = numpyro.param("kernel_length", 5.0)
+        length = numpyro.param("kernel_length", self._kernel_length)
 
-        # noise = numpyro.sample('noise', dist.HalfNormal(0.1))
-        # if nu_err is not None:
-        #     noise += nu_err
-        #     # noise = jnp.sqrt(noise**2 + nu_err**2)
         kernel = SquaredExponential(var, length)
         gp = GP(kernel, mean=mean)
 
