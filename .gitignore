@@ -9,5 +9,5 @@ notebook/data/
 out/
 .python-version
 *.nc
-!tau_prior.nc
+!asterion/data/*.nc
 *.diff
