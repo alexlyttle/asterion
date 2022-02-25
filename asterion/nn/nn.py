@@ -270,7 +270,19 @@ class BayesianNN(TrainedBayesianNN):
     def optimize(
         self, rng_key, num_steps=5000, step_size=1e-2, subsample_size=100
     ):
-        """Optimize the model with SVI."""
+        """Optimize the model with SVI using a delta function guide to obtain
+        the MAP.
+        
+        Args:
+            rng_key (jax.random.PRNGKey): Random key for training.
+            num_steps (int): Number of steps (or epochs):
+            step_size (float): Step size for the Adam optimizer.
+            subsample_size (int): Size of training data subsamples (or
+                batches).
+        
+        Returns:
+            numpyro.infer.SVIRunResult: Resulting SVI run result object.
+        """
         optimizer = Adam(step_size=step_size)
         guide = AutoDelta(self.model)
         svi = SVI(self.model, guide, optimizer, loss=Trace_ELBO())
@@ -303,7 +315,27 @@ class BayesianNN(TrainedBayesianNN):
         subsample_size=None,
         num_blocks=None,
     ):
-        "Train the model using NUTS, or HMCECS if sample_size is not None."
+        """Train the model using NUTS, or HMCECS if subsample_size is not None.
+        
+        Warning:
+            This method is not yet tested, use with caution.
+        
+        Args:
+            rng_key (jax.random.PRNGKey): Random key for training.
+            num_warmup (int): Number of MCMC warmup steps.
+            num_samples (int): Number of MCMC samples.
+            num_chains (int): Number of parallel MCMC chains.
+            target_accept_prob (float): Target MCMC acceptance probability.
+            init_strategy (callable, optional): Initialization strategy.
+                Default is :func:`numpyro.infer.init_to_median`.
+            subsample_size (int, optional): Subsample size for HMCECS. Default
+                is None to use the NUTS sampler.
+            num_blocks (int, optional): Number of blocks for the HMCECS
+                sampler. Default is 10 if subsample_size is not None.
+        
+        Returns:
+            numpyro.infer.MCMC: Trained MCMC object.
+        """
         if init_strategy is None:
             init_strategy = numpyro.infer.init_to_median
 
