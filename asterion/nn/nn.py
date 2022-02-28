@@ -371,7 +371,7 @@ class BayesianNN(TrainedBayesianNN):
         return mcmc
 
     def to_file(self, filename, trained=False):
-        """Save to HDF5 file.
+        """Save to NetCDF4 file.
 
         Args:
             filename (str or file_like):  File path or IO buffer.
@@ -420,51 +420,6 @@ class BayesianNN(TrainedBayesianNN):
                 w2[:] = self.ref_params['w2']
                 sigma[:] = self.ref_params['sigma']
 
-        # with h5py.File(filename, "w") as file:
-        #     if trained:
-        #         x_train = file.create_dataset(
-        #             "x_train",
-        #             data=h5py.Empty("f"),
-        #         )
-        #     else:
-        #         x_train = file.create_dataset(
-        #             "x_train",
-        #             data=self.x_train,
-        #             chunks=True,
-        #             compression="gzip",
-        #         )
-
-        #     x_train.attrs["loc"] = self.x_loc
-        #     x_train.attrs["scale"] = self.x_scale
-        #     x_train.attrs["dim"] = self.x_dim
-
-        #     if trained:
-        #         y_train = file.create_dataset(
-        #             "y_train",
-        #             data=h5py.Empty("f"),
-        #         )
-        #     else:
-        #         y_train = file.create_dataset(
-        #             "y_train",
-        #             data=self.y_train,
-        #             chunks=True,
-        #             compression="gzip",
-        #         )
-
-        #     y_train.attrs["loc"] = self.y_loc
-        #     y_train.attrs["scale"] = self.y_scale
-        #     y_train.attrs["dim"] = self.y_dim
-
-        #     file.create_dataset("hidden_dim", data=self.hidden_dim)
-        #     if self.samples is not None:
-        #         samples = file.create_group("samples")
-        #         for key, value in self.samples.items():
-        #             samples.create_dataset(key, data=value)
-        #     if self.ref_params is not None:
-        #         params = file.create_group("ref_params")
-        #         for key, value in self.ref_params.items():
-        #             params.create_dataset(key, data=value)
-
     @classmethod
     def from_file(cls, filename):
         with Dataset(filename, "r") as root:
@@ -479,21 +434,6 @@ class BayesianNN(TrainedBayesianNN):
 
             hidden_dim = root.dimensions["hidden"].size
             samples, params = cls._data_from_file(root)
-
-        # with h5py.File(filename, "r") as file:
-        #     trained = (
-        #         file["x_train"].shape is None or file["y_train"].shape is None
-        #     )
-
-        # if trained:
-        #     # I.e. doesn't contain training data
-        #     return TrainedBayesianNN.from_file(filename)
-
-        # with h5py.File(filename, "r") as file:
-        #     x_train = file["x_train"][()]
-        #     y_train = file["y_train"][()]
-
-        #     hidden_dim, samples, params = cls._data_from_file(file)
 
         bnn = cls(
             x_train,
