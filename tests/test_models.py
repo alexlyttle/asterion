@@ -12,7 +12,7 @@ class TestGlitchModel:
     def test_init_optional(self, glitch_model_args):
         teff = (5000., 100.)
         eps = (0.3, 0.1)
-        model = GlitchModel(*glitch_model_args, teff=teff, epsilon=eps,
+        _ = GlitchModel(*glitch_model_args, teff=teff, epsilon=eps,
                             num_pred=100, seed=11)
 
     def test_eval_repr(self, glitch_model_args):
