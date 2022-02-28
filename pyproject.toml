@@ -5,4 +5,6 @@ line-length = 79
 filterwarnings = [
     "ignore:JAX on Mac ARM machines:UserWarning",
     "ignore:the imp module is deprecated:DeprecationWarning",
+    "ignore:numpy.ndarray size changed:RuntimeWarning",
+    "ignore:the `interpolation=` argument to nanquantile:DeprecationWarning",
 ]
