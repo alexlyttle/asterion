@@ -9,4 +9,5 @@ notebook/data/
 out/
 .python-version
 *.nc
+!asterion/data/*.nc
 *.diff

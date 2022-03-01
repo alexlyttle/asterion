@@ -448,7 +448,7 @@ class TauPrior(Prior):
         x = jnp.stack([log_numax, teff], axis=-1)
 
         prior = BayesianNN.from_file(
-            os.path.join(PACKAGE_DIR, "data", "tau_prior.hdf5")
+            os.path.join(PACKAGE_DIR, "data", "tau_prior.nc")
         )
 
         rng_key, key = random.split(rng_key)

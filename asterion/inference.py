@@ -615,11 +615,14 @@ class Inference:
 
         if self.sample_metadata.get("method", None) == "nested":
             # The weights are just the logP in sampler stats
-            data.add_groups(
-                {"weighted_posterior": self.weighted_samples},
-                coords=coords,
-                dims=dims,
-            )
+            with warnings.catch_warnings():
+                # Catch user warnings
+                warnings.filterwarnings("ignore", category=UserWarning)
+                data.add_groups(
+                    {"weighted_posterior": self.weighted_samples},
+                    coords=coords,
+                    dims=dims,
+                )
 
         circ_var_names = self.get_circ_var_names()
         # Add unit, symbol and circular attributes to groups

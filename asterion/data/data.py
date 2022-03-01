@@ -1,4 +1,7 @@
+import os
+import arviz as az
 from numpy import array
+from ..utils import PACKAGE_DIR
 
 example_star = {
     "n": array([13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]),
@@ -60,3 +63,14 @@ example_star = {
     "delta_nu": (111.8411243661503, 0.1),
 }
 """Example input data for a star."""
+
+def get_example_results() -> az.InferenceData:
+    """Get example inference results data.
+
+    Returns:
+        arviz.InferenceData: Inference data object.
+    """
+
+    return az.from_netcdf(
+        os.path.join(PACKAGE_DIR, 'data', 'example_results.nc')
+    )

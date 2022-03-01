@@ -196,7 +196,10 @@ def plot_echelle(
     dim = ("chain", "draw")  # dim over which to take stats
 
     if delta_nu is None:
-        delta_nu = data[group]["delta_nu"].median(dim=dim).to_numpy()
+        if group == "prior":
+            delta_nu = predictive["delta_nu"].median(dim=dim).to_numpy()
+        else:
+            delta_nu = data[group]["delta_nu"].median(dim=dim).to_numpy()
 
     nu = data.observed_data.nu
     nu_err = data.constant_data.nu_err

@@ -3,7 +3,6 @@ matplotlib
 corner
 arviz
 astropy
-h5py
 jaxlib
 jax
 jaxns

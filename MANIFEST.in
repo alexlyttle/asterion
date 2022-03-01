@@ -1,2 +1,3 @@
 include README.rst
-include asterion/data/tau_prior.hdf5
+include asterion/data/tau_prior.nc
+include asterion/data/example_results.nc
