@@ -130,7 +130,7 @@ class GlitchModel(Model):
             seed=seed,
         )
         self.n = np.asarray(n)
-        self.n_pred = np.linspace(n[0], n[-1], num_pred)
+        self.n_pred = np.linspace(self.n[0], self.n[-1], num_pred)
 
         self.background: Prior = AsyFunction(delta_nu, epsilon=epsilon)
 
