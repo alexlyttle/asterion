@@ -10,4 +10,5 @@ out/
 .python-version
 *.nc
 !asterion/data/*.nc
+!tests/*nc
 *.diff
