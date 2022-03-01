@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import numpyro, h5py
+import numpyro
 import numpyro.distributions as dist
 import jax.numpy as jnp
 
