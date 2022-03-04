@@ -9,6 +9,7 @@ import astropy.units as u
 from numpy.typing import ArrayLike
 from typing import Optional
 from jax import random
+from numpyro.infer import Predictive
 
 from .typing import DistLike
 from .gp import GP
@@ -135,10 +136,8 @@ class GlitchModel(Model):
         self.background: Prior = AsyFunction(delta_nu, epsilon=epsilon)
 
         key = random.PRNGKey(seed)
-        prior = TauPrior(nu_max, teff)
-        log_tau_he, log_tau_cz = prior.condition(
-            key, kind="optimized", num_samples=1000
-        )
+        tau_prior = TauPrior(nu_max, teff)
+        log_tau_he, log_tau_cz = self._init_tau(key, tau_prior)
 
         self.he_glitch: Prior = HeGlitchFunction(nu_max, log_tau=log_tau_he)
         self.cz_glitch: Prior = CZGlitchFunction(nu_max, log_tau=log_tau_cz)
@@ -173,6 +172,17 @@ class GlitchModel(Model):
         self._kernel_var = 0.1 * self.background.delta_nu.mean
         self._kernel_length = 5.0
         self.window_width = window_width
+
+    def _init_tau(self, rng_key, tau_prior, num_samples=5000):
+        predictive = Predictive(tau_prior, num_samples=num_samples)
+        pred = predictive(rng_key)
+        log_tau = pred['log_tau'] - 6  # Convert from seconds to mega seconds
+        loc = log_tau.mean(axis=0)
+        scale = log_tau.std(axis=0, ddof=1)
+        return (
+            distribution((loc[0], scale[0])),  # tau_he
+            distribution((loc[1], scale[1]))  # tau_cz
+        )
 
     def predict(self, nu: ArrayLike = None, nu_err: ArrayLike = None):
         # In some models we may not want to pass nu to make predictions.

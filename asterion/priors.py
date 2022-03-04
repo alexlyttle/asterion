@@ -1,7 +1,7 @@
 """Prior models."""
 from __future__ import annotations
 
-import os
+import os, jax
 import numpy as np
 import jax.numpy as jnp
 import numpyro
@@ -13,7 +13,6 @@ from typing import Callable, Dict, Iterable, Optional
 from numpy.typing import ArrayLike
 
 from .utils import PACKAGE_DIR, distribution
-from .nn import BayesianNN
 from .typing import DistLike
 
 __all__ = [
@@ -285,7 +284,7 @@ class HeGlitchFunction(_GlitchFunction):
         log_numax = jnp.log10(distribution(nu_max).mean)
         # Attempt rough guess of glitch params
         self.log_a: dist.Distribution = dist.Normal(-log_numax, 1.0)
-        self.log_b: dist.Distribution = dist.Normal(-6.4, 1.0)
+        self.log_b: dist.Distribution = dist.Normal(-7.0, 2.0)
 
     def amplitude(self, nu: ArrayLike) -> jnp.ndarray:
         r"""The amplitude of the glitch,
@@ -426,41 +425,61 @@ class TauPrior(Prior):
         teff (:term:`dist_like`): Effective temperature (K).
     """
 
-    def __init__(self, nu_max: DistLike, teff: DistLike = None) -> None:
+    def __init__(
+            self,
+            nu_max: DistLike,
+            teff: DistLike = None,
+            noise: float = 0.005
+        ) -> None:
         super().__init__(nu_max, teff=teff)
         self.nu_max = distribution(nu_max)
 
         if teff is None:
-            teff = (5000.0, 700.0)
+            teff = (5000.0, 800.0)  # Uninformative prior
         self.teff = distribution(teff)
-        self.log_tau_he = None
-        self.log_tau_cz = None
+        
+        # Load weights, loc and cov
+        from .data import tau_prior
+        self.loc = jnp.array(tau_prior["loc"])
+        self.cov = jnp.array(tau_prior["cov"])
+        self.weights = jnp.array(tau_prior["weights"])
+        self.noise = 0.005
 
-    def condition(
-        self, rng_key, num_obs=1000, kind="trained", num_samples=None
-    ):
-        rng_key, key1, key2 = random.split(rng_key, 3)
-        sample_shape = (num_obs,)
-        log_numax = jnp.log10(
-            self.nu_max.sample(key1, sample_shape=sample_shape)
-        )
-        teff = self.teff.sample(key2, sample_shape=sample_shape)
-        x = jnp.stack([log_numax, teff], axis=-1)
+    def __call__(self):
+        assignment = numpyro.sample("assignment", dist.Categorical(self.weights))
+        
+        loc = self.loc[assignment]
+        cov = self.cov[assignment]
 
-        prior = BayesianNN.from_file(
-            os.path.join(PACKAGE_DIR, "data", "tau_prior.nc")
-        )
+        nu_max = numpyro.sample("nu_max", self.nu_max)
+        log_nu_max = jnp.log10(nu_max)
 
-        rng_key, key = random.split(rng_key)
-        samples = prior.predict(key, x, kind=kind, num_samples=num_samples)
-        tau_he = samples["y"][..., 0] - 6  # log mega-seconds
-        tau_cz = samples["y"][..., 1] - 6  # log mega-seconds
+        teff = numpyro.sample("teff", self.teff)
 
-        # Ensure the scale doesn't get too small using max
-        log_tau_he = distribution(
-            (tau_he.mean(), max(tau_he.std(ddof=1), 0.05))
+        loc0101 = loc[0:2]
+        cov0101 = jnp.array([
+            [cov[0, 0], cov[0, 1]],
+            [cov[1, 0], cov[1, 1]]
+        ])
+                                        
+        L = jax.scipy.linalg.cho_factor(cov0101, lower=True)
+        A = jax.scipy.linalg.cho_solve(L, jnp.array([log_nu_max, teff]) - loc0101)
+        
+        loc2323 = loc[2:]
+        cov2323 = jnp.array([
+            [cov[2, 2], cov[2, 3]],
+            [cov[3, 2], cov[3, 3]]
+        ])  
+        
+        cov0123 = jnp.array([
+            [cov[0, 2], cov[1, 2]],
+            [cov[0, 3], cov[1, 3]]
+        ])
+        v = jax.scipy.linalg.cho_solve(L, cov0123.T)
+        
+        cond_loc = loc2323 + jnp.dot(cov0123, A)
+        cond_cov = (
+            cov2323 - jnp.dot(cov0123, v) 
+            + self.noise * jnp.eye(2)  # Add white noise
         )
-        log_tau_cz = distribution(
-            (tau_cz.mean(), max(tau_cz.std(ddof=1), 0.01))
-        )
-        return log_tau_he, log_tau_cz
+        numpyro.sample("log_tau", dist.MultivariateNormal(cond_loc, cond_cov))

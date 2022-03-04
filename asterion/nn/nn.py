@@ -1,6 +1,7 @@
 from __future__ import annotations
+from logging import warning
 
-import numpyro
+import numpyro, warnings
 import numpyro.distributions as dist
 import jax.numpy as jnp
 
@@ -33,6 +34,7 @@ class TrainedBayesianNN:
         samples: Dict[str, ArrayLike] = None,
         ref_params: Dict[str, ArrayLike] = None,
     ):
+        self._deprecation_warning()
         self.x_loc = x_loc
         self.x_scale = x_scale
         self.x_dim = x_dim
@@ -44,6 +46,12 @@ class TrainedBayesianNN:
         self.hidden_dim = hidden_dim
         self.samples = samples
         self.ref_params = ref_params
+
+    def _deprecation_warning(self):
+        warnings.warn(
+            f"Class '{self.__class__.__name__}' is deprecated and " +
+            "no longer supported."
+        )
 
     def model(
         self,
@@ -129,16 +137,6 @@ class TrainedBayesianNN:
 
     @staticmethod
     def _data_from_file(file):
-        # samples = params = None
-        # hidden_dim = file["hidden_dim"][()]
-        # if "samples" in file.keys():
-        #     samples = {}
-        #     for key, value in file["samples"].items():
-        #         samples[key] = value[()]
-        # if "ref_params" in file.keys():
-        #     params = {}
-        #     for key, value in file["ref_params"].items():
-        #         params[key] = value[()]
         samples = params = None
         if "samples" in file.groups:
             samples = {}
@@ -181,42 +179,6 @@ class TrainedBayesianNN:
         
         with Dataset(filename, "r") as root:
             return cls._from_root(root)
-            # x_loc = root["training/x"].getncattr("loc")
-            # x_scale = root["training/x"].getncattr("scale")
-            # x_dim = root.dimensions["features"].size
-            
-            # y_loc = root["training/y"].getncattr("loc")
-            # y_scale = root["training/y"].getncattr("scale")
-            # y_dim = root.dimensions["outputs"].size
-            
-            # hidden_dim = root.dimensions["hidden"].size
-            # samples, params = cls._data_from_file(root)
-
-        # with h5py.File(filename, "r") as file:
-
-        #     # Metadata
-        #     x_loc = file["x_train"].attrs["loc"]
-        #     x_scale = file["x_train"].attrs["scale"]
-        #     x_dim = file["x_train"].attrs["dim"]
-
-        #     y_loc = file["y_train"].attrs["loc"]
-        #     y_scale = file["y_train"].attrs["scale"]
-        #     y_dim = file["y_train"].attrs["dim"]
-
-        #     hidden_dim, samples, params = cls._data_from_file(file)
-
-        # bnn = cls(
-        #     x_loc,
-        #     x_scale,
-        #     x_dim,
-        #     y_loc,
-        #     y_scale,
-        #     y_dim,
-        #     hidden_dim=hidden_dim,
-        #     samples=samples,
-        #     ref_params=params,
-        # )
-        # return bnn
 
 
 class BayesianNN(TrainedBayesianNN):
@@ -237,7 +199,7 @@ class BayesianNN(TrainedBayesianNN):
     def __init__(
         self, x_train, y_train, hidden_dim=5, samples=None, ref_params=None
     ):
-
+        self._deprecation_warning()
         self.x_train = x_train
         self.y_train = y_train
 
