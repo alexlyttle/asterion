@@ -13,7 +13,6 @@ from typing import Callable, Dict, Iterable, Optional
 from numpy.typing import ArrayLike
 
 from .utils import PACKAGE_DIR, distribution
-from .nn import BayesianNN
 from .typing import DistLike
 
 __all__ = [
