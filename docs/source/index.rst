@@ -7,6 +7,10 @@
    :start-after: .. asterion_label
    :end-before: .. installation_label
 
+.. warning::
+    
+    This package is in early development, expect frequent changes to functionality!
+
 Contents
 ========
 

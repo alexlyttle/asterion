@@ -18,10 +18,6 @@ Asterion
 
 Fit acoustic glitches present in the radial mode frequencies of solar-like oscillators.
 
-.. warning::
-    
-    This package is in early development, expect frequent changes to functionality!
-
 Do you have some asteroseismic mode frequencies for a particular star? Do you want to fit a model to those modes?
 You need not look any further because this is the Python package for you. With this package you can fit a model
 of the glitch in mode frequencies caused by the helium-II ionisation zone and base of the convective zone in the
