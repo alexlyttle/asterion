@@ -9,5 +9,4 @@ def glitch_model_args():
         model = root['model']
         nu_max = model['nu_max'][()].data
         delta_nu = model['delta_nu'][()].data
-        n = model['n'][()].data
-    return (n, nu_max, delta_nu)
+    return (nu_max, delta_nu)

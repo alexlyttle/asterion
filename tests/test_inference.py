@@ -20,9 +20,10 @@ def glitch_truths():
 def glitch_inference_kwargs():
     with Dataset(os.path.join(TEST_DIR, "test_data.nc")) as file:
         obs = file['observed']
+        n = obs["n"][()].data
         nu = obs['nu'][()].data
         nu_err = obs['nu_err'][()].data
-    return {'nu': nu, 'nu_err': nu_err}
+    return {'n': n, 'nu': nu, 'nu_err': nu_err}
 
 
 class TestGlitchInference:
