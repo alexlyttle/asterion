@@ -39,10 +39,11 @@ class Inference:
 
             from asterion import Model, Inference
 
+            n = [9, 10, 11, 12, 13]
             nu = [111.1, 122.2, 133.3, 144.4, 155.5]
             nu_err = 0.01
             model = Model(...)  # Construct the model here
-            infer = Inference(model, nu=nu, nu_err=nu_err, seed=42)
+            infer = Inference(model, n=n, nu=nu, nu_err=nu_err, seed=42)
             # Sample from prior predictive
             infer.prior_predictive(num_samples=2000)
             # Sample from posterior
@@ -67,9 +68,12 @@ class Inference:
         sample_method (str, optional): Posterior sampling method.
     """
 
-    def __init__(self, model: Model, *, nu, nu_err=None, seed: int = 0):
+    def __init__(self, model: Model, *, n, nu, nu_err=None, seed: int = 0):
         self._rng_key = random.PRNGKey(seed)
         self.model: Model = model
+        
+        self.n = np.asarray(n)
+        self.n_pred = np.linspace(self.n[0], self.n[-1], 250)
         self.nu = np.asarray(nu)
         self.nu_err = None if nu_err is None else np.asarray(nu_err)
 
@@ -127,12 +131,14 @@ class Inference:
             OrderedDict: Model trace.
         """
         rng_key, self._rng_key = random.split(self._rng_key)
-        if pred:
-            model = self.model.predict
-        else:
-            model = self.model
-        model = hdl.trace(hdl.seed(model, rng_key))
-        trace = model.get_trace(nu=self.nu, nu_err=self.nu_err)
+        n_pred = self.n_pred if pred else None
+        model = hdl.trace(hdl.seed(self.model, rng_key))
+        trace = model.get_trace(
+            self.n,
+            nu=self.nu,
+            nu_err=self.nu_err,
+            n_pred=n_pred
+        )
         return trace
 
     def get_circ_var_names(self) -> List[str]:
@@ -281,6 +287,7 @@ class Inference:
         rng_key, self._rng_key = random.split(self._rng_key)
         mcmc.run(
             rng_key,
+            self.n,
             nu=self.nu,
             nu_err=self.nu_err,
             extra_fields=extra_fields,
@@ -360,7 +367,7 @@ class Inference:
             + f"and {max_samples} maximum samples..."
         )
         start_time = time.time()
-        nested_sampler.run(key1, nu=self.nu, nu_err=self.nu_err)
+        nested_sampler.run(key1, self.n, nu=self.nu, nu_err=self.nu_err)
         end_time = time.time()
         print(f"Completed in {end_time - start_time:.1f} seconds.")
 
@@ -479,14 +486,14 @@ class Inference:
 
         rng_key, self._rng_key = random.split(self._rng_key)
         map_result = map_svi.run(
-            rng_key, num_steps, nu=self.nu, nu_err=self.nu_err
+            rng_key, num_steps, self.n, nu=self.nu, nu_err=self.nu_err
         )
 
         self._map_loss = map_result.losses
         self._map_guide = map_svi.guide
         self._map_params = map_result.params
 
-    def predictive(self, nu=None, nu_err=None, **kwargs) -> dict:
+    def predictive(self, n, nu=None, nu_err=None, n_pred=None, **kwargs) -> dict:
         """[summary]
 
         Args:
@@ -518,7 +525,7 @@ class Inference:
                     return_sites.append(k)
 
         predictive = Predictive(
-            self.model.predict,
+            self.model,
             posterior_samples=posterior_samples,
             num_samples=num_samples,
             return_sites=return_sites,
@@ -531,7 +538,13 @@ class Inference:
             predictive._batch_shape = ()
 
         rng_key, self._rng_key = random.split(self._rng_key)
-        samples = predictive(rng_key, nu=nu, nu_err=nu_err)
+        samples = predictive(
+            rng_key,
+            n, 
+            nu=nu,
+            nu_err=nu_err,
+            n_pred=n_pred
+        )
         # self._update_args_kwargs(model_args, model_kwargs)
         return samples
 
@@ -543,7 +556,7 @@ class Inference:
             **kwargs: Keyword arguments to pass to Predictive instance.
         """
         self.prior_predictive_samples = self.predictive(
-            num_samples=num_samples, **kwargs
+            self.n, n_pred=self.n_pred, num_samples=num_samples, **kwargs
         )
 
     def posterior_predictive(self, **kwargs):
@@ -553,8 +566,10 @@ class Inference:
             **kwargs: Keyword arguments to pass to Predictive instance.
         """
         self.predictive_samples = self.predictive(
+            self.n,
             nu=self.nu,
             nu_err=self.nu_err,
+            n_pred=self.n_pred,
             posterior_samples=self.samples,
             **kwargs,
         )
@@ -573,6 +588,8 @@ class Inference:
         guide = self._map_guide
         params = self._map_params
         map_pred = self.predictive(
+            self.n,
+            n_pred=self.n_pred,
             guide=guide,
             params=params,
             num_samples=1,
