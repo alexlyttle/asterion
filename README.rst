@@ -73,11 +73,13 @@ Firstly, define your inputs, for example:
 
 .. code-block:: python
 
-    # Location and scale of a normal distribution
+    # Prior data
+    # Location and scale (mean and standard deviation) of a normal distribution
     nu_max = (2357.69, 25.0)
     delta_nu = (111.84, 0.1)
-    teff = (5000.0, 200.0)
+    teff = (5500.0, 200.0)
 
+    # Observed data
     n = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
     nu = [1601.25, 1712.38, 1822.87, 1932.24,
           2042.3 , 2153.48, 2265.2 , 2377.14,
@@ -85,25 +87,29 @@ Firstly, define your inputs, for example:
           2939.56, 3052.67]
     nu_err = 0.01  # Can be a scalar or a value for each nu
 
-Then, import Asterion and create the model.
+Then, import Asterion and create the model. Pass prior parameters to the model,
 
 .. code-block:: python
 
     from asterion import GlitchModel
 
-    model = GlitchModel(n, nu_max, delta_nu, teff=teff)
+    model = GlitchModel(nu_max, delta_nu, teff=teff)
 
 Start inference. It is good practice to inspect the prior predictive check that it is sensible.
+You can do this using Asterion's plotting functions with the :code:`group="prior"` keyword argument.
 
 .. code-block:: python
 
+    import asterion as ast
     from asterion import Inference
 
-    infer = Inference(model, nu, nu_err=nu_err, seed=10)
+    infer = Inference(model, n=n, nu=nu, nu_err=nu_err, seed=10)
     infer.prior_predictive()  # <-- check prior is sensible
     prior_data = infer.get_data()
-    ...  # <-- inspect prior data with e.g. asterion.plot_glitch (see below)
+    # Inspect the prior predictive e.g.
+    ast.plot_glitch(prior_data, group="prior")
 
+If the plot looks wrong, make changes to the prior or model (refer to the API Reference).
 Once you are happy with the prior, sample from the posterior and inspect the posterior predictive.
 
 .. code-block:: python
@@ -114,33 +120,43 @@ Once you are happy with the prior, sample from the posterior and inspect the pos
 
     # Save inference data
     data = infer.get_data()
-    data.to_netcdf('results.nc')  # save inference data as NETCDF
+    data.to_netcdf("results.nc")  # save inference data as a netCDF4 file
 
-You can use Asterion to make plots with the data and summarise in your favourite format (so long as it's either Pandas or Astropy). You can load the data and make plots and summaries any time using Arviz.
+You can use Asterion to make plots with the data and summarise in your favourite format (so long as it's either Pandas or Astropy).
 
 .. code-block:: python
 
-    import asterion as ast
-    import arviz as az  # <-- for loading the inference data
     import matplotlib.pyplot as plt
 
-    data = az.from_netcdf('results.nc')  # <-- if loading the data elsewhere
+    # Posterior predictive check
+    # Glitch plots
+    ast.plot_glitch(data, kind="He")
+    ast.plot_glitch(data, kind="CZ")
+    
+    # Echelle plots
+    ast.plot_echelle(data)
+    ast.plot_echelle(data, kind="glitchless")
+    
+    # A corner plot of the helium glitch parameters
+    print(ast.get_var_names(data))  # <-- to view available variable names in the model
+    ast.plot_corner(data, var_names=["log_a_he", "log_b_he", "log_tau_he", "phi_he"])
 
-    # Make plots to check posterior is sensible
-    ast.plot_glitch(data, kind='He')
-    ast.plot_glitch(data, kind='CZ')
-    # E.g. a corner plot of the helium glitch parameters
-    ast.plot_corner(data, var_names=['log_a_he', 'log_b_he', 'log_tau_he', 'phi_he'])
+    # Save summary of results, e.g.
+    # Here all 0-dimensional parameters are saved in Astropy's ECSV format which
+    # preserves data types and units
+    table = ast.get_table(data, dims=(), fmt="astropy")
+    table.write("data/summary.ecsv", overwrite=True)
 
-    # Save summary of results
-    # Here all 0-dimensional parameters are saved in Astropy's
-    # ECSV format which preserved data types and units
-    table = ast.get_table(data, dims=(), fmt='astropy')
-    table.write('data/summary.ecsv', overwrite=True)
+    plt.show()  # <-- to display the plots
 
-    plt.show()
+You can load the inference data using Arviz like so,
 
-Check out the tutorials for more in-depth examples.
+.. code-block:: python
+
+    import arviz as az
+    data = az.from_netcdf("results.nc")
+
+See the tutorials or for a more in-depth example.
 
 Notes
 -----
