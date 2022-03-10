@@ -1,26 +1,29 @@
-import h5py
-import pytest
+import pytest, os
 import numpy as np
 
 from asterion.inference import Inference
 from asterion.models import GlitchModel
+from netCDF4 import Dataset
 
-@pytest.fixture
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
+@pytest.fixture(scope="module")
 def glitch_truths():
-    with h5py.File('tests/test_data.hdf5') as file:
+    with Dataset(os.path.join(TEST_DIR, "test_data.nc")) as file:
         truths = file['truths']
         out = {}
-        for k, v in truths.items():
-            out[k] = v[()]
+        for k, v in truths.variables.items():
+            out[k] = v[()].data
     return out
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def glitch_inference_kwargs():
-    with h5py.File('tests/test_data.hdf5') as file:
+    with Dataset(os.path.join(TEST_DIR, "test_data.nc")) as file:
         obs = file['observed']
-        nu = obs['nu'][()]
-        nu_err = obs['nu_err'][()]
-    return {'nu': nu, 'nu_err': nu_err}
+        n = obs["n"][()].data
+        nu = obs['nu'][()].data
+        nu_err = obs['nu_err'][()].data
+    return {'n': n, 'nu': nu, 'nu_err': nu_err}
 
 
 class TestGlitchInference:
@@ -30,7 +33,7 @@ class TestGlitchInference:
         infer = Inference(model, **glitch_inference_kwargs)        
         infer.sample()
         infer.posterior_predictive()
-        
+
         data = infer.get_data()
         for key, truth in glitch_truths.items():
             samples = data.posterior.get(key, None)

@@ -5,8 +5,11 @@ __pycache__/
 .DS_Store
 *.trace
 docs/build/
+_build/
 notebook/data/
 out/
 .python-version
 *.nc
+!asterion/data/*.nc
+!tests/*nc
 *.diff

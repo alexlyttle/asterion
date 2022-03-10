@@ -55,9 +55,11 @@ def _validate_predictive_group(data: az.InferenceData, group: str):
 def plot_glitch(
     data: az.InferenceData,
     group="posterior",
-    kind: str = "both",
+    kind: str = "full",
     quantiles: Optional[List[float]] = None,
+    observed: Union[bool, str] = "auto",
     ax: plt.Axes = None,
+    **kwargs,
 ) -> plt.Axes:
     """Plot the glitch from either the prior or posterior predictive contained
     in inference data.
@@ -65,11 +67,14 @@ def plot_glitch(
     Args:
         data (arviz.InferenceData): Inference data object.
         group (str): One of ['posterior', 'prior'].
-        kind (str): Kind of glitch to plot. One of ['both', 'He', 'CZ'].
+        kind (str): Kind of glitch to plot. One of ['full', 'He', 'CZ'].
         quantiles (iterable, optional): Quantiles to plot as confidence
             intervals. If None, defaults to the 68% confidence interval. Pass
             an empty list to plot no confidence intervals.
+        observed (bool or str): Whether to plot observed data. Default is
+            "auto" which will plot observed data when group is "posterior".
         ax (matplotlib.axes.Axes): Axis on which to plot the glitch.
+        **kwargs: Keyword arguments to pass to :func:`matplotlib.pyplot.plot`.
 
     Raises:
         ValueError: If kind is not valid.
@@ -82,49 +87,60 @@ def plot_glitch(
     if quantiles is None:
         quantiles = [0.16, 0.84]
 
+    if observed == "auto":
+        observed = group == "posterior"
+
     nu = data.observed_data.nu
     nu_err = data.constant_data.nu_err
     n = predictive.n
     n_pred = predictive.n_pred
 
     if ax is None:
-        ax = plt.gca()
+        _, ax = plt.subplots()
 
     kindl = kind.lower()
-    if kindl == "both":
-        dnu = predictive.get("dnu_he", 0.0) + predictive.get("dnu_cz", 0.0)
-        dnu_pred = predictive.get("dnu_he_pred", 0.0) + predictive.get(
-            "dnu_cz_pred", 0.0
+    if kindl == "full":
+        dnu = predictive["dnu_he"] + predictive["dnu_cz"]
+        dnu_pred = predictive["dnu_he_pred"] + predictive["dnu_cz_pred"]
+        label = " + ".join(
+            [
+                predictive["dnu_he"].attrs.get("symbol", r"$\delta\nu_{He}$"),
+                predictive["dnu_cz"].attrs.get("symbol", r"$\delta\nu_{BCZ}$"),
+            ]
         )
     elif kindl in {"he", "cz"}:
         dnu_key = "dnu_" + kindl
         dnu = predictive[dnu_key]
         dnu_pred = predictive[dnu_key + "_pred"]
+        label = dnu.attrs.get("symbol", r"$\delta\nu_{" + kind + "}$")
     else:
         raise ValueError(
-            f"Kind '{kindl}' is not one of " + "['both', 'he', 'cz']."
+            f"Kind '{kindl}' is not one of " + "['full', 'he', 'cz']."
         )
 
     dim = ("chain", "draw")  # dim over which to take stats
 
-    if group != "prior":
+    if observed:
         # Plot observed - prior predictive should be independent of obs
         res = nu - predictive["nu"]
         dnu_obs = dnu + res
-
+        glitch = label
+        if "+" in label:
+            glitch = "$($" + label + "$)$"
         # TODO: should we show model error on dnu_obs here?
         ax.errorbar(
             n,
             dnu_obs.median(dim=dim),
             yerr=nu_err,
-            color="C0",
+            color="k",
             marker="o",
             linestyle="none",
-            label="observed",
+            label=r"$\nu_\mathrm{obs} - (\nu - $" + glitch + "$)$",
         )
 
     dnu_med = dnu_pred.median(dim=dim)
-    ax.plot(n_pred, dnu_med, label="model", color="C1")
+    label = kwargs.pop("label", label)
+    (line,) = ax.plot(n_pred, dnu_med, label=label, **kwargs)
 
     # Fill quantiles with alpha decreasing away from the median
     dnu_quant = dnu_pred.quantile(quantiles, dim=dim)
@@ -136,7 +152,7 @@ def plot_glitch(
             n_pred,
             dnu_quant[i],
             dnu_quant[-i - 1],
-            color="C1",
+            color=line.get_color(),  # <-- same as model line color
             alpha=alphas[2 * i + 1],
             label=f"{delta:.1%} CI",
         )
@@ -144,7 +160,8 @@ def plot_glitch(
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))  # integer x-ticks
     ax.set_xlabel(r"$n$")
 
-    ylabel = [dnu.attrs.get("symbol", r"$\delta\nu$")]
+    # ylabel = [dnu.attrs.get("symbol", r"$\delta\nu$")]
+    ylabel = [r"$\delta\nu$"]
     unit = u.Unit(dnu.attrs.get("unit", "uHz"))
     if str(unit) != "":
         ylabel.append(unit.to_string(format="latex_inline"))
@@ -160,7 +177,9 @@ def plot_echelle(
     kind: str = "full",
     delta_nu: Optional[float] = None,
     quantiles: Optional[List[float]] = None,
+    observed: Union[bool, str] = "auto",
     ax: plt.Axes = None,
+    **kwargs,
 ) -> plt.Axes:
     """Plot an echelle diagram of the data.
 
@@ -178,7 +197,10 @@ def plot_echelle(
         quantiles (iterable, optional): Quantiles to plot as confidence
             intervals. If None, defaults to the 68% confidence interval. Pass
             an empty list to plot no confidence intervals.
+        observed (bool or str): Whether to plot observed data. Default is
+            "auto" which will plot observed data when group is "posterior".
         ax (matplotlib.axes.Axes): Axis on which to plot the echelle.
+        **kwargs: Keyword arguments to pass to :func:`matplotlib.pyplot.plot`.
 
     Raises:
         ValueError: If kind is not valid.
@@ -187,38 +209,52 @@ def plot_echelle(
         matplotlib.axes.Axes: Axis on which the echelle is plot.
     """
     if ax is None:
-        ax = plt.gca()
+        _, ax = plt.subplots()
 
     if quantiles is None:
         quantiles = [0.16, 0.84]
+
+    if observed == "auto":
+        observed = group == "posterior"
 
     predictive = _validate_predictive_group(data, group)
     dim = ("chain", "draw")  # dim over which to take stats
 
     if delta_nu is None:
-        delta_nu = data[group]["delta_nu"].median(dim=dim).to_numpy()
+        if group == "prior":  # <-- currently no prior group
+            delta_nu = predictive["delta_nu"].median(dim=dim).to_numpy()
+        else:
+            delta_nu = data[group]["delta_nu"].median(dim=dim).to_numpy()
 
     nu = data.observed_data.nu
     nu_err = data.constant_data.nu_err
     n_pred = predictive.n_pred
 
-    if group != "prior":
+    if observed:
         # Plot observed - prior predictive should be independent of obs
         ax.errorbar(
             nu % delta_nu,
             nu,
             xerr=nu_err,
-            color="C0",
+            color="k",
             marker="o",
             linestyle="none",
-            label="observed",
+            label=r"$\nu_\mathrm{obs}$",
         )
 
+    # All mean function components for GP
+    full_mu = [
+        predictive["nu_bkg"].attrs.get("symbol", r"$\nu_\mathrm{bkg}$"),
+        predictive["dnu_he"].attrs.get("symbol", r"$\delta\nu_{He}$"),
+        predictive["dnu_cz"].attrs.get("symbol", r"$\delta\nu_{BCZ}$"),
+    ]
     kindl = kind.lower()
     if kindl == "full":
         y = predictive["nu_pred"]
+        label = r"$\mathrm{GP}($" + " + ".join(full_mu) + r"$,\,K)$"
     elif kindl == "background":
         y = predictive["nu_bkg_pred"]
+        label = full_mu[0]  # <-- just the background, no GP
     elif kindl == "glitchless":
         y = (
             predictive["nu_pred"]
@@ -226,6 +262,7 @@ def plot_echelle(
             - predictive.get("dnu_cz_pred", 0.0)
         )
         y.attrs["unit"] = predictive["nu_pred"].attrs["unit"]
+        label = r"$\mathrm{GP}($" + full_mu[0] + r"$,\,K)$"
     else:
         raise ValueError(
             f"Kind '{kindl}' is not one of "
@@ -234,11 +271,12 @@ def plot_echelle(
 
     y_mod = (y - n_pred * delta_nu) % delta_nu
     y_med = y.median(dim=dim)
-    ax.plot(
+    label = kwargs.pop("label", label)
+    (line,) = ax.plot(
         y_mod.median(dim=dim),
         y_med,
-        label=" ".join([kindl, "model"]),
-        color="C1",
+        label=label,
+        **kwargs,
     )
 
     y_mod_quant = y_mod.quantile(quantiles, dim=dim)
@@ -250,7 +288,7 @@ def plot_echelle(
             y_med,
             y_mod_quant[i],
             y_mod_quant[-i - 1],
-            color="C1",
+            color=line.get_color(),
             alpha=alphas[2 * i + 1],
             label=f"{delta:.1%} CI",
         )
@@ -266,7 +304,6 @@ def plot_echelle(
     if str(unit) != "":
         ylabel.append(unit.to_string(format="latex_inline"))
     ax.set_ylabel("/".join(ylabel))
-
     ax.legend()
 
     return ax

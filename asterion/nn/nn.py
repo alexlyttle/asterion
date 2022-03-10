@@ -1,6 +1,7 @@
 from __future__ import annotations
+from logging import warning
 
-import numpyro, h5py
+import numpyro, warnings
 import numpyro.distributions as dist
 import jax.numpy as jnp
 
@@ -10,6 +11,7 @@ from numpyro.infer.autoguide import AutoDelta
 from numpyro.optim import Adam
 from typing import Dict, Optional
 from numpy.typing import ArrayLike
+from netCDF4 import Dataset
 
 
 class TrainedBayesianNN:
@@ -32,6 +34,7 @@ class TrainedBayesianNN:
         samples: Dict[str, ArrayLike] = None,
         ref_params: Dict[str, ArrayLike] = None,
     ):
+        self._deprecation_warning()
         self.x_loc = x_loc
         self.x_scale = x_scale
         self.x_dim = x_dim
@@ -43,6 +46,12 @@ class TrainedBayesianNN:
         self.hidden_dim = hidden_dim
         self.samples = samples
         self.ref_params = ref_params
+
+    def _deprecation_warning(self):
+        warnings.warn(
+            f"Class '{self.__class__.__name__}' is deprecated and "
+            + "no longer supported."
+        )
 
     def model(
         self,
@@ -129,32 +138,28 @@ class TrainedBayesianNN:
     @staticmethod
     def _data_from_file(file):
         samples = params = None
-        hidden_dim = file["hidden_dim"][()]
-        if "samples" in file.keys():
+        if "samples" in file.groups:
             samples = {}
-            for key, value in file["samples"].items():
-                samples[key] = value[()]
-        if "ref_params" in file.keys():
+            for k, v in file["samples"].variables.items():
+                samples[k] = jnp.array(v[()])
+        if "ref_params" in file.groups:
             params = {}
-            for key, value in file["ref_params"].items():
-                params[key] = value[()]
-
-        return hidden_dim, samples, params
+            for k, v in file["ref_params"].variables.items():
+                params[k] = jnp.array(v[()])
+        return samples, params
 
     @classmethod
-    def from_file(cls, filename):
-        with h5py.File(filename, "r") as file:
+    def _from_root(cls, root):
+        x_loc = root["training/x"].getncattr("loc")
+        x_scale = root["training/x"].getncattr("scale")
+        x_dim = root.dimensions["features"].size
 
-            # Metadata
-            x_loc = file["x_train"].attrs["loc"]
-            x_scale = file["x_train"].attrs["scale"]
-            x_dim = file["x_train"].attrs["dim"]
+        y_loc = root["training/y"].getncattr("loc")
+        y_scale = root["training/y"].getncattr("scale")
+        y_dim = root.dimensions["outputs"].size
 
-            y_loc = file["y_train"].attrs["loc"]
-            y_scale = file["y_train"].attrs["scale"]
-            y_dim = file["y_train"].attrs["dim"]
-
-            hidden_dim, samples, params = cls._data_from_file(file)
+        hidden_dim = root.dimensions["hidden"].size
+        samples, params = cls._data_from_file(root)
 
         bnn = cls(
             x_loc,
@@ -168,6 +173,12 @@ class TrainedBayesianNN:
             ref_params=params,
         )
         return bnn
+
+    @classmethod
+    def from_file(cls, filename):
+
+        with Dataset(filename, "r") as root:
+            return cls._from_root(root)
 
 
 class BayesianNN(TrainedBayesianNN):
@@ -188,7 +199,7 @@ class BayesianNN(TrainedBayesianNN):
     def __init__(
         self, x_train, y_train, hidden_dim=5, samples=None, ref_params=None
     ):
-
+        self._deprecation_warning()
         self.x_train = x_train
         self.y_train = y_train
 
@@ -221,7 +232,19 @@ class BayesianNN(TrainedBayesianNN):
     def optimize(
         self, rng_key, num_steps=5000, step_size=1e-2, subsample_size=100
     ):
-        """Optimize the model with SVI."""
+        """Optimize the model with SVI using a delta function guide to obtain
+        the MAP.
+
+        Args:
+            rng_key (jax.random.PRNGKey): Random key for training.
+            num_steps (int): Number of steps (or epochs):
+            step_size (float): Step size for the Adam optimizer.
+            subsample_size (int): Size of training data subsamples (or
+                batches).
+
+        Returns:
+            numpyro.infer.SVIRunResult: Resulting SVI run result object.
+        """
         optimizer = Adam(step_size=step_size)
         guide = AutoDelta(self.model)
         svi = SVI(self.model, guide, optimizer, loss=Trace_ELBO())
@@ -254,7 +277,27 @@ class BayesianNN(TrainedBayesianNN):
         subsample_size=None,
         num_blocks=None,
     ):
-        "Train the model using NUTS, or HMCECS if sample_size is not None."
+        """Train the model using NUTS, or HMCECS if subsample_size is not None.
+
+        Warning:
+            This method is not yet tested, use with caution.
+
+        Args:
+            rng_key (jax.random.PRNGKey): Random key for training.
+            num_warmup (int): Number of MCMC warmup steps.
+            num_samples (int): Number of MCMC samples.
+            num_chains (int): Number of parallel MCMC chains.
+            target_accept_prob (float): Target MCMC acceptance probability.
+            init_strategy (callable, optional): Initialization strategy.
+                Default is :func:`numpyro.infer.init_to_median`.
+            subsample_size (int, optional): Subsample size for HMCECS. Default
+                is None to use the NUTS sampler.
+            num_blocks (int, optional): Number of blocks for the HMCECS
+                sampler. Default is 10 if subsample_size is not None.
+
+        Returns:
+            numpyro.infer.MCMC: Trained MCMC object.
+        """
         if init_strategy is None:
             init_strategy = numpyro.infer.init_to_median
 
@@ -290,7 +333,7 @@ class BayesianNN(TrainedBayesianNN):
         return mcmc
 
     def to_file(self, filename, trained=False):
-        """Save to HDF5 file.
+        """Save to NetCDF4 file.
 
         Args:
             filename (str or file_like):  File path or IO buffer.
@@ -298,67 +341,91 @@ class BayesianNN(TrainedBayesianNN):
                 False, the training data is saved, otherwise just the metadata
                 such as scale parameters and dimension sizes are saved.
         """
-        with h5py.File(filename, "w") as file:
-            if trained:
-                x_train = file.create_dataset(
-                    "x_train",
-                    data=h5py.Empty("f"),
-                )
-            else:
-                x_train = file.create_dataset(
-                    "x_train",
-                    data=self.x_train,
-                    chunks=True,
-                    compression="gzip",
-                )
+        with Dataset(filename, "w") as root:
+            _ = root.createDimension("features", self.x_train.shape[1])
+            _ = root.createDimension("outputs", self.y_train.shape[1])
+            _ = root.createDimension("hidden", self.hidden_dim)
 
-            x_train.attrs["loc"] = self.x_loc
-            x_train.attrs["scale"] = self.x_scale
-            x_train.attrs["dim"] = self.x_dim
+            training = root.createGroup("training")
+            _ = training.createDimension("length", self.x_train.shape[0])
+            x = training.createVariable(
+                "x", self.x_train.dtype, ("length", "features")
+            )
+            y = training.createVariable(
+                "y", self.y_train.dtype, ("length", "outputs")
+            )
+            x.setncattr("loc", self.x_loc)
+            x.setncattr("scale", self.x_scale)
+            y.setncattr("loc", self.y_loc)
+            y.setncattr("scale", self.y_scale)
 
-            if trained:
-                y_train = file.create_dataset(
-                    "y_train",
-                    data=h5py.Empty("f"),
-                )
-            else:
-                y_train = file.create_dataset(
-                    "y_train",
-                    data=self.y_train,
-                    chunks=True,
-                    compression="gzip",
-                )
+            if not trained:
+                x[:] = self.x_train
+                y[:] = self.y_train
 
-            y_train.attrs["loc"] = self.y_loc
-            y_train.attrs["scale"] = self.y_scale
-            y_train.attrs["dim"] = self.y_dim
-
-            file.create_dataset("hidden_dim", data=self.hidden_dim)
             if self.samples is not None:
-                samples = file.create_group("samples")
-                for key, value in self.samples.items():
-                    samples.create_dataset(key, data=value)
+                samples = root.createGroup("samples")
+                _ = samples.createDimension(
+                    "draw", self.samples["sigma"].shape[0]
+                )
+                sigma = samples.createVariable(
+                    "sigma", self.samples["sigma"].dtype, ("draw",)
+                )
+                w0 = samples.createVariable(
+                    "w0",
+                    self.samples["w0"].dtype,
+                    ("draw", "features", "hidden"),
+                )
+                w1 = samples.createVariable(
+                    "w1",
+                    self.samples["w1"].dtype,
+                    ("draw", "hidden", "hidden"),
+                )
+                w2 = samples.createVariable(
+                    "w2",
+                    self.samples["w2"].dtype,
+                    ("draw", "hidden", "outputs"),
+                )
+                w0[:] = self.samples["w0"]
+                w1[:] = self.samples["w1"]
+                w2[:] = self.samples["w2"]
+                sigma[:] = self.samples["sigma"]
+
             if self.ref_params is not None:
-                params = file.create_group("ref_params")
-                for key, value in self.ref_params.items():
-                    params.create_dataset(key, data=value)
+                params = root.createGroup("ref_params")
+                sigma = params.createVariable(
+                    "sigma", self.ref_params["sigma"].dtype
+                )
+                w0 = params.createVariable(
+                    "w0", self.ref_params["w0"].dtype, ("features", "hidden")
+                )
+                w1 = params.createVariable(
+                    "w1", self.ref_params["w1"].dtype, ("hidden", "hidden")
+                )
+                w2 = params.createVariable(
+                    "w2", self.ref_params["w2"].dtype, ("hidden", "outputs")
+                )
+                w0[:] = self.ref_params["w0"]
+                w1[:] = self.ref_params["w1"]
+                w2[:] = self.ref_params["w2"]
+                sigma[:] = self.ref_params["sigma"]
 
     @classmethod
     def from_file(cls, filename):
-        with h5py.File(filename, "r") as file:
-            trained = (
-                file["x_train"].shape is None or file["y_train"].shape is None
-            )
+        with Dataset(filename, "r") as root:
+            x = root["training/x"][()]
+            y = root["training/y"][()]
+            x_train = jnp.array(x)
+            y_train = jnp.array(y)
 
-        if trained:
-            # I.e. doesn't contain training data
-            return TrainedBayesianNN.from_file(filename)
+            if jnp.all(x.fill_value == x_train) or jnp.all(
+                y.fill_value == y_train
+            ):
+                # If no training data available:
+                return TrainedBayesianNN._from_root(root)
 
-        with h5py.File(filename, "r") as file:
-            x_train = file["x_train"][()]
-            y_train = file["y_train"][()]
-
-            hidden_dim, samples, params = cls._data_from_file(file)
+            hidden_dim = root.dimensions["hidden"].size
+            samples, params = cls._data_from_file(root)
 
         bnn = cls(
             x_train,
