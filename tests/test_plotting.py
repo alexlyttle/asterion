@@ -32,11 +32,10 @@ def test_echelle(kwargs):
     assert (ax.yaxis.label.get_text()
             == "$\\nu$/$\\mathrm{\\mu Hz}$")
     
-    # Test legend
+    # Test observed data pltot
     _, labels = ax.get_legend_handles_labels()
-    assert " ".join([kwargs.get("kind", "full"), "model"]) in labels
     if group == "posterior":
-        assert "observed" in labels
+        assert r"$\nu_\mathrm{obs}$" in labels
 
 @pytest.mark.parametrize(
     "kwargs", 
@@ -54,14 +53,13 @@ def test_glitch(kwargs):
 
     # Test axis labels
     assert (ax.xaxis.label.get_text() == "$n$")
-    assert ax.yaxis.label.get_text().startswith("$\\delta\\nu")
-    assert ax.yaxis.label.get_text().endswith("\\mathrm{\\mu Hz}$")
+    assert ax.yaxis.label.get_text().startswith("$\\delta\\nu$")
+    # assert ax.yaxis.label.get_text().endswith("\\mathrm{\\mu Hz}$")
     
-    # Test legend
+    # Test observed data in plot
     _, labels = ax.get_legend_handles_labels()
-    assert "model" in labels
     if group == "posterior":
-        assert "observed" in labels
+        r"$\nu_\mathrm{obs}$" in labels
 
 # def test_corner(kwargs):
     

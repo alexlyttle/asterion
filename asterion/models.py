@@ -38,11 +38,7 @@ class Model(Prior):
     one observed sample sites.
     """
 
-    def predict(self, *args, **kwargs):
-        """Model predictions. By default this calls the model."""
-        return self(*args, **kwargs)
-
-    def __call__(self, nu=None, nu_err=None):
+    def __call__(self, n, nu=None, nu_err=None, n_pred=None):
         """Call the model during inference.
 
         Args:
@@ -112,27 +108,20 @@ class GlitchModel(Model):
 
     def __init__(
         self,
-        n: ArrayLike,
         nu_max: DistLike,
         delta_nu: DistLike,
         teff: Optional[DistLike] = None,
         epsilon: Optional[DistLike] = None,
-        num_pred: int = 250,
         seed: int = 0,
         window_width: float = 5.0,
     ):
         super().__init__(
-            n,
             nu_max,
             delta_nu,
             teff=teff,
             epsilon=epsilon,
-            num_pred=num_pred,
             seed=seed,
         )
-        self.n = np.asarray(n)
-        self.n_pred = np.linspace(self.n[0], self.n[-1], num_pred)
-
         self.background: Prior = AsyFunction(delta_nu, epsilon=epsilon)
 
         key = random.PRNGKey(seed)
@@ -176,24 +165,20 @@ class GlitchModel(Model):
     def _init_tau(self, rng_key, tau_prior, num_samples=5000):
         predictive = Predictive(tau_prior, num_samples=num_samples)
         pred = predictive(rng_key)
-        log_tau = pred['log_tau'] - 6  # Convert from seconds to mega seconds
+        log_tau = pred["log_tau"] - 6  # Convert from seconds to mega seconds
         loc = log_tau.mean(axis=0)
         scale = log_tau.std(axis=0, ddof=1)
         return (
             distribution((loc[0], scale[0])),  # tau_he
-            distribution((loc[1], scale[1]))  # tau_cz
+            distribution((loc[1], scale[1])),  # tau_cz
         )
-
-    def predict(self, nu: ArrayLike = None, nu_err: ArrayLike = None):
-        # In some models we may not want to pass nu to make predictions.
-        # The predict method allows for control over this.
-        return self(nu=nu, nu_err=nu_err, pred=True)
 
     def __call__(
         self,
-        nu: ArrayLike = None,
-        nu_err: ArrayLike = None,
-        pred: bool = False,
+        n: ArrayLike,
+        nu: Optional[ArrayLike] = None,
+        nu_err: Optional[ArrayLike] = None,
+        n_pred: Optional[ArrayLike] = None,
     ):
         """Sample the model for given observables.
 
@@ -207,8 +192,6 @@ class GlitchModel(Model):
         """
         # TODO it may be more general for all models to take an obs dict as
         # argument and every parameter to do obs.get('name', None)
-        n = self.n
-        n_pred = self.n_pred
         bkg_func = self.background()
         he_glitch_func = self.he_glitch()
         cz_glitch_func = self.cz_glitch()
@@ -236,14 +219,14 @@ class GlitchModel(Model):
         with dimension("n", n.shape[-1], coords=n):
             gp.sample("nu_obs", n, noise=nu_err, obs=nu)
 
-            if pred:
+            if n_pred is not None:
                 gp.predict("nu", n)
 
             nu_bkg = numpyro.deterministic("nu_bkg", bkg_func(n))
             numpyro.deterministic("dnu_he", he_glitch_func(nu_bkg))
             numpyro.deterministic("dnu_cz", cz_glitch_func(nu_bkg))
 
-        if pred:
+        if n_pred is not None:
             with dimension("n_pred", n_pred.shape[-1], coords=n_pred):
                 gp.predict("nu_pred", n_pred)
                 nu_bkg = numpyro.deterministic("nu_bkg_pred", bkg_func(n_pred))

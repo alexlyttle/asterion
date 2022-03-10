@@ -49,8 +49,8 @@ class TrainedBayesianNN:
 
     def _deprecation_warning(self):
         warnings.warn(
-            f"Class '{self.__class__.__name__}' is deprecated and " +
-            "no longer supported."
+            f"Class '{self.__class__.__name__}' is deprecated and "
+            + "no longer supported."
         )
 
     def model(
@@ -153,14 +153,14 @@ class TrainedBayesianNN:
         x_loc = root["training/x"].getncattr("loc")
         x_scale = root["training/x"].getncattr("scale")
         x_dim = root.dimensions["features"].size
-        
+
         y_loc = root["training/y"].getncattr("loc")
         y_scale = root["training/y"].getncattr("scale")
         y_dim = root.dimensions["outputs"].size
-        
+
         hidden_dim = root.dimensions["hidden"].size
         samples, params = cls._data_from_file(root)
-        
+
         bnn = cls(
             x_loc,
             x_scale,
@@ -176,7 +176,7 @@ class TrainedBayesianNN:
 
     @classmethod
     def from_file(cls, filename):
-        
+
         with Dataset(filename, "r") as root:
             return cls._from_root(root)
 
@@ -234,14 +234,14 @@ class BayesianNN(TrainedBayesianNN):
     ):
         """Optimize the model with SVI using a delta function guide to obtain
         the MAP.
-        
+
         Args:
             rng_key (jax.random.PRNGKey): Random key for training.
             num_steps (int): Number of steps (or epochs):
             step_size (float): Step size for the Adam optimizer.
             subsample_size (int): Size of training data subsamples (or
                 batches).
-        
+
         Returns:
             numpyro.infer.SVIRunResult: Resulting SVI run result object.
         """
@@ -278,10 +278,10 @@ class BayesianNN(TrainedBayesianNN):
         num_blocks=None,
     ):
         """Train the model using NUTS, or HMCECS if subsample_size is not None.
-        
+
         Warning:
             This method is not yet tested, use with caution.
-        
+
         Args:
             rng_key (jax.random.PRNGKey): Random key for training.
             num_warmup (int): Number of MCMC warmup steps.
@@ -294,7 +294,7 @@ class BayesianNN(TrainedBayesianNN):
                 is None to use the NUTS sampler.
             num_blocks (int, optional): Number of blocks for the HMCECS
                 sampler. Default is 10 if subsample_size is not None.
-        
+
         Returns:
             numpyro.infer.MCMC: Trained MCMC object.
         """
@@ -341,46 +341,74 @@ class BayesianNN(TrainedBayesianNN):
                 False, the training data is saved, otherwise just the metadata
                 such as scale parameters and dimension sizes are saved.
         """
-        with Dataset(filename, 'w') as root:
+        with Dataset(filename, "w") as root:
             _ = root.createDimension("features", self.x_train.shape[1])
             _ = root.createDimension("outputs", self.y_train.shape[1])
             _ = root.createDimension("hidden", self.hidden_dim)
 
             training = root.createGroup("training")
             _ = training.createDimension("length", self.x_train.shape[0])
-            x = training.createVariable("x", self.x_train.dtype, ("length", "features"))
-            y = training.createVariable('y', self.y_train.dtype, ("length", "outputs"))
-            x.setncattr('loc', self.x_loc)
-            x.setncattr('scale', self.x_scale)
-            y.setncattr('loc', self.y_loc)
-            y.setncattr('scale', self.y_scale)
+            x = training.createVariable(
+                "x", self.x_train.dtype, ("length", "features")
+            )
+            y = training.createVariable(
+                "y", self.y_train.dtype, ("length", "outputs")
+            )
+            x.setncattr("loc", self.x_loc)
+            x.setncattr("scale", self.x_scale)
+            y.setncattr("loc", self.y_loc)
+            y.setncattr("scale", self.y_scale)
 
             if not trained:
                 x[:] = self.x_train
                 y[:] = self.y_train
 
             if self.samples is not None:
-                samples = root.createGroup('samples')
-                _ = samples.createDimension("draw", self.samples["sigma"].shape[0])
-                sigma = samples.createVariable('sigma', self.samples['sigma'].dtype, ("draw",))
-                w0 = samples.createVariable('w0', self.samples['w0'].dtype, ("draw", "features", "hidden"))
-                w1 = samples.createVariable('w1', self.samples['w1'].dtype, ("draw", "hidden", "hidden"))
-                w2 = samples.createVariable('w2', self.samples['w2'].dtype, ("draw", "hidden", "outputs"))
-                w0[:] = self.samples['w0']
-                w1[:] = self.samples['w1']
-                w2[:] = self.samples['w2']
-                sigma[:] = self.samples['sigma']
+                samples = root.createGroup("samples")
+                _ = samples.createDimension(
+                    "draw", self.samples["sigma"].shape[0]
+                )
+                sigma = samples.createVariable(
+                    "sigma", self.samples["sigma"].dtype, ("draw",)
+                )
+                w0 = samples.createVariable(
+                    "w0",
+                    self.samples["w0"].dtype,
+                    ("draw", "features", "hidden"),
+                )
+                w1 = samples.createVariable(
+                    "w1",
+                    self.samples["w1"].dtype,
+                    ("draw", "hidden", "hidden"),
+                )
+                w2 = samples.createVariable(
+                    "w2",
+                    self.samples["w2"].dtype,
+                    ("draw", "hidden", "outputs"),
+                )
+                w0[:] = self.samples["w0"]
+                w1[:] = self.samples["w1"]
+                w2[:] = self.samples["w2"]
+                sigma[:] = self.samples["sigma"]
 
             if self.ref_params is not None:
-                params = root.createGroup('ref_params')
-                sigma = params.createVariable('sigma', self.ref_params['sigma'].dtype)
-                w0 = params.createVariable('w0', self.ref_params['w0'].dtype, ("features", "hidden"))
-                w1 = params.createVariable('w1', self.ref_params['w1'].dtype, ("hidden", "hidden"))
-                w2 = params.createVariable('w2', self.ref_params['w2'].dtype, ("hidden", "outputs"))
-                w0[:] = self.ref_params['w0']
-                w1[:] = self.ref_params['w1']
-                w2[:] = self.ref_params['w2']
-                sigma[:] = self.ref_params['sigma']
+                params = root.createGroup("ref_params")
+                sigma = params.createVariable(
+                    "sigma", self.ref_params["sigma"].dtype
+                )
+                w0 = params.createVariable(
+                    "w0", self.ref_params["w0"].dtype, ("features", "hidden")
+                )
+                w1 = params.createVariable(
+                    "w1", self.ref_params["w1"].dtype, ("hidden", "hidden")
+                )
+                w2 = params.createVariable(
+                    "w2", self.ref_params["w2"].dtype, ("hidden", "outputs")
+                )
+                w0[:] = self.ref_params["w0"]
+                w1[:] = self.ref_params["w1"]
+                w2[:] = self.ref_params["w2"]
+                sigma[:] = self.ref_params["sigma"]
 
     @classmethod
     def from_file(cls, filename):
@@ -389,8 +417,10 @@ class BayesianNN(TrainedBayesianNN):
             y = root["training/y"][()]
             x_train = jnp.array(x)
             y_train = jnp.array(y)
-            
-            if jnp.all(x.fill_value == x_train) or jnp.all(y.fill_value == y_train):
+
+            if jnp.all(x.fill_value == x_train) or jnp.all(
+                y.fill_value == y_train
+            ):
                 # If no training data available:
                 return TrainedBayesianNN._from_root(root)
 

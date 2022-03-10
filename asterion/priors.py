@@ -426,28 +426,28 @@ class TauPrior(Prior):
     """
 
     def __init__(
-            self,
-            nu_max: DistLike,
-            teff: DistLike = None,
-            noise: float = 0.005
-        ) -> None:
+        self, nu_max: DistLike, teff: DistLike = None, noise: float = 0.005
+    ) -> None:
         super().__init__(nu_max, teff=teff)
         self.nu_max = distribution(nu_max)
 
         if teff is None:
             teff = (5000.0, 800.0)  # Uninformative prior
         self.teff = distribution(teff)
-        
+
         # Load weights, loc and cov
         from .data import tau_prior
+
         self.loc = jnp.array(tau_prior["loc"])
         self.cov = jnp.array(tau_prior["cov"])
         self.weights = jnp.array(tau_prior["weights"])
         self.noise = 0.005
 
     def __call__(self):
-        assignment = numpyro.sample("assignment", dist.Categorical(self.weights))
-        
+        assignment = numpyro.sample(
+            "assignment", dist.Categorical(self.weights)
+        )
+
         loc = self.loc[assignment]
         cov = self.cov[assignment]
 
@@ -457,29 +457,23 @@ class TauPrior(Prior):
         teff = numpyro.sample("teff", self.teff)
 
         loc0101 = loc[0:2]
-        cov0101 = jnp.array([
-            [cov[0, 0], cov[0, 1]],
-            [cov[1, 0], cov[1, 1]]
-        ])
-                                        
+        cov0101 = jnp.array([[cov[0, 0], cov[0, 1]], [cov[1, 0], cov[1, 1]]])
+
         L = jax.scipy.linalg.cho_factor(cov0101, lower=True)
-        A = jax.scipy.linalg.cho_solve(L, jnp.array([log_nu_max, teff]) - loc0101)
-        
+        A = jax.scipy.linalg.cho_solve(
+            L, jnp.array([log_nu_max, teff]) - loc0101
+        )
+
         loc2323 = loc[2:]
-        cov2323 = jnp.array([
-            [cov[2, 2], cov[2, 3]],
-            [cov[3, 2], cov[3, 3]]
-        ])  
-        
-        cov0123 = jnp.array([
-            [cov[0, 2], cov[1, 2]],
-            [cov[0, 3], cov[1, 3]]
-        ])
+        cov2323 = jnp.array([[cov[2, 2], cov[2, 3]], [cov[3, 2], cov[3, 3]]])
+
+        cov0123 = jnp.array([[cov[0, 2], cov[1, 2]], [cov[0, 3], cov[1, 3]]])
         v = jax.scipy.linalg.cho_solve(L, cov0123.T)
-        
+
         cond_loc = loc2323 + jnp.dot(cov0123, A)
         cond_cov = (
-            cov2323 - jnp.dot(cov0123, v) 
+            cov2323
+            - jnp.dot(cov0123, v)
             + self.noise * jnp.eye(2)  # Add white noise
         )
         numpyro.sample("log_tau", dist.MultivariateNormal(cond_loc, cond_cov))
