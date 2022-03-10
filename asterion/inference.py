@@ -71,7 +71,7 @@ class Inference:
     def __init__(self, model: Model, *, n, nu, nu_err=None, seed: int = 0):
         self._rng_key = random.PRNGKey(seed)
         self.model: Model = model
-        
+
         self.n = np.asarray(n)
         self.n_pred = np.linspace(self.n[0], self.n[-1], 250)
         self.nu = np.asarray(nu)
@@ -134,10 +134,7 @@ class Inference:
         n_pred = self.n_pred if pred else None
         model = hdl.trace(hdl.seed(self.model, rng_key))
         trace = model.get_trace(
-            self.n,
-            nu=self.nu,
-            nu_err=self.nu_err,
-            n_pred=n_pred
+            self.n, nu=self.nu, nu_err=self.nu_err, n_pred=n_pred
         )
         return trace
 
@@ -493,7 +490,9 @@ class Inference:
         self._map_guide = map_svi.guide
         self._map_params = map_result.params
 
-    def predictive(self, n, nu=None, nu_err=None, n_pred=None, **kwargs) -> dict:
+    def predictive(
+        self, n, nu=None, nu_err=None, n_pred=None, **kwargs
+    ) -> dict:
         """[summary]
 
         Args:
@@ -538,13 +537,7 @@ class Inference:
             predictive._batch_shape = ()
 
         rng_key, self._rng_key = random.split(self._rng_key)
-        samples = predictive(
-            rng_key,
-            n, 
-            nu=nu,
-            nu_err=nu_err,
-            n_pred=n_pred
-        )
+        samples = predictive(rng_key, n, nu=nu, nu_err=nu_err, n_pred=n_pred)
         # self._update_args_kwargs(model_args, model_kwargs)
         return samples
 

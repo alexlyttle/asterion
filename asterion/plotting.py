@@ -100,12 +100,14 @@ def plot_glitch(
 
     kindl = kind.lower()
     if kindl == "full":
-        dnu =  predictive["dnu_he"] + predictive["dnu_cz"]
+        dnu = predictive["dnu_he"] + predictive["dnu_cz"]
         dnu_pred = predictive["dnu_he_pred"] + predictive["dnu_cz_pred"]
-        label = ' + '.join([
-            predictive["dnu_he"].attrs.get("symbol", r"$\delta\nu_{He}$"),
-            predictive["dnu_cz"].attrs.get("symbol", r"$\delta\nu_{BCZ}$"),
-        ])
+        label = " + ".join(
+            [
+                predictive["dnu_he"].attrs.get("symbol", r"$\delta\nu_{He}$"),
+                predictive["dnu_cz"].attrs.get("symbol", r"$\delta\nu_{BCZ}$"),
+            ]
+        )
     elif kindl in {"he", "cz"}:
         dnu_key = "dnu_" + kindl
         dnu = predictive[dnu_key]
@@ -123,7 +125,7 @@ def plot_glitch(
         res = nu - predictive["nu"]
         dnu_obs = dnu + res
         glitch = label
-        if '+' in label:
+        if "+" in label:
             glitch = "$($" + label + "$)$"
         # TODO: should we show model error on dnu_obs here?
         ax.errorbar(
@@ -138,7 +140,7 @@ def plot_glitch(
 
     dnu_med = dnu_pred.median(dim=dim)
     label = kwargs.pop("label", label)
-    line, = ax.plot(n_pred, dnu_med, label=label, **kwargs)
+    (line,) = ax.plot(n_pred, dnu_med, label=label, **kwargs)
 
     # Fill quantiles with alpha decreasing away from the median
     dnu_quant = dnu_pred.quantile(quantiles, dim=dim)
@@ -249,7 +251,7 @@ def plot_echelle(
     kindl = kind.lower()
     if kindl == "full":
         y = predictive["nu_pred"]
-        label = r"$\mathrm{GP}($" + ' + '.join(full_mu) + r"$,\,K)$"
+        label = r"$\mathrm{GP}($" + " + ".join(full_mu) + r"$,\,K)$"
     elif kindl == "background":
         y = predictive["nu_bkg_pred"]
         label = full_mu[0]  # <-- just the background, no GP
@@ -270,7 +272,7 @@ def plot_echelle(
     y_mod = (y - n_pred * delta_nu) % delta_nu
     y_med = y.median(dim=dim)
     label = kwargs.pop("label", label)
-    line, = ax.plot(
+    (line,) = ax.plot(
         y_mod.median(dim=dim),
         y_med,
         label=label,

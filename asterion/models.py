@@ -165,12 +165,12 @@ class GlitchModel(Model):
     def _init_tau(self, rng_key, tau_prior, num_samples=5000):
         predictive = Predictive(tau_prior, num_samples=num_samples)
         pred = predictive(rng_key)
-        log_tau = pred['log_tau'] - 6  # Convert from seconds to mega seconds
+        log_tau = pred["log_tau"] - 6  # Convert from seconds to mega seconds
         loc = log_tau.mean(axis=0)
         scale = log_tau.std(axis=0, ddof=1)
         return (
             distribution((loc[0], scale[0])),  # tau_he
-            distribution((loc[1], scale[1]))  # tau_cz
+            distribution((loc[1], scale[1])),  # tau_cz
         )
 
     def __call__(
