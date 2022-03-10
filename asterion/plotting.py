@@ -59,6 +59,7 @@ def plot_glitch(
     quantiles: Optional[List[float]] = None,
     observed: Union[bool, str] = "auto",
     ax: plt.Axes = None,
+    **kwargs,
 ) -> plt.Axes:
     """Plot the glitch from either the prior or posterior predictive contained
     in inference data.
@@ -73,6 +74,7 @@ def plot_glitch(
         observed (bool or str): Whether to plot observed data. Default is
             "auto" which will plot observed data when group is "posterior".
         ax (matplotlib.axes.Axes): Axis on which to plot the glitch.
+        **kwargs: Keyword arguments to pass to :func:`matplotlib.pyplot.plot`.
 
     Raises:
         ValueError: If kind is not valid.
@@ -135,7 +137,8 @@ def plot_glitch(
         )
 
     dnu_med = dnu_pred.median(dim=dim)
-    line, = ax.plot(n_pred, dnu_med, label=label)
+    label = kwargs.pop("label", label)
+    line, = ax.plot(n_pred, dnu_med, label=label, **kwargs)
 
     # Fill quantiles with alpha decreasing away from the median
     dnu_quant = dnu_pred.quantile(quantiles, dim=dim)
@@ -174,6 +177,7 @@ def plot_echelle(
     quantiles: Optional[List[float]] = None,
     observed: Union[bool, str] = "auto",
     ax: plt.Axes = None,
+    **kwargs,
 ) -> plt.Axes:
     """Plot an echelle diagram of the data.
 
@@ -194,6 +198,7 @@ def plot_echelle(
         observed (bool or str): Whether to plot observed data. Default is
             "auto" which will plot observed data when group is "posterior".
         ax (matplotlib.axes.Axes): Axis on which to plot the echelle.
+        **kwargs: Keyword arguments to pass to :func:`matplotlib.pyplot.plot`.
 
     Raises:
         ValueError: If kind is not valid.
@@ -264,11 +269,12 @@ def plot_echelle(
 
     y_mod = (y - n_pred * delta_nu) % delta_nu
     y_med = y.median(dim=dim)
+    label = kwargs.pop("label", label)
     line, = ax.plot(
         y_mod.median(dim=dim),
         y_med,
         label=label,
-        # color="C1",
+        **kwargs,
     )
 
     y_mod_quant = y_mod.quantile(quantiles, dim=dim)
@@ -296,7 +302,6 @@ def plot_echelle(
     if str(unit) != "":
         ylabel.append(unit.to_string(format="latex_inline"))
     ax.set_ylabel("/".join(ylabel))
-
     ax.legend()
 
     return ax
