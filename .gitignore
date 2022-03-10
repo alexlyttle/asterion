@@ -13,3 +13,17 @@ out/
 !asterion/data/*.nc
 !tests/*nc
 *.diff
+
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+
+# AASTeX examples and notes
+paper/aas/example/
+paper/aas/notes/
