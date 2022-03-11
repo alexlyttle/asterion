@@ -26,7 +26,7 @@
 %% does not need to be explicitly stated.
 %%
 %% using aastex version 6.3
-\documentclass[linenumbers]{aastex631}
+\documentclass[linenumbers,modern]{aastex631}
 
 %% The default is a single spaced, 10 point font, single spaced article.
 %% There are 5 other style options available via an optional argument. They
@@ -38,7 +38,8 @@
 %%
 %%  twocolumn   : two text columns, 10 point font, single spaced article.
 %%                This is the most compact and represent the final published
-%%                derived PDF copy of the accepted manuscript from the publisher
+%%                derived PDF copy of the accepted manuscript from the
+%%                publisher
 %%  manuscript  : one text column, 12 point font, double spaced article.
 %%  preprint    : one text column, 12 point font, single spaced article.  
 %%  preprint2   : two text columns, 12 point font, single spaced article.
@@ -88,13 +89,25 @@
 %% Note that in v6.3 "bookmarks" has been changed to "true" in hyperref
 %% to improve the accessibility of the compiled pdf file.
 %%
+%% Relax deluxtable's \tablenum command to allow siunitx to overwrite it
+\let\tablenum\relax  % Use \savetablenum instead with deluxtable
+\usepackage{siunitx}
+\sisetup{separate-uncertainty,range-units=single,multi-part-units=single}
+
+\usepackage{bm}
+
 %% If you want to create your own macros, you can do so
 %% using \newcommand. Your macros should appear before
 %% the \begin{document} command.
 %%
 \newcommand{\vdag}{(v)^\dagger}
-\newcommand\aastex{AAS\TeX}
-\newcommand\latex{La\TeX}
+\newcommand{\aastex}{AAS\TeX}
+\newcommand{\latex}{La\TeX}
+\newcommand{\helium}{\mathrm{He}}
+\newcommand{\bcz}{\mathrm{BCZ}}
+\newcommand{\bkg}{\mathrm{bkg}}
+
+% \let\bb\boldsymbol
 
 %% Reintroduced the \received and \accepted commands from AASTeX v5.2
 %\received{March 1, 2021}
@@ -144,25 +157,25 @@
 %% AASTeX deluxetables.  In general it should not be needed.
 %\setcounter{table}{1}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
 %% The following section outlines numerous optional output that
 %% can be displayed in the front matter or as running meta-data.
 %%
 %% If you wish, you may supply running head information, although
 %% this information may be modified by the editorial offices.
-\shorttitle{AASTeX v6.3.1 Sample article}
-\shortauthors{Schwarz et al.}
+\shorttitle{Acoustic glitches in solar-like oscillators}
+\shortauthors{Lyttle et al.}
 %%
 %% You can add a light gray and diagonal water-mark to the first page 
 %% with this command:
-%% \watermark{text}
+\watermark{DRAFT}
 %% where "text", e.g. DRAFT, is the text to appear.  If the text is 
 %% long you can control the water-mark size with:
 %% \setwatermarkfontsize{dimension}
 %% where dimension is any recognized LaTeX dimension, e.g. pt, in, etc.
 %%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \graphicspath{{./}{figures/}}
 %% This is the end of the preamble.  Indicate the beginning of the
 %% manuscript itself with \begin{document}.
@@ -226,7 +239,24 @@
 %\correspondingauthor{August Muench}
 %\email{greg.schwarz@aas.org, gus.muench@aas.org}
 
+\correspondingauthor{Alexander J. Lyttle}
+\email{ajl573@bham.ac.uk}
+
 \author[0000-0001-8355-8082]{Alexander J. Lyttle}
+\affiliation{
+    School of Physics and Astronomy, University of Birmingham,
+    Birmingham B15 2TT, United Kingdom
+}
+\affiliation{
+    The Alan Turing Institute, British Library,
+    96 Euston Rd, London NW1 2DB, United Kingdom
+}
+\affiliation{
+    Stellar Astrophysics Center, University of Aarhus,
+    Nordre Ringgade 1, 8000 Aarhus C, Denmark
+}
+
+\author{Guy R. Davies}
 \affiliation{
     School of Physics and Astronomy, University of Birmingham,
     Birmingham B15 2TT, United Kingdom
@@ -263,7 +293,10 @@
 %% You will be asked to selected these concepts during the submission process
 %% but this old "keyword" functionality is maintained in case authors want
 %% to include these concepts in their preprints.
-\keywords{Solar-like oscillators}
+\keywords{
+    Asteroseismology (73), Astronomy software (1855), Helioseismology (709),
+    Stellar interior (1500)
+}
 
 %% From the front matter, we move on to the body of the paper.
 %% Sections are demarcated by \section and \subsection, respectively.
@@ -284,10 +317,175 @@
 
 Test citation \citep{Lund:2017}.
 
+A Gaussian process is a prior over function space, which allows us to fit any
+function as a sum of Gaussians, constrained by the choice of mean and kernel
+functions. The function describing the mode frequencies comprises several
+features including an approximately regular spacing in frequency,
+\(\Delta\nu\), curvature caused by the smoothy varying stellar structure, and
+glitches due to sharp variation in stellar structure. The latter is fairly well
+understood \citep{Houdek:2007}, whereas the smooth curvature is not. In
+most work studying acoustic glitches, a polynomial is typically fit
+to the smooth background. However, this has its drawbacks; the flexibility
+of a polynomial increases with its order, and regularisation is required to
+combat over-fitting. A Gaussian process offers more flexibility than a
+polynomial with fewer free parameters. Furthermore, these parameters are priors
+over the flexibility of the function, such as a typical length scale or
+variance.
+
 \section{Method} \label{sec:method}
 
+\subsection{The model} \label{sec:model}
+
+The radial mode frequencies follow some function of radial order, \(\nu_{n,l=0}
+= f(n)\) where \(f\) can be described by a Gaussian process,
+%
+\begin{equation}
+    f(\bm n) \sim \mathcal{GP}\left(m(\bm n), k(\bm n, \bm n')\right),
+\end{equation}
+%
+for array \(\bm n\) with some mean function, \(m(\bm n)\) and kernel function,
+\(k(\bm n, \bm n')\).
+
+The mean function comprises a background frequency as a function of \(n\),
+\(f_\bkg(n)\), and the glitches due to the second ionisation of helium,
+\(\delta_\helium(\nu)\) and base of the convective zone
+\(\delta_\bcz(\nu_\bkg)\),
+%
+\begin{equation}
+    m(\bm n) = f_\bkg(\bm n) + \delta_\helium(\bm\nu_\bkg) +
+    \delta_\bcz(\bm\nu_\bkg),
+\end{equation}
+%
+where \(\bm\nu_\bkg = f_\bkg(\bm n)\). For the background, we adopt the
+asymptotic approximation to first order in \(n\),
+%
+\begin{equation}
+    f_\bkg(n) = \Delta\nu (n + \epsilon),
+\end{equation}
+%
+where \(\Delta\nu\) is the large frequency separation and \(\epsilon\) is some
+offset. We define the small change in mode frequency caused by the second
+ionisation of helium, \(\delta\nu_\helium = \delta_\helium(\nu)\) as,
+%
+\begin{equation}
+    \delta_\helium(\nu) = a_\helium \nu e^{- b_\helium \nu^2}
+    \sin\left( 2 \pi \tau_\helium \nu + \phi_\helium \right),
+\end{equation}
+%
+where \(a_\helium\) is the frequency-dependent amplitude and \(b_\helium\)
+relates to the acoustic width of the glitch. We define the small change in
+frequency due to the base of the convective zone,
+\(\delta\nu_\bcz = \delta_\bcz(\nu)\) as,
+%
+\begin{equation}
+    \delta_\bcz(\nu) = \frac{a_\bcz}{\nu^2}
+    \sin\left( 2 \pi \tau_\bcz \nu + \phi_\bcz \right),
+\end{equation}
+%
+where \(a_\bcz\) is the frequency-dependent amplitude. For both glitches,
+parameters \(\tau\) and \(\phi\) relate to the acoustic depth and phase of
+the glitch respectively.
+
+The kernel function describes the covariance between modes at different \(n\).
+We expect consecutive modes to correlate more strongly than modes further
+apart. Therefore, we adopt the squared-exponential (or radial basis) kernel
+function,
+%
+\begin{equation}
+    k(\bm n, \bm n') = \sigma^2 
+    \exp\left\{- \frac{\| \bm n - \bm n' \|^2}{2\lambda^2}\right\},
+\end{equation}
+%
+where \(\sigma^2\) is the variance and \(lambda\) is the length scale.
+
+The model described above comprises 11 parameters,
+
+\begin{equation}
+    \bm\theta = \{\Delta\nu, \epsilon, a_\helium, b_\helium, \tau_\helium,
+    \phi_\helium, a_\bcz, \tau_\bcz, \phi_\bcz, \sigma^2, \lambda\}.
+\end{equation}
+
+Using Bayes' theorem, we write the posterior probability density function for
+the model given some observation of radial mode frequencies \(\bm\nu_n\),
+%
+\begin{equation}
+    p(\bm\theta \mid \bm\nu_n) \sim \Pi(\bm\theta) \, 
+    \mathcal{L}(\bm\nu_n \mid \bm\theta),
+\end{equation}
+%
+where \(\Pi(\bm\theta)\) is the a priori probability of the model and
+\(\mathcal{L}(\bm\nu_n \mid \bm\theta)\) is the likelihood of the data given the
+model.
+
+
+\subsection{The prior} \label{sec:prior}
+
+The prior for the model can be separated into a product of the priors for each
+individual parameter,
+%
+\begin{equation}
+    \Pi(\bm\theta) = \prod_{i=0}^{10} \Pi(\theta_i).
+\end{equation}
+%
+In the following sections we write our choice of prior for each of
+\(\theta_i\).
+
+\subsubsection{Background parameters} \label{sec:bkg-params}
+
+The prior for \(\Delta\nu\) is provided as the location and scale of a
+normal distribution, \(\Delta\nu \sim \mathcal{N}(\mu_{\Delta\nu},
+\sigma_{\Delta\nu})\). The prior for \(\epsilon\) is chosen to be a log-normal
+distribution, \(\epsilon \sim \ln\mathcal{N}(\ln(1.4), 0.4)\).
+
+\subsubsection{Glitch parameters} \label{sec:glitch-params}
+
+The glitch parameters' priors must convey at least two things; the first is
+that the glitch amplitudes are approximately \SIrange{0.1}{1.0}{\micro\hertz}, 
+and the second is that the acoustic depths are in physically sensible places.
+The former comes from reviewing previous measurements of the glitches in the
+literature and can be enforced by inspecting the sensibility of a grid of
+glitch amplitude parameters as a function of \(\nu_\mathrm{max}\) (see
+Appendix...). The latter is less straightforward to determine, and will be
+defined later in this section.
+
+\begin{itemize}
+    \item Stellar model grid
+    \item Extract acoustic depths
+    \item Fit Gaussian mixture to \((\log\nu_\mathrm{max}, T_\mathrm{eff},
+        \log\tau_\helium, \log\tau_\bcz)\)
+    \item Sample from the conditional distribution of \((\log\tau_\helium,
+        \log\tau_\bcz)\) given \((\log\nu_\mathrm{max}, T_\mathrm{eff})\)
+    \item This gives the prior for \((\log\tau_\helium, \log\tau_\bcz)\)
+\end{itemize}
+
+\subsubsection{Kernel parameters} \label{sec:kernel-params}
+
+We chose to fix the kernel parameters to \(\lambda = 5.0\) and \(\sigma^2 =
+0.1 \, \mu_{\Delta\nu}\). The length scale ensures that the GP does not fit to
+the glitch, and reflects the typical scale of curvature of the radial mode
+frequencies with respect to \(n\). The variance is fixed at \SI{10}{\percent}
+of \(\Delta\nu\) which corresponds to the approximate amplitude of the mode
+curvature.
 
 \section{Results} \label{sec:results}
+
+
+
+\subsection{Model stars} \label{sec:model-stars}
+
+
+
+\subsection{Sun-as-a-star} \label{sec:sun}
+
+
+
+\subsection{\num{16} Cygni} \label{sec:16cyg}
+
+
+
+\subsection{KIC \num[group-digits=false]{4448777}} \label{sec:boeing}
+
+
 
 %% IMPORTANT! The old "\acknowledgment" command has be depreciated. It was
 %% not robust enough to handle our new dual anonymous review requirements and
@@ -309,14 +507,17 @@ Test citation \citep{Lund:2017}.
 %% parentheses, after the keyword, but they are not verified.
 
 \vspace{5mm}
-\facilities{}
 
 %% Similar to \facility{}, there is the optional \software command to allow 
 %% authors a place to specify which programs were used during the creation of 
 %% the manuscript. Authors should list each code and include either a
 %% citation or url to the code inside ()s when available.
 
-\software{}
+\software{
+    astropy \citep{AstropyCollaboration:2018}, jax \citep{Bradbury:2018},
+    jaxns \citep{Albert:2020}, numpy \citep{Harris:2020},
+    numpyro \citep{Phan:2019,Bingham:2019}, PBjam \citep{Nielsen:2021}
+}
 
 %% Appendix material should be preceded with a single \appendix command.
 %% There should be a \section command for each appendix. Mark appendix
