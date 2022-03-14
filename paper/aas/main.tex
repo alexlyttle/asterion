@@ -106,6 +106,8 @@
 \newcommand{\helium}{\mathrm{He}}
 \newcommand{\bcz}{\mathrm{BCZ}}
 \newcommand{\bkg}{\mathrm{bkg}}
+\newcommand{\npred}{\bm n_\mathrm{pred}}
+\newcommand{\dd}{\mathrm{d}}
 
 % \let\bb\boldsymbol
 
@@ -344,7 +346,8 @@ The radial mode frequencies follow some function of radial order, \(\nu_{n,l=0}
 \end{equation}
 %
 for array \(\bm n\) with some mean function, \(m(\bm n)\) and kernel function,
-\(k(\bm n, \bm n')\).
+\(k(\bm n, \bm n')\). In other words, the function \(f\) is drawn from a GP
+characterised by \(m\) and \(k\).
 
 The mean function comprises a background frequency as a function of \(n\),
 \(f_\bkg(n)\), and the glitches due to the second ionisation of helium,
@@ -409,8 +412,8 @@ Using Bayes' theorem, we write the posterior probability density function for
 the model given some observation of radial mode frequencies \(\bm\nu_n\),
 %
 \begin{equation}
-    p(\bm\theta \mid \bm\nu_n) \sim \Pi(\bm\theta) \, 
-    \mathcal{L}(\bm\nu_n \mid \bm\theta),
+    p(\bm\theta \mid \bm\nu_n) \propto p(\bm\theta) \, 
+    p(\bm\nu_n \mid \bm\theta),
 \end{equation}
 %
 where \(\Pi(\bm\theta)\) is the a priori probability of the model and
@@ -424,7 +427,7 @@ The prior for the model can be separated into a product of the priors for each
 individual parameter,
 %
 \begin{equation}
-    \Pi(\bm\theta) = \prod_{i=0}^{10} \Pi(\theta_i).
+    p(\bm\theta) = \prod_{i=0}^{10} p(\theta_i).
 \end{equation}
 %
 In the following sections we write our choice of prior for each of
@@ -466,6 +469,53 @@ the glitch, and reflects the typical scale of curvature of the radial mode
 frequencies with respect to \(n\). The variance is fixed at \SI{10}{\percent}
 of \(\Delta\nu\) which corresponds to the approximate amplitude of the mode
 curvature.
+
+\subsection{The likelihood}
+
+The GP likelihood of function for the true frequency \(\bm f_n = f(\bm n)\)
+given \(\bm\theta\) is a normal distribution,
+%
+\begin{equation}
+    \bm f_n \mid \bm\theta \sim
+    \mathcal{N}\left[m_\theta(\bm n), k_\theta(\bm n, \bm n)\right],
+\end{equation}
+%
+and the likelihood of some noisy observation \(\bm\nu_n\) of \(\bm f_n\) is,
+%
+\begin{equation}
+    \bm\nu_n \mid \bm f_n \sim
+    \mathcal{N}(\bm f_n, \bm{\mathcal{I}} \odot \bm\sigma_n^2),
+\end{equation}
+%
+where \(\bm{\mathcal{I}}\) is the \(N \times N\) identity matrix,
+\(\bm\sigma_n^2\) is the array of variances corresponding to each of
+\(\bm\nu_n\), and \(\odot\) is the element-wise product operator.
+
+The marginal likelihood of \(\bm\nu_n\) given the model is,
+%
+\begin{equation}
+    p(\bm\nu_n \mid \bm\theta) = \int p(\bm\nu_n \mid \bm f_n, \bm\theta) \,
+    p(\bm f_n \mid \bm\theta) \, \dd \bm f_n
+\end{equation}
+%
+which given equations above is,
+%
+\begin{equation}
+    p(\bm\nu_n \mid \bm\theta) =
+    \mathcal{N}\left( 
+        \bm\mu_n, \bm K_n + \bm{\mathcal{I}} \odot (\bm\sigma_n^2 + \delta)
+    \right)
+\end{equation}
+%
+where \(\bm\mu_n = m_\theta(\bm n)\) and \(\bm K_n = k_\theta(\bm n, \bm n)\).
+
+The conditional distribution for the GP at some new radial order \(\npred\)
+is,
+%
+\begin{equation}
+    f(\npred) \sim \mathcal{N}\left(\right)
+\end{equation}
+
 
 \section{Results} \label{sec:results}
 
