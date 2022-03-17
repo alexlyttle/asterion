@@ -512,30 +512,31 @@ where \(\bm\mu_n = m_\theta(\bm n)\), \(\bm K_n = k_\theta(\bm n, \bm n)\), and
 \(\delta = \num{1e-6}\) is some small value to ensure that the covariance is
 positive semidefinite.
 
-The conditional distribution for the GP at new radial orders \(\bm\npred\) is
-derived from the joint distribution,
-%
-\begin{equation}
-    \begin{bmatrix}
-        \bm\nu_n\\
-        \bm f_{\npred}
-    \end{bmatrix}
-    \sim \mathcal{N} 
-    \left(
-        \begin{bmatrix}
-            \bm\mu_n\\
-            \bm\mu_{\npred}
-        \end{bmatrix}
-        ,\,
-        \begin{bmatrix}
-            \bm K_n + \bm{\mathcal{I}} \odot (\bm\sigma_n^2 + \delta) & 
-            \bm K_{n, \npred}\\
-            \bm K_{\npred, n} & \bm K_{\npred}
-        \end{bmatrix}
-    \right).
-\end{equation}
-%
-We marginalise over 
+See C. E. Rasmussen \& C. K. I. Williams for GP conditional 
+% The conditional distribution for the GP at new radial orders \(\bm\npred\) is
+% derived from the joint distribution,
+% %
+% \begin{equation}
+%     \begin{bmatrix}
+%         \bm\nu_n\\
+%         \bm f_{\npred}
+%     \end{bmatrix}
+%     \sim \mathcal{N} 
+%     \left(
+%         \begin{bmatrix}
+%             \bm\mu_n\\
+%             \bm\mu_{\npred}
+%         \end{bmatrix}
+%         ,\,
+%         \begin{bmatrix}
+%             \bm K_n + \bm{\mathcal{I}} \odot (\bm\sigma_n^2 + \delta) & 
+%             \bm K_{n, \npred}\\
+%             \bm K_{\npred, n} & \bm K_{\npred}
+%         \end{bmatrix}
+%     \right).
+% \end{equation}
+% %
+% We marginalise over 
 
 \section{Results} \label{sec:results}
 
