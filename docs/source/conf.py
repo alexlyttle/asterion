@@ -77,8 +77,8 @@ html_theme = 'furo'
 html_static_path = ['_static']
 
 html_theme_options = {
-    "announcement": "<em>Attention</em>! This project is an alpha build, " + \
-                    "please use with caution.",
+    "announcement": "<em>Attention</em>! This project is not yet released, " + \
+                    "expect frequent changes to functionality.",
     "light_logo": "images/asterion-96dpi-light.png",
     "dark_logo": "images/asterion-96dpi-dark.png",
     "sidebar_hide_name": True,
