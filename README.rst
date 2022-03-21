@@ -11,6 +11,9 @@
     :target: https://github.com/alexlyttle/asterion/blob/main/LICENSE
     :alt: License
 
+.. image:: docs/source/_static/images/asterion-96dpi-small.png
+    :alt: Logos
+
 .. asterion_label
 ########
 Asterion
