@@ -398,6 +398,10 @@ class CZGlitchFunction(_GlitchFunction):
         """
         return jnp.divide(self._a, nu**2)
 
+    def _average_amplitude(self, low: ArrayLike, high: ArrayLike):
+        """The average amplitude over the glitch for a given frequency range."""
+        return self._a / low / high
+
     def __call__(self) -> Callable:
         """Samples the convective zone glitch function.
 
