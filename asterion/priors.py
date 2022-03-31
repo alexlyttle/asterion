@@ -384,7 +384,7 @@ class CZGlitchFunction(_GlitchFunction):
 
         log_numax = jnp.log10(distribution(nu_max).mean)
         # Rough guess of glitch params
-        self.log_a: dist.Distribution = dist.Normal(2.0 * log_numax - 1.5, 1.0)
+        self.log_a: dist.Distribution = dist.Normal(2.0 * log_numax - 1.5, 0.5)
 
     def amplitude(self, nu: ArrayLike) -> jnp.ndarray:
         """The amplitude of the glitch,
