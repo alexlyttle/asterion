@@ -149,7 +149,7 @@ class AsyFunction(Prior):
         self._epsilon = numpyro.sample("epsilon", self.epsilon)
 
         def fn(n):
-            return self._delta_nu * (n + self._epsilon)
+            return self._delta_nu[..., None] * (n + self._epsilon[..., None])
 
         return fn
 
