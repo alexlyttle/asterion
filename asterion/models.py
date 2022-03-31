@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpyro
 import numpy as np
 import astropy.units as u
+import jax.numpy as jnp
 
 from numpy.typing import ArrayLike
 from typing import Optional, Union
@@ -190,12 +191,13 @@ class GlitchModel(Model):
             low = nu_max - self.window_width * self.background._delta_nu
             high = nu_max + self.window_width * self.background._delta_nu
         
-        numpyro.deterministic(
+        he_amp = numpyro.deterministic(
             "he_amplitude", self.he_glitch._average_amplitude(low, high)
         )
-        numpyro.deterministic(
+        cz_amp = numpyro.deterministic(
             "cz_amplitude", self.cz_glitch._average_amplitude(low, high)
         )
+        return he_amp, cz_amp
 
     def __call__(
         self,
@@ -402,11 +404,18 @@ class GlitchModelComparison(GlitchModel):
 
         # Model comparison - if nu is not None, then nu0 == nu
         logL0 = dist0.log_prob(nu0)
-        # logL0 = 0.0
         logL = dist.log_prob(nu)
 
         numpyro.factor("obs", (logL0 + logL).sum())
-        numpyro.deterministic("log_k", (logL - logL0).sum()/np.log(10.0))  # Bayes factor
+        
+        # Log10 Bayes factor
+        numpyro.deterministic("log_k", (logL - logL0).sum()/np.log(10.0))
 
         # Other deterministics
-        self._glitch_amplitudes(nu)
+        he_amp, cz_amp = self._glitch_amplitudes(nu)
+        
+        # Prior that log(he_amp) == log(cz_amp) is a 2-sigma event
+        # and the He amplitude is ~ 4 times the BCZ amplitude (log10(4) ~ 0.6)
+        delta = 2.0 * (jnp.log10(he_amp) - jnp.log10(cz_amp) - 0.6) / 0.6
+        logp = numpyro.distributions.Normal().log_prob(delta)
+        numpyro.factor("amp", logp)
