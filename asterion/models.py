@@ -280,7 +280,7 @@ class GlitchModelComparison(GlitchModel):
         {p(\nu_\mathrm{obs} \mid \mathcal{GP}_0)}
 
     where :math:`\mathcal{GP}_0` is the glitchless model and
-    :math:`\mathcal{GP}_1` is the glitch model. OMG!!
+    :math:`\mathcal{GP}_1` is the glitch model.
 
     Args:
         n (:term:`array_like`): Radial order of model observations.
