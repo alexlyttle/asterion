@@ -199,6 +199,13 @@ class GlitchModel(Model):
         )
         return he_amp, cz_amp
 
+    def _amplitude_prior(self, he_amp, cz_amp):
+        # Prior that log(he_amp) == log(cz_amp) is a 2-sigma event
+        # and the He amplitude is ~ 4 times the BCZ amplitude (log10(4) ~ 0.6)
+        delta = 2.0 * (jnp.log10(he_amp) - jnp.log10(cz_amp) - 0.6) / 0.6
+        logp = numpyro.distributions.Normal().log_prob(delta)
+        numpyro.factor("amp", logp)
+
     def __call__(
         self,
         n: ArrayLike,
@@ -250,31 +257,30 @@ class GlitchModel(Model):
                 numpyro.deterministic("dnu_cz_pred", cz_glitch_func(nu_bkg))
 
         # Other deterministics
-        self._glitch_amplitudes(nu)
+        self._amplitude_prior(*self._glitch_amplitudes(nu))
 
 
 class GlitchModelComparison(GlitchModel):
-    r"""Asteroseismic glitch model comparison.
+    r"""Asteroseismic glitch model comparison. Compare the glitch model with
+    a glitchless model. The frequencies are modelled using a GP with the same
+    kernel function but different mean functions.
 
+    The glitch model is the same as :class:`GlitchModel`. The glitcheless model
+    is the same except that the mean function is,
+
+    .. math::
+
+        m_0(n) = f_\mathrm{bkg}(n),
+
+    The two models are compared using the Bayes' factor,
+    
     .. math::
     
-        \nu_\mathrm{obs} \sim \mathcal{GP}(m(n), k(n, n') + 
-        \sigma^2\mathcal{I})
+        K = \frac{p(\nu_\mathrm{obs} \mid \mathcal{GP}_1)}
+        {p(\nu_\mathrm{obs} \mid \mathcal{GP}_0)}
 
-    Where the mean function is,
-
-    .. math::
-
-        m(n) &= \nu_\mathrm{bkg} + \delta_\mathrm{He} + \delta_\mathrm{CZ},\\
-        \nu_\mathrm{bkg} &= f_\mathrm{bkg}(n),\\
-        \delta_\mathrm{He} &= f_\mathrm{He}(\nu_\mathrm{bkg}),\\
-        \delta_\mathrm{CZ} &= f_\mathrm{CZ}(\nu_\mathrm{bkg}),
-    
-    and the kernel function is,
-
-    .. math::
-
-        k(n, n') = \sigma_k^2 \exp\left( - \frac{(n' - n)^2}{l^2} \right).
+    where :math:`\mathcal{GP}_0` is the glitchless model and
+    :math:`\mathcal{GP}_1` is the glitch model. OMG!!
 
     Args:
         n (:term:`array_like`): Radial order of model observations.
@@ -307,12 +313,24 @@ class GlitchModelComparison(GlitchModel):
     def __init__(self, nu_max: DistLike, delta_nu: DistLike, teff: Optional[DistLike] = None, epsilon: Optional[DistLike] = None, seed: int = 0, window_width: Union[str, float] = "full"):
         super().__init__(nu_max, delta_nu, teff, epsilon, seed, window_width)
         
+        self._prefix = "null"
+        self._divider = "."
+        
         units = {
             "log_k": u.LogUnit(u.dimensionless_unscaled),
+            
         }
+        
         symbols = {
             "log_k": r"$\log(k)$"
         }
+
+        null_vars = ["nu", "nu_pred", "nu_obs", "nu_bkg", "nu_bkg_pred"]
+        for var_name in null_vars:
+            key = self._divider.join([self._prefix, var_name])
+            units[key] = self.units[var_name]
+            symbols[key] = self.symbols[var_name]
+
         self.units.update(units)
         self.symbols.update(symbols)
 
@@ -333,22 +351,21 @@ class GlitchModelComparison(GlitchModel):
             pred (bool): If True, make predictions nu and nu_pred from n and
                 num_pred.
         """
-        # TODO it may be more general for all models to take an obs dict as
-        # argument and every parameter to do obs.get('name', None)
+        # Same kernel function for both models
         var = numpyro.param("kernel_var", self._kernel_var)
         length = numpyro.param("kernel_length", self._kernel_length)
 
         kernel = SquaredExponential(var, length)
         
         args = ("models", 2)
-        
         with dimension(*args):
             with numpyro.plate(*args):
+                # Broadcast background function to both models
                 bkg_func = self.background()
         
-        with numpyro.handlers.scope(prefix="null", divider="."):
-            # bkg_func0 = self.background()
-            # The mean function for the GP
+        # MODEL 0
+        with numpyro.handlers.scope(prefix=self._prefix, divider="."):
+            # Contain null model parameters in the null scope
             def mean0(n):
                 return bkg_func(n)[0]
             gp0 = GP(kernel, mean=mean0)
@@ -360,7 +377,7 @@ class GlitchModelComparison(GlitchModel):
                 else:
                     nu0 = nu
 
-                gp0.y = nu0                    
+                gp0.y = nu0  
                 
                 numpyro.deterministic("nu_bkg", bkg_func(n)[0])
             
@@ -371,6 +388,7 @@ class GlitchModelComparison(GlitchModel):
                     gp0.predict("nu_pred", n_pred)
                     numpyro.deterministic("nu_bkg_pred", bkg_func(n_pred)[0])
 
+        # MODEL 1
         he_glitch_func = self.he_glitch()
         cz_glitch_func = self.cz_glitch()
 
@@ -382,7 +400,7 @@ class GlitchModelComparison(GlitchModel):
         dist = gp.distribution(n, noise=nu_err)
 
         with dimension("n", n.shape[-1], coords=n):
-
+            
             if nu is None:
                 nu = numpyro.sample("nu_obs", dist)
             
@@ -402,20 +420,15 @@ class GlitchModelComparison(GlitchModel):
                 numpyro.deterministic("dnu_he_pred", he_glitch_func(nu_bkg))
                 numpyro.deterministic("dnu_cz_pred", cz_glitch_func(nu_bkg))
 
+        # Other deterministics and priors
+        self._amplitude_prior(*self._glitch_amplitudes(nu))
+
+        # LIKELIHOOD
         # Model comparison - if nu is not None, then nu0 == nu
         logL0 = dist0.log_prob(nu0)
         logL = dist.log_prob(nu)
-
-        numpyro.factor("obs", (logL0 + logL).sum())
         
+        numpyro.factor("obs", (logL0 + logL).sum())
+
         # Log10 Bayes factor
         numpyro.deterministic("log_k", (logL - logL0).sum()/np.log(10.0))
-
-        # Other deterministics
-        he_amp, cz_amp = self._glitch_amplitudes(nu)
-        
-        # Prior that log(he_amp) == log(cz_amp) is a 2-sigma event
-        # and the He amplitude is ~ 4 times the BCZ amplitude (log10(4) ~ 0.6)
-        delta = 2.0 * (jnp.log10(he_amp) - jnp.log10(cz_amp) - 0.6) / 0.6
-        logp = numpyro.distributions.Normal().log_prob(delta)
-        numpyro.factor("amp", logp)
