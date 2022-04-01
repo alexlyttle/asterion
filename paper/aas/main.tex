@@ -471,6 +471,49 @@ frequencies with respect to \(n\). The variance is fixed at \SI{10}{\percent}
 of \(\Delta\nu\) which corresponds to the approximate amplitude of the mode
 curvature.
 
+\subsubsection{Average amplitude} \label{sec:avg-amp}
+
+The average amplitude of the glitches has been used in previous work as a proxy
+for the helium abundance in the star.
+
+\begin{equation}
+    \langle A \rangle = \frac{
+        \int_{\nu_\mathrm{low}}^{\nu_\mathrm{high}} A(\nu) \, \dd \nu
+    }{
+        \int_{\nu_\mathrm{low}}^{\nu_\mathrm{high}} \dd \nu
+    }
+\end{equation}
+
+\begin{equation}
+    \langle A_\helium \rangle = 
+    \frac{
+        a_\helium \left(
+            e^{- b_\helium \, \nu_\mathrm{low}}
+            - e^{- b_\helium \, \nu_\mathrm{high}}
+        \right)
+    }{2 b_\helium (\nu_\mathrm{high} - \nu_\mathrm{low})},
+\end{equation}
+
+\begin{equation}
+    \langle A_\bcz \rangle = \frac{a_\bcz}{\nu_\mathrm{low} \nu_\mathrm{high}}.
+\end{equation}
+
+We expect the average amplitude of the helium glitch to be greater than that of
+the convective zone glitch most of the time. WHY IS THIS? To encode this
+knowledge into the prior, we introduce the parameter for the logarithm of the
+ratio between the average amplitudes of the two glitches.
+\(\log r_A = \log \langle A_\helium \rangle - \log \langle A_\bcz \rangle\).
+
+\begin{equation}
+    \log r_A \sim \mathcal{N}(0.6, 0.3).
+\end{equation}
+
+The mean is chosen such that the mean lies where
+\(\langle A_\helium \rangle = 4 \langle A_\bcz \rangle\). The variance is
+chosen such that \(\langle A_\helium \rangle < \langle A_\bcz \rangle\) and
+\(\langle A_\helium \rangle > 16 \langle A_\bcz \rangle\) \SI{5}{\percent} of
+the time.
+
 \subsection{The likelihood}
 
 The GP likelihood of function for the true frequency \(\bm f_n = f(\bm n)\)
@@ -512,7 +555,7 @@ where \(\bm\mu_n = m_\theta(\bm n)\), \(\bm K_n = k_\theta(\bm n, \bm n)\), and
 \(\delta = \num{1e-6}\) is some small value to ensure that the covariance is
 positive semidefinite.
 
-See C. E. Rasmussen \& C. K. I. Williams for GP conditional 
+See C. E. Rasmussen \& C. K. I. Williams for GP conditional
 % The conditional distribution for the GP at new radial orders \(\bm\npred\) is
 % derived from the joint distribution,
 % %
