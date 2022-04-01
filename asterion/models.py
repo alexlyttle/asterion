@@ -190,7 +190,7 @@ class GlitchModel(Model):
         else:
             low = nu_max - self.window_width * self.background._delta_nu
             high = nu_max + self.window_width * self.background._delta_nu
-        
+
         he_amp = numpyro.deterministic(
             "he_amplitude", self.he_glitch._average_amplitude(low, high)
         )
@@ -273,9 +273,9 @@ class GlitchModelComparison(GlitchModel):
         m_0(n) = f_\mathrm{bkg}(n),
 
     The two models are compared using the Bayes' factor,
-    
+
     .. math::
-    
+
         K = \frac{p(\nu_\mathrm{obs} \mid \mathcal{GP}_1)}
         {p(\nu_\mathrm{obs} \mid \mathcal{GP}_0)}
 
@@ -310,20 +310,26 @@ class GlitchModelComparison(GlitchModel):
             which to average the helium glitch amplitude for the parameter
             'he_amplitude'.
     """
-    def __init__(self, nu_max: DistLike, delta_nu: DistLike, teff: Optional[DistLike] = None, epsilon: Optional[DistLike] = None, seed: int = 0, window_width: Union[str, float] = "full"):
+
+    def __init__(
+        self,
+        nu_max: DistLike,
+        delta_nu: DistLike,
+        teff: Optional[DistLike] = None,
+        epsilon: Optional[DistLike] = None,
+        seed: int = 0,
+        window_width: Union[str, float] = "full",
+    ):
         super().__init__(nu_max, delta_nu, teff, epsilon, seed, window_width)
-        
+
         self._prefix = "null"
         self._divider = "."
-        
+
         units = {
             "log_k": u.LogUnit(u.dimensionless_unscaled),
-            
         }
-        
-        symbols = {
-            "log_k": r"$\log(k)$"
-        }
+
+        symbols = {"log_k": r"$\log(k)$"}
 
         null_vars = ["nu", "nu_pred", "nu_obs", "nu_bkg", "nu_bkg_pred"]
         for var_name in null_vars:
@@ -356,31 +362,32 @@ class GlitchModelComparison(GlitchModel):
         length = numpyro.param("kernel_length", self._kernel_length)
 
         kernel = SquaredExponential(var, length)
-        
+
         args = ("models", 2)
         with dimension(*args):
             with numpyro.plate(*args):
                 # Broadcast background function to both models
                 bkg_func = self.background()
-        
+
         # MODEL 0
         with numpyro.handlers.scope(prefix=self._prefix, divider="."):
             # Contain null model parameters in the null scope
             def mean0(n):
                 return bkg_func(n)[0]
+
             gp0 = GP(kernel, mean=mean0)
             dist0 = gp0.distribution(n, noise=nu_err)
-            
+
             with dimension("n", n.shape[-1], coords=n):
                 if nu is None:
                     nu0 = numpyro.sample("nu_obs", dist0)
                 else:
                     nu0 = nu
 
-                gp0.y = nu0  
-                
+                gp0.y = nu0
+
                 numpyro.deterministic("nu_bkg", bkg_func(n)[0])
-            
+
             if n_pred is not None:
                 with dimension("n", n.shape[-1], coords=n):
                     gp0.predict("nu", n)
@@ -400,12 +407,12 @@ class GlitchModelComparison(GlitchModel):
         dist = gp.distribution(n, noise=nu_err)
 
         with dimension("n", n.shape[-1], coords=n):
-            
+
             if nu is None:
                 nu = numpyro.sample("nu_obs", dist)
-            
+
             gp.y = nu
-                
+
             nu_bkg = numpyro.deterministic("nu_bkg", bkg_func(n)[1])
             numpyro.deterministic("dnu_he", he_glitch_func(nu_bkg))
             numpyro.deterministic("dnu_cz", cz_glitch_func(nu_bkg))
@@ -416,7 +423,9 @@ class GlitchModelComparison(GlitchModel):
             with dimension("n_pred", n_pred.shape[-1], coords=n_pred):
                 gp.predict("nu_pred", n_pred)
 
-                nu_bkg = numpyro.deterministic("nu_bkg_pred", bkg_func(n_pred)[1])
+                nu_bkg = numpyro.deterministic(
+                    "nu_bkg_pred", bkg_func(n_pred)[1]
+                )
                 numpyro.deterministic("dnu_he_pred", he_glitch_func(nu_bkg))
                 numpyro.deterministic("dnu_cz_pred", cz_glitch_func(nu_bkg))
 
@@ -427,8 +436,8 @@ class GlitchModelComparison(GlitchModel):
         # Model comparison - if nu is not None, then nu0 == nu
         logL0 = dist0.log_prob(nu0)
         logL = dist.log_prob(nu)
-        
+
         numpyro.factor("obs", (logL0 + logL).sum())
 
         # Log10 Bayes factor
-        numpyro.deterministic("log_k", (logL - logL0).sum()/np.log(10.0))
+        numpyro.deterministic("log_k", (logL - logL0).sum() / np.log(10.0))
