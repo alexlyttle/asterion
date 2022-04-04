@@ -318,7 +318,28 @@
 
 \section{Introduction} \label{sec:intro}
 
-Test citation \citep{Lund:2017}.
+Glitches in the mode frequencies of solar-like oscillators arise due to sharp
+changes in the sound-speed profile of the star. These perturb the modes from
+their regular spacing \(\Delta\nu\) by some small amount of the order
+\SIrange{0.1}{1}{\micro\Hz}. Such glitches have been observed in the Sun REF,
+and in several other high signal-to-noise stars SOME REFS. The two dominant
+in these stars are due to the second ionisation of helium near the stellar
+surface and the base of the convective zone. Naturally, fitting these glitches
+provide insight into the helium abundance and convective boundary respectively.
+
+Compare the different methods already gone. Early work measuring the glitch
+fits a model to the second differences,
+\(\delta_2\nu = \nu_{n-1} - 2\nu_n + \nu_{n+1}\),
+which removes first-order effects and amplifies the glitches. What are the
+issues with this? Alternatively,
+the glitch can be fit to the modes directly. Typically, both methods involve
+fitting a polynomial to the smoothly varying component of the modes. Assuming
+a fourth order polynomial (e.g. REF), this model has 13 parameters. The
+
+In this work we apply a new method for fitting the glitches. Our method only
+requires radial mode observations and fits directly to the frequencies. Using
+a GP, we are able to reduce the model parameters from previous work, without
+sacrificing flexibility. 
 
 A Gaussian process is a prior over function space, which allows us to fit any
 function as a sum of Gaussians, constrained by the choice of mean and kernel
