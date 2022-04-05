@@ -10,6 +10,7 @@ from numpy.typing import ArrayLike
 from typing import Optional, Union
 from jax import random
 from numpyro.infer import Predictive
+from tinygp import kernels, GaussianProcess
 
 from .typing import DistLike
 from .gp import GP
@@ -210,14 +211,20 @@ class GlitchModel(Model):
         var = numpyro.param("kernel_var", self._kernel_var)
         length = numpyro.param("kernel_length", self._kernel_length)
 
-        kernel = SquaredExponential(var, length)
-        gp = GP(kernel, mean=mean)
+        # kernel = SquaredExponential(var, length)
+        kernel = var * kernels.ExpSquared(length)
+        if nu_err is None:
+            nu_err = 0.0
+        gp = GaussianProcess(kernel, n, mean=mean, diag=nu_err**2 + 1e-6)
+        # gp = GP(kernel, mean=mean)
 
         with dimension("n", n.shape[-1], coords=n):
-            nu = gp.sample("nu_obs", n, noise=nu_err, obs=nu)
+            nu = numpyro.sample("nu_obs", gp.numpyro_dist(), obs=nu)
+            # nu = gp.sample("nu_obs", n, noise=nu_err, obs=nu)
 
             if n_pred is not None:
-                gp.predict("nu", n)  # prediction without noise
+                # gp.predict("nu", n)  # prediction without noise
+                numpyro.sample("nu", gp.condition(nu, n).gp.numpyro_dist())
 
             nu_bkg = numpyro.deterministic("nu_bkg", bkg_func(n))
             numpyro.deterministic("dnu_he", he_glitch_func(nu_bkg))
@@ -225,7 +232,11 @@ class GlitchModel(Model):
 
         if n_pred is not None:
             with dimension("n_pred", n_pred.shape[-1], coords=n_pred):
-                gp.predict("nu_pred", n_pred)
+                # gp.predict("nu_pred", n_pred)
+                numpyro.sample(
+                    "nu_pred",
+                    gp.condition(nu, n_pred).gp.numpyro_dist()
+                )
                 nu_bkg = numpyro.deterministic("nu_bkg_pred", bkg_func(n_pred))
                 numpyro.deterministic("dnu_he_pred", he_glitch_func(nu_bkg))
                 numpyro.deterministic("dnu_cz_pred", cz_glitch_func(nu_bkg))
