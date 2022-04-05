@@ -26,7 +26,7 @@
 %% does not need to be explicitly stated.
 %%
 %% using aastex version 6.3
-\documentclass[linenumbers,modern]{aastex631}
+\documentclass[linenumbers,modern]{aastex631dm}
 
 %% The default is a single spaced, 10 point font, single spaced article.
 %% There are 5 other style options available via an optional argument. They
@@ -91,10 +91,16 @@
 %%
 %% Relax deluxtable's \tablenum command to allow siunitx to overwrite it
 \let\tablenum\relax  % Use \savetablenum instead with deluxtable
+
 \usepackage{siunitx}
-\sisetup{separate-uncertainty,range-units=single,multi-part-units=single}
+    \sisetup{
+        separate-uncertainty,
+        range-units=single,
+        multi-part-units=single
+    }
 
 \usepackage{bm}
+
 \usepackage{amsmath}
 
 %% If you want to create your own macros, you can do so
@@ -239,39 +245,36 @@
 %% automatically put the author and affiliation information from the manuscript
 %% and save the corresponding author the trouble of entering it by hand.
 
-%\correspondingauthor{August Muench}
-%\email{greg.schwarz@aas.org, gus.muench@aas.org}
-
 \correspondingauthor{Alexander J. Lyttle}
-\email{ajl573@bham.ac.uk}
+    \email{ajl573@bham.ac.uk}
 
 \author[0000-0001-8355-8082]{Alexander J. Lyttle}
-\affiliation{
-    School of Physics and Astronomy, University of Birmingham,
-    Birmingham B15 2TT, United Kingdom
-}
-\affiliation{
-    The Alan Turing Institute, British Library,
-    96 Euston Rd, London NW1 2DB, United Kingdom
-}
-\affiliation{
-    Stellar Astrophysics Center, University of Aarhus,
-    Nordre Ringgade 1, 8000 Aarhus C, Denmark
-}
+    \affiliation{
+        School of Physics and Astronomy, University of Birmingham,
+        Birmingham B15 2TT, United Kingdom
+    }
+    \affiliation{
+        The Alan Turing Institute, British Library,
+        96 Euston Rd, London NW1 2DB, United Kingdom
+    }
+    \affiliation{
+        Stellar Astrophysics Center, University of Aarhus,
+        Nordre Ringgade 1, 8000 Aarhus C, Denmark
+    }
 
 \author{Guy R. Davies}
-\affiliation{
-    School of Physics and Astronomy, University of Birmingham,
-    Birmingham B15 2TT, United Kingdom
-}
-\affiliation{
-    The Alan Turing Institute, British Library,
-    96 Euston Rd, London NW1 2DB, United Kingdom
-}
-\affiliation{
-    Stellar Astrophysics Center, University of Aarhus,
-    Nordre Ringgade 1, 8000 Aarhus C, Denmark
-}
+    \affiliation{
+        School of Physics and Astronomy, University of Birmingham,
+        Birmingham B15 2TT, United Kingdom
+    }
+    \affiliation{
+        The Alan Turing Institute, British Library,
+        96 Euston Rd, London NW1 2DB, United Kingdom
+    }
+    \affiliation{
+        Stellar Astrophysics Center, University of Aarhus,
+        Nordre Ringgade 1, 8000 Aarhus C, Denmark
+    }
 
 %% Note that the \and command from previous versions of AASTeX is now
 %% depreciated in this version as it is no longer necessary. AASTeX 
@@ -287,7 +290,7 @@
 
 %% Mark off the abstract in the ``abstract'' environment. 
 \begin{abstract}
-    Put abstract here.
+
 \end{abstract}
 
 %% Keywords should appear after the \end{abstract} command. 
@@ -316,20 +319,21 @@
 %% tied to the reference list via symbolic KEYs. The KEY corresponds
 %% to the KEY in the \bibitem in the reference list below. 
 
-\section{Introduction} \label{sec:intro}
+\section{Introduction}\label{sec:intro}
 
 Glitches in the mode frequencies of solar-like oscillators arise due to sharp
 changes in the sound-speed profile of the star. These perturb the modes from
 their regular spacing \(\Delta\nu\) by some small amount of the order
-\SIrange{0.1}{1}{\micro\Hz}. Such glitches have been observed in the Sun REF,
-and in several other high signal-to-noise stars SOME REFS. The two dominant
-in these stars are due to the second ionisation of helium near the stellar
-surface and the base of the convective zone. Naturally, fitting these glitches
-provide insight into the helium abundance and convective boundary respectively.
+\SIrange{0.1}{1}{\micro\Hz}. Such glitches have been observed in the Sun (REF),
+and in several other high signal-to-noise stars (REFS). The two dominant
+glitches in these stars are due to the second ionisation of helium near the
+stellar surface and the base of the convective zone. Fitting these
+glitches provide insight into the helium abundance and convective boundary
+respectively.
 
 Compare the different methods already gone. Early work measuring the glitch
 fits a model to the second differences,
-\(\delta_2\nu = \nu_{n-1} - 2\nu_n + \nu_{n+1}\),
+\(\Delta_2\nu = \nu_{n-1} - 2\nu_n + \nu_{n+1}\),
 which removes first-order effects and amplifies the glitches. What are the
 issues with this? Alternatively,
 the glitch can be fit to the modes directly. Typically, both methods involve
@@ -356,15 +360,17 @@ polynomial with fewer free parameters. Furthermore, these parameters are priors
 over the flexibility of the function, such as a typical length scale or
 variance.
 
-\section{Method} \label{sec:method}
 
-\subsection{The model} \label{sec:model}
+\section{Method}\label{sec:method}
 
-The radial mode frequencies follow some function of radial order, \(\nu_{n,l=0}
-= f(n)\) where \(f\) can be described by a Gaussian process,
+
+\subsection{The model}\label{sec:model}
+
+The observed radial mode frequencies follow some function of radial order,
+\(\nu_{n,l=0} \approx f(n)\) where \(f\) can be described by a Gaussian process,
 %
 \begin{equation}
-    f(\bm n) \sim \mathcal{GP}\left(m(\bm n), k(\bm n, \bm n')\right),
+    f(\bm n) \sim \mathcal{GP}\left[m(\bm n), k(\bm n, \bm n')\right],
 \end{equation}
 %
 for array \(\bm n\) with some mean function, \(m(\bm n)\) and kernel function,
@@ -418,7 +424,7 @@ function,
 %
 \begin{equation}
     k(\bm n, \bm n') = \sigma^2 
-    \exp\left\{- \frac{\| \bm n - \bm n' \|^2}{2\lambda^2}\right\},
+    \exp\left(- \frac{\| \bm n - \bm n' \|^2}{2\lambda^2}\right),
 \end{equation}
 %
 where \(\sigma^2\) is the variance and \(lambda\) is the length scale.
@@ -426,8 +432,8 @@ where \(\sigma^2\) is the variance and \(lambda\) is the length scale.
 The model described above comprises 11 parameters,
 
 \begin{equation}
-    \bm\theta = \{\Delta\nu, \epsilon, a_\helium, b_\helium, \tau_\helium,
-    \phi_\helium, a_\bcz, \tau_\bcz, \phi_\bcz, \sigma^2, \lambda\}.
+    \bm\theta = [\Delta\nu, \epsilon, a_\helium, b_\helium, \tau_\helium,
+    \phi_\helium, a_\bcz, \tau_\bcz, \phi_\bcz, \sigma^2, \lambda].
 \end{equation}
 
 Using Bayes' theorem, we write the posterior probability density function for
@@ -443,7 +449,7 @@ where \(\Pi(\bm\theta)\) is the a priori probability of the model and
 model.
 
 
-\subsection{The prior} \label{sec:prior}
+\subsection{The prior}\label{sec:prior}
 
 The prior for the model can be separated into a product of the priors for each
 individual parameter,
@@ -455,14 +461,16 @@ individual parameter,
 In the following sections we write our choice of prior for each of
 \(\theta_i\).
 
-\subsubsection{Background parameters} \label{sec:bkg-params}
+
+\subsubsection{Background parameters}\label{sec:bkg-params}
 
 The prior for \(\Delta\nu\) is provided as the location and scale of a
 normal distribution, \(\Delta\nu \sim \mathcal{N}(\mu_{\Delta\nu},
 \sigma_{\Delta\nu})\). The prior for \(\epsilon\) is chosen to be a log-normal
 distribution, \(\epsilon \sim \ln\mathcal{N}(\ln(1.4), 0.4)\).
 
-\subsubsection{Glitch parameters} \label{sec:glitch-params}
+
+\subsubsection{Glitch parameters}\label{sec:glitch-params}
 
 The glitch parameters' priors must convey at least two things; the first is
 that the glitch amplitudes are approximately \SIrange{0.1}{1.0}{\micro\hertz}, 
@@ -470,7 +478,7 @@ and the second is that the acoustic depths are in physically sensible places.
 The former comes from reviewing previous measurements of the glitches in the
 literature and can be enforced by inspecting the sensibility of a grid of
 glitch amplitude parameters as a function of \(\nu_\mathrm{max}\) (see
-Appendix...). The latter is less straightforward to determine, and will be
+Appendix \ldots) The latter is less straightforward to determine, and will be
 defined later in this section.
 
 \begin{itemize}
@@ -483,7 +491,8 @@ defined later in this section.
     \item This gives the prior for \((\log\tau_\helium, \log\tau_\bcz)\)
 \end{itemize}
 
-\subsubsection{Kernel parameters} \label{sec:kernel-params}
+
+\subsubsection{Kernel parameters}\label{sec:kernel-params}
 
 We chose to fix the kernel parameters to \(\lambda = 5.0\) and \(\sigma^2 =
 0.1 \, \mu_{\Delta\nu}\). The length scale ensures that the GP does not fit to
@@ -492,11 +501,12 @@ frequencies with respect to \(n\). The variance is fixed at \SI{10}{\percent}
 of \(\Delta\nu\) which corresponds to the approximate amplitude of the mode
 curvature.
 
-\subsubsection{Average amplitude} \label{sec:avg-amp}
+
+\subsubsection{Average amplitude}\label{sec:avg-amp}
 
 The average amplitude of the glitches has been used in previous work as a proxy
 for the helium abundance in the star.
-
+%
 \begin{equation}
     \langle A \rangle = \frac{
         \int_{\nu_\mathrm{low}}^{\nu_\mathrm{high}} A(\nu) \, \dd \nu
@@ -504,36 +514,39 @@ for the helium abundance in the star.
         \int_{\nu_\mathrm{low}}^{\nu_\mathrm{high}} \dd \nu
     }
 \end{equation}
-
+%
+%
 \begin{equation}
-    \langle A_\helium \rangle = 
-    \frac{
+    \langle A_\helium \rangle = \frac{
         a_\helium \left(
             e^{- b_\helium \, \nu_\mathrm{low}}
             - e^{- b_\helium \, \nu_\mathrm{high}}
         \right)
     }{2 b_\helium (\nu_\mathrm{high} - \nu_\mathrm{low})},
 \end{equation}
-
+%
+%
 \begin{equation}
-    \langle A_\bcz \rangle = \frac{a_\bcz}{\nu_\mathrm{low} \nu_\mathrm{high}}.
+    \langle A_\bcz \rangle
+    = \frac{a_\bcz}{\nu_\mathrm{low} \, \nu_\mathrm{high}}.
 \end{equation}
-
+%
 We expect the average amplitude of the helium glitch to be greater than that of
 the convective zone glitch most of the time. WHY IS THIS? To encode this
 knowledge into the prior, we introduce the parameter for the logarithm of the
 ratio between the average amplitudes of the two glitches.
 \(\log r_A = \log \langle A_\helium \rangle - \log \langle A_\bcz \rangle\).
-
+%
 \begin{equation}
     \log r_A \sim \mathcal{N}(0.6, 0.3).
 \end{equation}
-
+%
 The mean is chosen such that the mean lies where
 \(\langle A_\helium \rangle = 4 \langle A_\bcz \rangle\). The variance is
 chosen such that \(\langle A_\helium \rangle < \langle A_\bcz \rangle\) and
 \(\langle A_\helium \rangle > 16 \langle A_\bcz \rangle\) \SI{5}{\percent} of
 the time.
+
 
 \subsection{The likelihood}
 
@@ -548,8 +561,8 @@ given \(\bm\theta\) is a normal distribution,
 and the likelihood of some noisy observation \(\bm\nu_n\) of \(\bm f_n\) is,
 %
 \begin{equation}
-    \bm\nu_n \mid \bm f_n \sim
-    \mathcal{N}(\bm f_n, \bm{\mathcal{I}} \odot \bm\sigma_n^2),
+    \bm\nu_n \mid \bm f_n
+    \sim \mathcal{N}(\bm f_n, \bm{\mathcal{I}} \odot \bm\sigma_n^2),
 \end{equation}
 %
 where \(\bm{\mathcal{I}}\) is the \(N \times N\) identity matrix,
@@ -559,20 +572,21 @@ where \(\bm{\mathcal{I}}\) is the \(N \times N\) identity matrix,
 The marginal likelihood of \(\bm\nu_n\) given the model is,
 %
 \begin{equation}
-    p(\bm\nu_n \mid \bm\theta) = \int p(\bm\nu_n \mid \bm f_n, \bm\theta) \,
-    p(\bm f_n \mid \bm\theta) \, \dd \bm f_n
+    \mathcal{L}(\bm\nu_n \mid \bm\theta)
+    = \int p(\bm\nu_n \mid \bm f_n, \bm\theta)
+    \, p(\bm f_n \mid \bm\theta) \, \dd \bm f_n
 \end{equation}
 %
 which given equations above is,
 %
 \begin{equation}
-    p(\bm\nu_n \mid \bm\theta) =
-    \mathcal{N}\left( 
-        \bm\mu_n, \bm K_n + \bm{\mathcal{I}} \odot (\bm\sigma_n^2 + \delta)
+    \mathcal{L}(\bm\nu_n \mid \bm\theta) = \mathcal{N}\left( 
+        \bm\mu_\theta, \bm K_\theta
+        + \bm{\mathcal{I}} \odot (\bm\sigma_n^2 + \delta)
     \right)
 \end{equation}
 %
-where \(\bm\mu_n = m_\theta(\bm n)\), \(\bm K_n = k_\theta(\bm n, \bm n)\), and
+where \(\bm\mu_\theta = m_\theta(\bm n)\), \(\bm K_\theta = k_\theta(\bm n, \bm n)\), and
 \(\delta = \num{1e-6}\) is some small value to ensure that the covariance is
 positive semidefinite.
 
@@ -599,26 +613,30 @@ See C. E. Rasmussen \& C. K. I. Williams for GP conditional
 %         \end{bmatrix}
 %     \right).
 % \end{equation}
-% %
-% We marginalise over 
-
-\section{Results} \label{sec:results}
+%
 
 
-
-\subsection{Model stars} \label{sec:model-stars}
+\section{Results}\label{sec:results}
 
 
 
-\subsection{Sun-as-a-star} \label{sec:sun}
+
+\subsection{Model stars}\label{sec:model-stars}
 
 
 
-\subsection{\num{16} Cygni} \label{sec:16cyg}
+
+\subsection{Sun-as-a-star}\label{sec:sun}
 
 
 
-\subsection{KIC \num[group-digits=false]{4448777}} \label{sec:boeing}
+
+\subsection{\num{16} Cygni}\label{sec:16cyg}
+
+
+
+
+\subsection{KIC \num[group-digits=false]{4448777}}\label{sec:boeing}
 
 
 
