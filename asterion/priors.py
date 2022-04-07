@@ -149,7 +149,7 @@ class AsyFunction(Prior):
         self._epsilon = numpyro.sample("epsilon", self.epsilon)
 
         def fn(n):
-            return self._delta_nu * (n + self._epsilon)
+            return self._delta_nu[..., None] * (n + self._epsilon[..., None])
 
         return fn
 
@@ -384,7 +384,7 @@ class CZGlitchFunction(_GlitchFunction):
 
         log_numax = jnp.log10(distribution(nu_max).mean)
         # Rough guess of glitch params
-        self.log_a: dist.Distribution = dist.Normal(2.0 * log_numax - 1.5, 1.0)
+        self.log_a: dist.Distribution = dist.Normal(2.0 * log_numax - 1.5, 0.5)
 
     def amplitude(self, nu: ArrayLike) -> jnp.ndarray:
         """The amplitude of the glitch,
