@@ -1,3 +1,11 @@
+.. image:: docs/source/_static/images/asterion-96dpi-small.png
+    :alt: Logos
+
+.. asterion_label
+########
+Asterion
+########
+
 .. image:: https://readthedocs.org/projects/asterion/badge/?version=latest&style=flat
     :target: https://asterion.readthedocs.io
     :alt: Documentation status
@@ -10,11 +18,6 @@
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
     :target: https://github.com/alexlyttle/asterion/blob/main/LICENSE
     :alt: License
-
-.. asterion_label
-########
-Asterion
-########
 
 Fit acoustic glitches present in the radial mode frequencies of solar-like oscillators.
 

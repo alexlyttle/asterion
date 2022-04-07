@@ -5,9 +5,10 @@ from __future__ import annotations
 import numpyro
 import numpy as np
 import astropy.units as u
+import jax.numpy as jnp
 
 from numpy.typing import ArrayLike
-from typing import Optional
+from typing import Optional, Union
 from jax import random
 from numpyro.infer import Predictive
 
@@ -101,9 +102,9 @@ class GlitchModel(Model):
         he_glitch (Prior): Prior on the helium glitch function.
         cz_glitch (Prior): Prior on the base of convective zone glitch
             function.
-        window_width (float): The number of delta_nu either side of nu_max over
-            which to average the helium glitch amplitude for the parameter
-            'he_amplitude'.
+        window_width (str or float): The number of delta_nu either side of
+            nu_max over which to average the glitch amplitudes. If string,
+            'full', the window is chosen over the entire range in frequency.
     """
 
     def __init__(
@@ -113,7 +114,7 @@ class GlitchModel(Model):
         teff: Optional[DistLike] = None,
         epsilon: Optional[DistLike] = None,
         seed: int = 0,
-        window_width: float = 5.0,
+        window_width: Union[str, float] = "full",
     ):
         super().__init__(
             nu_max,
@@ -133,6 +134,10 @@ class GlitchModel(Model):
 
         self._nu_max = distribution(nu_max)
 
+        self._kernel_var = 0.1 * self.background.delta_nu.mean
+        self._kernel_length = 5.0
+        self.window_width = window_width
+
         self.units = {
             "nu_obs": u.microhertz,
             "nu": u.microhertz,
@@ -140,7 +145,10 @@ class GlitchModel(Model):
             "dnu_he": u.microhertz,
             "dnu_cz": u.microhertz,
             "he_nu_max": u.microhertz,
+            "cz_nu_max": u.microhertz,
             "he_amplitude": u.microhertz,
+            "cz_amplitude": u.microhertz,
+            "nu_max": u.microhertz,
         }
 
         self.symbols = {
@@ -150,17 +158,16 @@ class GlitchModel(Model):
             "dnu_he": r"$\delta\nu_\mathrm{He}$",
             "dnu_cz": r"$\delta\nu_\mathrm{BCZ}$",
             "he_nu_max": r"$A_\mathrm{He}(\nu_\max)$",
+            "cz_nu_max": r"$A_\mathrm{BCZ}(\nu_\max)$",
             "he_amplitude": r"$\langle A_\mathrm{He} \rangle$",
+            "cz_amplitude": r"$\langle A_\mathrm{BCZ} \rangle$",
+            "nu_max": r"$\nu_\mathrm{max}$",
         }
 
         for prior in [self.background, self.he_glitch, self.cz_glitch]:
             # Inherit units from priors.
             self.units.update(prior.units)
             self.symbols.update(prior.symbols)
-
-        self._kernel_var = 0.1 * self.background.delta_nu.mean
-        self._kernel_length = 5.0
-        self.window_width = window_width
 
     def _init_tau(self, rng_key, tau_prior, num_samples=5000):
         predictive = Predictive(tau_prior, num_samples=num_samples)
@@ -172,6 +179,32 @@ class GlitchModel(Model):
             distribution((loc[0], scale[0])),  # tau_he
             distribution((loc[1], scale[1])),  # tau_cz
         )
+
+    def _glitch_amplitudes(self, nu):
+        nu_max = numpyro.sample("nu_max", self._nu_max)
+        numpyro.deterministic("he_nu_max", self.he_glitch.amplitude(nu_max))
+        numpyro.deterministic("cz_nu_max", self.cz_glitch.amplitude(nu_max))
+
+        if self.window_width == "full":
+            low, high = nu.min(), nu.max()
+        else:
+            low = nu_max - self.window_width * self.background._delta_nu
+            high = nu_max + self.window_width * self.background._delta_nu
+
+        he_amp = numpyro.deterministic(
+            "he_amplitude", self.he_glitch._average_amplitude(low, high)
+        )
+        cz_amp = numpyro.deterministic(
+            "cz_amplitude", self.cz_glitch._average_amplitude(low, high)
+        )
+        return he_amp, cz_amp
+
+    def _amplitude_prior(self, he_amp, cz_amp):
+        # Prior that log(he_amp) == log(cz_amp) is a 2-sigma event
+        # and the He amplitude is ~ 4 times the BCZ amplitude (log10(4) ~ 0.6)
+        delta = 2.0 * (jnp.log10(he_amp) - jnp.log10(cz_amp) - 0.6) / 0.6
+        logp = numpyro.distributions.Normal().log_prob(delta)
+        numpyro.factor("amp", logp)
 
     def __call__(
         self,
@@ -196,15 +229,6 @@ class GlitchModel(Model):
         he_glitch_func = self.he_glitch()
         cz_glitch_func = self.cz_glitch()
 
-        _nu_max = numpyro.sample("_nu_max", self._nu_max)
-        numpyro.deterministic("he_nu_max", self.he_glitch.amplitude(_nu_max))
-
-        low = _nu_max - self.window_width * self.background._delta_nu
-        high = _nu_max + self.window_width * self.background._delta_nu
-        numpyro.deterministic(
-            "he_amplitude", self.he_glitch._average_amplitude(low, high)
-        )
-
         # The mean function for the GP
         def mean(n):
             nu_bkg = bkg_func(n)
@@ -217,18 +241,203 @@ class GlitchModel(Model):
         gp = GP(kernel, mean=mean)
 
         with dimension("n", n.shape[-1], coords=n):
-            gp.sample("nu_obs", n, noise=nu_err, obs=nu)
-
-            if n_pred is not None:
-                gp.predict("nu", n)
+            nu = gp.sample("nu_obs", n, noise=nu_err, obs=nu)
 
             nu_bkg = numpyro.deterministic("nu_bkg", bkg_func(n))
             numpyro.deterministic("dnu_he", he_glitch_func(nu_bkg))
             numpyro.deterministic("dnu_cz", cz_glitch_func(nu_bkg))
 
         if n_pred is not None:
+            with dimension("n", n.shape[-1], coords=n):
+                gp.predict("nu", n)  # prediction without noise
             with dimension("n_pred", n_pred.shape[-1], coords=n_pred):
                 gp.predict("nu_pred", n_pred)
                 nu_bkg = numpyro.deterministic("nu_bkg_pred", bkg_func(n_pred))
                 numpyro.deterministic("dnu_he_pred", he_glitch_func(nu_bkg))
                 numpyro.deterministic("dnu_cz_pred", cz_glitch_func(nu_bkg))
+
+        # Other deterministics
+        self._amplitude_prior(*self._glitch_amplitudes(nu))
+
+
+class GlitchModelComparison(GlitchModel):
+    r"""Asteroseismic glitch model comparison. Compare the glitch model with
+    a glitchless model. The frequencies are modelled using a GP with the same
+    kernel function but different mean functions.
+
+    The glitch model is the same as :class:`GlitchModel`. The glitcheless model
+    is the same except that the mean function is,
+
+    .. math::
+
+        m_0(n) = f_\mathrm{bkg}(n),
+
+    The two models are compared using the Bayes' factor,
+
+    .. math::
+
+        K = \frac{p(\nu_\mathrm{obs} \mid \mathcal{GP}_1)}
+        {p(\nu_\mathrm{obs} \mid \mathcal{GP}_0)}
+
+    where :math:`\mathcal{GP}_0` is the glitchless model and
+    :math:`\mathcal{GP}_1` is the glitch model.
+
+    Args:
+        n (:term:`array_like`): Radial order of model observations.
+        nu_max (:term:`dist_like`): Prior on the frequency at maximum power.
+        delta_nu (:term:`dist_like`): Prior on the large frequency separation.
+        teff (:term:`dist_like`, optional): Prior on the effective temperature.
+            This is used for estimating a prior on the glitch acoustic depths.
+            If None (default), a prior of Normal(5000, 700) is assumed.
+        epsilon (:term:`dist_like`, optional): Prior on the asymptotic phase
+            parameter.
+        num_pred (int): The number of points in radial order for
+            which to make predictions.
+        seed (int): The seed used to generate samples from the prior on the
+            glitch periods (acoustic depths) tau_he and tau_cz.
+        window_width (float): The number of delta_nu either side of nu_max over
+            which to average the helium glitch amplitude for the parameter
+            'he_amplitude'.
+
+    Attributes:
+        n (numpy.ndarray): Radial order of model observations.
+        n_pred (numpy.ndarray): Radial order of model predictions.
+        background (Prior): Prior on the background function.
+        he_glitch (Prior): Prior on the helium glitch function.
+        cz_glitch (Prior): Prior on the base of convective zone glitch
+            function.
+        window_width (float): The number of delta_nu either side of nu_max over
+            which to average the helium glitch amplitude for the parameter
+            'he_amplitude'.
+    """
+
+    def __init__(
+        self,
+        nu_max: DistLike,
+        delta_nu: DistLike,
+        teff: Optional[DistLike] = None,
+        epsilon: Optional[DistLike] = None,
+        seed: int = 0,
+        window_width: Union[str, float] = "full",
+    ):
+        super().__init__(nu_max, delta_nu, teff, epsilon, seed, window_width)
+
+        self._prefix = "null"
+        self._divider = "."
+
+        units = {
+            "log_k": u.LogUnit(u.dimensionless_unscaled),
+        }
+
+        symbols = {"log_k": r"$\log(k)$"}
+
+        null_vars = ["nu", "nu_pred", "nu_obs", "nu_bkg", "nu_bkg_pred"]
+        for var_name in null_vars:
+            key = self._divider.join([self._prefix, var_name])
+            units[key] = self.units[var_name]
+            symbols[key] = self.symbols[var_name]
+
+        self.units.update(units)
+        self.symbols.update(symbols)
+
+    def __call__(
+        self,
+        n: ArrayLike,
+        nu: Optional[ArrayLike] = None,
+        nu_err: Optional[ArrayLike] = None,
+        n_pred: Optional[ArrayLike] = None,
+    ):
+        """Sample the model for given observables.
+
+        Args:
+            nu (:term:`array_like`, optional): Observed radial mode
+                frequencies.
+            nu_err (:term:`array_like`, optional): Gaussian observational
+                uncertainties (sigma) for nu.
+            pred (bool): If True, make predictions nu and nu_pred from n and
+                num_pred.
+        """
+        # Same kernel function for both models
+        var = numpyro.param("kernel_var", self._kernel_var)
+        length = numpyro.param("kernel_length", self._kernel_length)
+
+        kernel = SquaredExponential(var, length)
+
+        args = ("models", 2)
+        with dimension(*args):
+            with numpyro.plate(*args):
+                # Broadcast background function to both models
+                bkg_func = self.background()
+
+        # MODEL 0
+        with numpyro.handlers.scope(prefix=self._prefix, divider="."):
+            # Contain null model parameters in the null scope
+            def mean0(n):
+                return bkg_func(n)[0]
+
+            gp0 = GP(kernel, mean=mean0)
+            dist0 = gp0.distribution(n, noise=nu_err)
+
+            with dimension("n", n.shape[-1], coords=n):
+                if nu is None:
+                    nu0 = numpyro.sample("nu_obs", dist0)
+                else:
+                    nu0 = nu
+
+                gp0.y = nu0
+
+                numpyro.deterministic("nu_bkg", bkg_func(n)[0])
+
+            if n_pred is not None:
+                with dimension("n", n.shape[-1], coords=n):
+                    gp0.predict("nu", n)
+                with dimension("n_pred", n_pred.shape[-1], coords=n_pred):
+                    gp0.predict("nu_pred", n_pred)
+                    numpyro.deterministic("nu_bkg_pred", bkg_func(n_pred)[0])
+
+        # MODEL 1
+        he_glitch_func = self.he_glitch()
+        cz_glitch_func = self.cz_glitch()
+
+        def mean(n):
+            nu_bkg = bkg_func(n)[1]
+            return nu_bkg + he_glitch_func(nu_bkg) + cz_glitch_func(nu_bkg)
+
+        gp = GP(kernel, mean=mean)
+        dist = gp.distribution(n, noise=nu_err)
+
+        with dimension("n", n.shape[-1], coords=n):
+
+            if nu is None:
+                nu = numpyro.sample("nu_obs", dist)
+
+            gp.y = nu
+
+            nu_bkg = numpyro.deterministic("nu_bkg", bkg_func(n)[1])
+            numpyro.deterministic("dnu_he", he_glitch_func(nu_bkg))
+            numpyro.deterministic("dnu_cz", cz_glitch_func(nu_bkg))
+
+        if n_pred is not None:
+            with dimension("n", n.shape[-1], coords=n):
+                gp.predict("nu", n)
+            with dimension("n_pred", n_pred.shape[-1], coords=n_pred):
+                gp.predict("nu_pred", n_pred)
+
+                nu_bkg = numpyro.deterministic(
+                    "nu_bkg_pred", bkg_func(n_pred)[1]
+                )
+                numpyro.deterministic("dnu_he_pred", he_glitch_func(nu_bkg))
+                numpyro.deterministic("dnu_cz_pred", cz_glitch_func(nu_bkg))
+
+        # Other deterministics and priors
+        self._amplitude_prior(*self._glitch_amplitudes(nu))
+
+        # LIKELIHOOD
+        # Model comparison - if nu is not None, then nu0 == nu
+        logL0 = dist0.log_prob(nu0)
+        logL = dist.log_prob(nu)
+
+        numpyro.factor("obs", (logL0 + logL).sum())
+
+        # Log10 Bayes factor
+        numpyro.deterministic("log_k", (logL - logL0).sum() / np.log(10.0))

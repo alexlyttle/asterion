@@ -149,7 +149,7 @@ class AsyFunction(Prior):
         self._epsilon = numpyro.sample("epsilon", self.epsilon)
 
         def fn(n):
-            return self._delta_nu * (n + self._epsilon)
+            return self._delta_nu[..., None] * (n + self._epsilon[..., None])
 
         return fn
 
@@ -384,7 +384,7 @@ class CZGlitchFunction(_GlitchFunction):
 
         log_numax = jnp.log10(distribution(nu_max).mean)
         # Rough guess of glitch params
-        self.log_a: dist.Distribution = dist.Normal(2.0 * log_numax - 1.5, 1.0)
+        self.log_a: dist.Distribution = dist.Normal(2.0 * log_numax - 1.5, 0.5)
 
     def amplitude(self, nu: ArrayLike) -> jnp.ndarray:
         """The amplitude of the glitch,
@@ -397,6 +397,10 @@ class CZGlitchFunction(_GlitchFunction):
             jax.numpy.ndarray: Base of the convective zone glitch amplitude.
         """
         return jnp.divide(self._a, nu**2)
+
+    def _average_amplitude(self, low: ArrayLike, high: ArrayLike):
+        """The average amplitude over the glitch for a given frequency range."""
+        return self._a / low / high
 
     def __call__(self) -> Callable:
         """Samples the convective zone glitch function.
