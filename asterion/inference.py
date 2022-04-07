@@ -303,8 +303,8 @@ class Inference:
     def init_nested(
         self,
         model: Model,
-        num_live_points: int = 100,
-        max_samples: int = 100000,
+        num_live_points: int = 50,
+        max_samples: int = 50000,
         sampler: str = "multi_ellipsoid",
         **kwargs,
     ) -> NestedSampler:
@@ -312,8 +312,8 @@ class Inference:
 
         Args:
             model (Model): [description]
-            num_live_points (int): [description]. Defaults to 100.
-            max_samples (int): [description]. Defaults to 100000.
+            num_live_points (int): [description]. Defaults to 50.
+            max_samples (int): [description]. Defaults to 50000.
             sampler (str): [description]. Defaults to "multi_ellipsoid".
             **kwargs: Keyword arguments to pass to nested sampler instance.
 
@@ -333,9 +333,9 @@ class Inference:
     def run_nested(
         self,
         model: Model,
-        num_live_points: int = 100,
+        num_live_points: int = 50,
         num_samples: int = 1000,
-        max_samples: int = 100000,
+        max_samples: int = 50000,
         sampler: str = "multi_ellipsoid",
         **kwargs,
     ):

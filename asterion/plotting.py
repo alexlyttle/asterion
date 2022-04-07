@@ -222,9 +222,9 @@ def plot_echelle(
 
     if delta_nu is None:
         if group == "prior":  # <-- currently no prior group
-            delta_nu = predictive["delta_nu"].median(dim=dim).to_numpy()
+            delta_nu = predictive["delta_nu"].median().to_numpy()
         else:
-            delta_nu = data[group]["delta_nu"].median(dim=dim).to_numpy()
+            delta_nu = data[group]["delta_nu"].median().to_numpy()
 
     nu = data.observed_data.nu
     nu_err = data.constant_data.nu_err
