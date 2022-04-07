@@ -102,21 +102,22 @@ def plot_glitch(
     if kindl == "full":
         dnu = predictive["dnu_he"] + predictive["dnu_cz"]
         dnu_pred = predictive["dnu_he_pred"] + predictive["dnu_cz_pred"]
-        label = " + ".join(
-            [
-                predictive["dnu_he"].attrs.get("symbol", r"$\delta\nu_{He}$"),
-                predictive["dnu_cz"].attrs.get("symbol", r"$\delta\nu_{BCZ}$"),
-            ]
-        )
+        # label = " + ".join(
+            # [
+                # predictive["dnu_he"].attrs.get("symbol", r"$\delta\nu_{He}$"),
+                # predictive["dnu_cz"].attrs.get("symbol", r"$\delta\nu_{BCZ}$"),
+            # ]
+        # )
     elif kindl in {"he", "cz"}:
         dnu_key = "dnu_" + kindl
         dnu = predictive[dnu_key]
         dnu_pred = predictive[dnu_key + "_pred"]
-        label = dnu.attrs.get("symbol", r"$\delta\nu_{" + kind + "}$")
+        # label = dnu.attrs.get("symbol", r"$\delta\nu_{" + kind + "}$")
     else:
         raise ValueError(
             f"Kind '{kindl}' is not one of " + "['full', 'he', 'cz']."
         )
+    label = f"{kind} glitch model"
 
     dim = ("chain", "draw")  # dim over which to take stats
 
@@ -124,9 +125,9 @@ def plot_glitch(
         # Plot observed - prior predictive should be independent of obs
         res = nu - predictive["nu"]
         dnu_obs = dnu + res
-        glitch = label
-        if "+" in label:
-            glitch = "$($" + label + "$)$"
+        # glitch = label
+        # if "+" in label:
+        #     glitch = "$($" + label + "$)$"
         # TODO: should we show model error on dnu_obs here?
         ax.errorbar(
             n,
@@ -135,7 +136,7 @@ def plot_glitch(
             color="k",
             marker="o",
             linestyle="none",
-            label=r"$\nu_\mathrm{obs} - (\nu - $" + glitch + "$)$",
+            label=r"observed",
         )
 
     dnu_med = dnu_pred.median(dim=dim)
@@ -158,15 +159,17 @@ def plot_glitch(
         )
 
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))  # integer x-ticks
-    ax.set_xlabel(r"$n$")
+    # ax.set_xlabel(r"$n$")
+    ax.set_xlabel("radial order")
 
     # ylabel = [dnu.attrs.get("symbol", r"$\delta\nu$")]
-    ylabel = [r"$\delta\nu$"]
+    # ylabel = [r"$\delta\nu$"]
     unit = u.Unit(dnu.attrs.get("unit", "uHz"))
-    if str(unit) != "":
-        ylabel.append(unit.to_string(format="latex_inline"))
+    # if str(unit) != "":
+        # ylabel.append(unit.to_string(format="latex_inline"))
 
-    ax.set_ylabel("/".join(ylabel))
+    # ax.set_ylabel("/".join(ylabel))
+    ax.set_ylabel(f"glitch ({unit.to_string(format='latex_inline')})")
     ax.legend()
     return ax
 
@@ -243,18 +246,18 @@ def plot_echelle(
         )
 
     # All mean function components for GP
-    full_mu = [
-        predictive["nu_bkg"].attrs.get("symbol", r"$\nu_\mathrm{bkg}$"),
-        predictive["dnu_he"].attrs.get("symbol", r"$\delta\nu_{He}$"),
-        predictive["dnu_cz"].attrs.get("symbol", r"$\delta\nu_{BCZ}$"),
-    ]
+    # full_mu = [
+        # predictive["nu_bkg"].attrs.get("symbol", r"$\nu_\mathrm{bkg}$"),
+        # predictive["dnu_he"].attrs.get("symbol", r"$\delta\nu_{He}$"),
+        # predictive["dnu_cz"].attrs.get("symbol", r"$\delta\nu_{BCZ}$"),
+    # ]
     kindl = kind.lower()
     if kindl == "full":
         y = predictive["nu_pred"]
-        label = r"$\mathrm{GP}($" + " + ".join(full_mu) + r"$,\,K)$"
+        # label = r"$\mathrm{GP}($" + " + ".join(full_mu) + r"$,\,K)$"
     elif kindl == "background":
         y = predictive["nu_bkg_pred"]
-        label = full_mu[0]  # <-- just the background, no GP
+        # label = full_mu[0]  # <-- just the background, no GP
     elif kindl == "glitchless":
         y = (
             predictive["nu_pred"]
@@ -262,12 +265,13 @@ def plot_echelle(
             - predictive.get("dnu_cz_pred", 0.0)
         )
         y.attrs["unit"] = predictive["nu_pred"].attrs["unit"]
-        label = r"$\mathrm{GP}($" + full_mu[0] + r"$,\,K)$"
+        # label = r"$\mathrm{GP}($" + full_mu[0] + r"$,\,K)$"
     else:
         raise ValueError(
             f"Kind '{kindl}' is not one of "
             + "['full', 'background', 'glitchless']."
         )
+    label = f"{kindl} model"
 
     y_mod = (y - n_pred * delta_nu) % delta_nu
     y_med = y.median(dim=dim)
@@ -293,17 +297,24 @@ def plot_echelle(
             label=f"{delta:.1%} CI",
         )
 
-    xlabel = [r"$\nu\,\mathrm{mod}.\,{" + f"{delta_nu:.2f}" + "}$"]
+    # xlabel = [r"$\nu\,\mathrm{mod}.\,{" + f"{delta_nu:.2f}" + "}$"]
     unit = u.Unit(y.attrs.get("unit", ""))
-    if str(unit) != "":
-        xlabel.append(unit.to_string(format="latex_inline"))
-    ax.set_xlabel("/".join(xlabel))
+    # if str(unit) != "":
+        # xlabel.append(unit.to_string(format="latex_inline"))
+    # ax.set_xlabel("/".join(xlabel))
 
-    ylabel = [r"$\nu$"]
+    ax.set_xlabel(
+        f"frequency modulo {delta_nu:.2f} " 
+        + f"({unit.to_string(format='latex_inline')})"
+    )
+    # ylabel = [r"$\nu$"]
     unit = u.Unit(nu.attrs.get("unit", "uHz"))
-    if str(unit) != "":
-        ylabel.append(unit.to_string(format="latex_inline"))
-    ax.set_ylabel("/".join(ylabel))
+    # if str(unit) != "":
+        # ylabel.append(unit.to_string(format="latex_inline"))
+    # ax.set_ylabel("/".join(ylabel))
+    
+    ax.set_ylabel(f"frequency ({unit.to_string(format='latex_inline')})")
+    
     ax.legend()
 
     return ax
