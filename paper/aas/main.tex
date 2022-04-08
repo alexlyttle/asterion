@@ -366,16 +366,16 @@ variance.
 
 \subsection{The model}\label{sec:model}
 
-The observed radial mode frequencies follow some function of radial order,
-\(\nu_{n,l=0} \approx f(n)\) where \(f\) can be described by a Gaussian process,
+A radial mode frequency is some function of radial order,
+\(\nu_{n,l=0} = f(n)\) where \(f\) can be described by a Gaussian process,
 %
 \begin{equation}
     f(\bm n) \sim \mathcal{GP}\left[m(\bm n), k(\bm n, \bm n')\right],
 \end{equation}
 %
 for array \(\bm n\) with some mean function, \(m(\bm n)\) and kernel function,
-\(k(\bm n, \bm n')\). In other words, the function \(f\) is drawn from a GP
-characterised by \(m\) and \(k\).
+\(k(\bm n, \bm n')\). In other words, the function \(f(\bm n)\) is drawn from a
+GP characterised by \(m\) and \(k\).
 
 The mean function comprises a background frequency as a function of \(n\),
 \(f_\bkg(n)\), and the glitches due to the second ionisation of helium,
@@ -383,11 +383,11 @@ The mean function comprises a background frequency as a function of \(n\),
 \(\delta_\bcz(\nu_\bkg)\),
 %
 \begin{equation}
-    m(\bm n) = f_\bkg(\bm n) + \delta_\helium(\bm\nu_\bkg) +
-    \delta_\bcz(\bm\nu_\bkg),
+    m(n) = f_\bkg(n) + \delta_\helium(\nu_\bkg) +
+    \delta_\bcz(\nu_\bkg),
 \end{equation}
 %
-where \(\bm\nu_\bkg = f_\bkg(\bm n)\). For the background, we adopt the
+where \(\nu_\bkg = f_\bkg(n)\). For the background, we adopt the
 asymptotic approximation to first order in \(n\),
 %
 \begin{equation}
@@ -427,7 +427,7 @@ function,
     \exp\left(- \frac{\| \bm n - \bm n' \|^2}{2\lambda^2}\right),
 \end{equation}
 %
-where \(\sigma^2\) is the variance and \(lambda\) is the length scale.
+where \(\sigma^2\) is the variance and \(\lambda\) is the length scale.
 
 The model described above comprises 11 parameters,
 
@@ -550,40 +550,40 @@ the time.
 
 \subsection{The likelihood}
 
-The GP likelihood of function for the true frequency \(\bm f_n = f(\bm n)\)
+The GP likelihood of function for the true frequency \(\bm \nu_n = f(\bm n)\)
 given \(\bm\theta\) is a normal distribution,
 %
 \begin{equation}
-    \bm f_n \mid \bm\theta \sim
-    \mathcal{N}\left[m_\theta(\bm n), k_\theta(\bm n, \bm n)\right],
+    \bm \nu_n \mid \bm\theta \sim
+    \mathcal{N}\left[m_\theta(\bm n), k_\theta(\bm n, \bm n)\right].
 \end{equation}
 %
-and the likelihood of some noisy observation \(\bm\nu_n\) of \(\bm f_n\) is,
+The likelihood of some noisy observation \(\bm \nu^\mathrm{obs}_n\) of
+\(\bm \nu_n\) is,
 %
 \begin{equation}
-    \bm\nu_n \mid \bm f_n
-    \sim \mathcal{N}(\bm f_n, \bm{\mathcal{I}} \odot \bm\sigma_n^2),
+    \bm\nu^\mathrm{obs}_n \mid \bm \nu_n
+    \sim \mathcal{N}\left[\bm \nu_n, \mathrm{diag}(\bm\sigma_n^2)\right],
 \end{equation}
 %
-where \(\bm{\mathcal{I}}\) is the \(N \times N\) identity matrix,
-\(\bm\sigma_n^2\) is the array of variances corresponding to each of
-\(\bm\nu_n\), and \(\odot\) is the element-wise product operator.
+where \(\bm\sigma_n^2\) is the array of variances corresponding to
+each of \(\bm\nu^\mathrm{obs}_n\), characterising independent, Gaussian noise.
 
-The marginal likelihood of \(\bm\nu_n\) given the model is,
+The marginal likelihood of \(\bm\nu^\mathrm{obs}_n\) given the model is thus,
 %
 \begin{equation}
-    \mathcal{L}(\bm\nu_n \mid \bm\theta)
-    = \int p(\bm\nu_n \mid \bm f_n, \bm\theta)
-    \, p(\bm f_n \mid \bm\theta) \, \dd \bm f_n
+    \mathcal{L}(\bm\nu^\mathrm{obs}_n \mid \bm\theta)
+    = \int p(\bm\nu^\mathrm{obs}_n \mid \bm \nu_n, \bm\theta)
+    \, p(\bm \nu_n \mid \bm\theta) \, \dd \bm \nu_n
 \end{equation}
 %
 which given equations above is,
 %
 \begin{equation}
-    \mathcal{L}(\bm\nu_n \mid \bm\theta) = \mathcal{N}\left( 
+    \mathcal{L}(\bm\nu^\mathrm{obs}_n \mid \bm\theta) = \mathcal{N}\left[ 
         \bm\mu_\theta, \bm K_\theta
-        + \bm{\mathcal{I}} \odot (\bm\sigma_n^2 + \delta)
-    \right)
+        + \mathrm{diag}(\bm\sigma_n^2) + \delta
+    \right]
 \end{equation}
 %
 where \(\bm\mu_\theta = m_\theta(\bm n)\), \(\bm K_\theta = k_\theta(\bm n, \bm n)\), and
@@ -607,7 +607,7 @@ See C. E. Rasmussen \& C. K. I. Williams for GP conditional
 %         \end{bmatrix}
 %         ,\,
 %         \begin{bmatrix}
-%             \bm K_n + \bm{\mathcal{I}} \odot (\bm\sigma_n^2 + \delta) & 
+%             \bm K_n + \bm{\mathcal{I}} \circ (\bm\sigma_n^2 + \delta) & 
 %             \bm K_{n, \npred}\\
 %             \bm K_{\npred, n} & \bm K_{\npred}
 %         \end{bmatrix}
