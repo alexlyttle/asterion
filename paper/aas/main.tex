@@ -100,23 +100,32 @@
     }
 
 \usepackage{bm}
-
 \usepackage{amsmath}
+
+%% Colors
+\definecolor{todo}{rgb}{0.9, 0.1, 0.1}
+\definecolor{comment}{rgb}{0.2, 0.7, 0.3}
 
 %% If you want to create your own macros, you can do so
 %% using \newcommand. Your macros should appear before
 %% the \begin{document} command.
 %%
-\newcommand{\vdag}{(v)^\dagger}
+%% Text commands
 \newcommand{\aastex}{AAS\TeX}
 \newcommand{\latex}{La\TeX}
+
+%% Math commands
+\newcommand{\vdag}{(v)^\dagger}
 \newcommand{\helium}{\mathrm{He}}
 \newcommand{\bcz}{\mathrm{BCZ}}
 \newcommand{\bkg}{\mathrm{bkg}}
 \newcommand{\npred}{n_{\star}}
 \newcommand{\dd}{\mathrm{d}}
 
-% \let\bb\boldsymbol
+%% In-text annotation commands
+\newcommand{\todo}[1]{{\color{todo} \textbf{TODO:} #1}}
+\newcommand{\comment}[2]{{\color{comment} \textbf{#1:} #2}}
+\newcommand{\needcite}{\todo{citation needed}}
 
 %% Reintroduced the \received and \accepted commands from AASTeX v5.2
 %\received{March 1, 2021}
@@ -324,8 +333,8 @@
 Glitches in the mode frequencies of solar-like oscillators arise due to sharp
 changes in the sound-speed profile of the star. These perturb the modes from
 their regular spacing \(\Delta\nu\) by some small amount of the order
-\SIrange{0.1}{1}{\micro\Hz}. Such glitches have been observed in the Sun (REF),
-and in several other high signal-to-noise stars (REFS). The two dominant
+\SIrange{0.1}{1}{\micro\Hz}. Such glitches have been observed in the Sun this (\needcite),
+and in several other high signal-to-noise stars (\needcite). The two dominant
 glitches in these stars are due to the second ionisation of helium near the
 stellar surface and the base of the convective zone. Fitting these
 glitches provide insight into the helium abundance and convective boundary
@@ -338,7 +347,7 @@ which removes first-order effects and amplifies the glitches. What are the
 issues with this? Alternatively,
 the glitch can be fit to the modes directly. Typically, both methods involve
 fitting a polynomial to the smoothly varying component of the modes. Assuming
-a fourth order polynomial (e.g. REF), this model has 13 parameters. The
+a fourth order polynomial (e.g. \needcite), this model has 13 parameters. The
 
 In this work we apply a new method for fitting the glitches. Our method only
 requires radial mode observations and fits directly to the frequencies. Using
@@ -346,7 +355,7 @@ a GP, we are able to reduce the model parameters from previous work, without
 sacrificing flexibility. 
 
 A Gaussian process is a prior over function space, which allows us to fit any
-function as a sum of Gaussians, constrained by the choice of mean and kernel
+function as a sum of Gaussian distributions, constrained by the choice of mean and kernel
 functions. The function describing the mode frequencies comprises several
 features including an approximately regular spacing in frequency,
 \(\Delta\nu\), curvature caused by the smoothy varying stellar structure, and
@@ -495,17 +504,18 @@ defined later in this section.
 \subsubsection{Kernel parameters}\label{sec:kernel-params}
 
 We chose to fix the kernel parameters to \(\lambda = 5.0\) and \(\sigma^2 =
-0.1 \, \mu_{\Delta\nu}\). The length scale ensures that the GP does not fit to
-the glitch, and reflects the typical scale of curvature of the radial mode
-frequencies with respect to \(n\). The variance is fixed at \SI{10}{\percent}
-of \(\Delta\nu\) which corresponds to the approximate amplitude of the mode
-curvature.
+0.1 \, \mu_{\Delta\nu}\). \todo{Explain why these values.} The length scale ensures that the
+GP does not fit to the glitch, and reflects the typical scale of curvature of
+the radial mode frequencies with respect to \(n\). The variance is fixed at
+\SI{10}{\percent} of \(\Delta\nu\) which corresponds to the approximate
+amplitude of the mode curvature.
 
 
 \subsubsection{Average amplitude}\label{sec:avg-amp}
 
 The average amplitude of the glitches has been used in previous work as a proxy
-for the helium abundance in the star.
+for the helium abundance in the star. The average amplitude between frequencies
+\(\nu_\mathrm{low}\) and \(\nu_\mathrm{high}\) is,
 %
 \begin{equation}
     \langle A \rangle = \frac{
@@ -515,6 +525,8 @@ for the helium abundance in the star.
     }
 \end{equation}
 %
+where \(A(\nu)\) is the amplitude of the glitch at frequency \(\nu\). We derive
+this for the helium glitch,
 %
 \begin{equation}
     \langle A_\helium \rangle = \frac{
@@ -525,6 +537,7 @@ for the helium abundance in the star.
     }{2 b_\helium (\nu_\mathrm{high} - \nu_\mathrm{low})},
 \end{equation}
 %
+and BCZ glitch,
 %
 \begin{equation}
     \langle A_\bcz \rangle
@@ -532,9 +545,9 @@ for the helium abundance in the star.
 \end{equation}
 %
 We expect the average amplitude of the helium glitch to be greater than that of
-the convective zone glitch most of the time. WHY IS THIS? To encode this
-knowledge into the prior, we introduce the parameter for the logarithm of the
-ratio between the average amplitudes of the two glitches.
+the convective zone glitch most of the time. \todo{Explain why this is.} To
+encode this knowledge into the prior, we introduce the parameter for the
+logarithm of the ratio between the average amplitudes of the two glitches.
 \(\log r_A = \log \langle A_\helium \rangle - \log \langle A_\bcz \rangle\).
 %
 \begin{equation}
