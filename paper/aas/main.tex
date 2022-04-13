@@ -255,35 +255,35 @@
 %% and save the corresponding author the trouble of entering it by hand.
 
 \correspondingauthor{Alexander J. Lyttle}
-    \email{ajl573@bham.ac.uk}
+\email{ajl573@bham.ac.uk}
 
 \author[0000-0001-8355-8082]{Alexander J. Lyttle}
-    \affiliation{
-        School of Physics and Astronomy, University of Birmingham,
-        Birmingham B15 2TT, United Kingdom
-    }
-    \affiliation{
-        The Alan Turing Institute, British Library,
-        96 Euston Rd, London NW1 2DB, United Kingdom
-    }
-    \affiliation{
-        Stellar Astrophysics Center, University of Aarhus,
-        Nordre Ringgade 1, 8000 Aarhus C, Denmark
-    }
+\affiliation{
+    School of Physics and Astronomy, University of Birmingham,
+    Birmingham B15 2TT, United Kingdom
+}
+\affiliation{
+    The Alan Turing Institute, British Library,
+    96 Euston Rd, London NW1 2DB, United Kingdom
+}
+\affiliation{
+    Stellar Astrophysics Center, University of Aarhus,
+    Nordre Ringgade 1, 8000 Aarhus C, Denmark
+}
 
 \author{Guy R. Davies}
-    \affiliation{
-        School of Physics and Astronomy, University of Birmingham,
-        Birmingham B15 2TT, United Kingdom
-    }
-    \affiliation{
-        The Alan Turing Institute, British Library,
-        96 Euston Rd, London NW1 2DB, United Kingdom
-    }
-    \affiliation{
-        Stellar Astrophysics Center, University of Aarhus,
-        Nordre Ringgade 1, 8000 Aarhus C, Denmark
-    }
+\affiliation{
+    School of Physics and Astronomy, University of Birmingham,
+    Birmingham B15 2TT, United Kingdom
+}
+\affiliation{
+    The Alan Turing Institute, British Library,
+    96 Euston Rd, London NW1 2DB, United Kingdom
+}
+\affiliation{
+    Stellar Astrophysics Center, University of Aarhus,
+    Nordre Ringgade 1, 8000 Aarhus C, Denmark
+}
 
 %% Note that the \and command from previous versions of AASTeX is now
 %% depreciated in this version as it is no longer necessary. AASTeX 
@@ -352,7 +352,7 @@ a fourth order polynomial (e.g. \needcite), this model has 13 parameters. The
 In this work we apply a new method for fitting the glitches. Our method only
 requires radial mode observations and fits directly to the frequencies. Using
 a GP, we are able to reduce the model parameters from previous work, without
-sacrificing flexibility. 
+sacrificing flexibility.
 
 A Gaussian process is a prior over function space, which allows us to fit any
 function as a sum of Gaussian distributions, constrained by the choice of mean and kernel
@@ -432,7 +432,7 @@ apart. Therefore, we adopt the squared-exponential (or radial basis) kernel
 function,
 %
 \begin{equation}
-    k(\bm n, \bm n') = \sigma^2 
+    k(\bm n, \bm n') = \sigma^2
     \exp\left(- \frac{\| \bm n - \bm n' \|^2}{2\lambda^2}\right),
 \end{equation}
 %
@@ -449,7 +449,7 @@ Using Bayes' theorem, we write the posterior probability density function for
 the model given some observation of radial mode frequencies \(\bm\nu_n\),
 %
 \begin{equation}
-    p(\bm\theta \mid \bm\nu_n) \propto p(\bm\theta) \, 
+    p(\bm\theta \mid \bm\nu_n) \propto p(\bm\theta) \,
     p(\bm\nu_n \mid \bm\theta),
 \end{equation}
 %
@@ -482,7 +482,7 @@ distribution, \(\epsilon \sim \ln\mathcal{N}(\ln(1.4), 0.4)\).
 \subsubsection{Glitch parameters}\label{sec:glitch-params}
 
 The glitch parameters' priors must convey at least two things; the first is
-that the glitch amplitudes are approximately \SIrange{0.1}{1.0}{\micro\hertz}, 
+that the glitch amplitudes are approximately \SIrange{0.1}{1.0}{\micro\hertz},
 and the second is that the acoustic depths are in physically sensible places.
 The former comes from reviewing previous measurements of the glitches in the
 literature and can be enforced by inspecting the sensibility of a grid of
@@ -494,9 +494,9 @@ defined later in this section.
     \item Stellar model grid
     \item Extract acoustic depths
     \item Fit Gaussian mixture to \((\log\nu_\mathrm{max}, T_\mathrm{eff},
-        \log\tau_\helium, \log\tau_\bcz)\)
+          \log\tau_\helium, \log\tau_\bcz)\)
     \item Sample from the conditional distribution of \((\log\tau_\helium,
-        \log\tau_\bcz)\) given \((\log\nu_\mathrm{max}, T_\mathrm{eff})\)
+          \log\tau_\bcz)\) given \((\log\nu_\mathrm{max}, T_\mathrm{eff})\)
     \item This gives the prior for \((\log\tau_\helium, \log\tau_\bcz)\)
 \end{itemize}
 
@@ -531,8 +531,8 @@ this for the helium glitch,
 \begin{equation}
     \langle A_\helium \rangle = \frac{
         a_\helium \left(
-            e^{- b_\helium \, \nu_\mathrm{low}}
-            - e^{- b_\helium \, \nu_\mathrm{high}}
+        e^{- b_\helium \, \nu_\mathrm{low}}
+        - e^{- b_\helium \, \nu_\mathrm{high}}
         \right)
     }{2 b_\helium (\nu_\mathrm{high} - \nu_\mathrm{low})},
 \end{equation}
@@ -593,10 +593,10 @@ The marginal likelihood of \(\bm\nu^\mathrm{obs}_n\) given the model is thus,
 which given equations above is,
 %
 \begin{equation}
-    \mathcal{L}(\bm\nu^\mathrm{obs}_n \mid \bm\theta) = \mathcal{N}\left[ 
+    \mathcal{L}(\bm\nu^\mathrm{obs}_n \mid \bm\theta) = \mathcal{N}\left[
         \bm\mu_\theta, \bm K_\theta
         + \mathrm{diag}(\bm\sigma_n^2) + \delta
-    \right]
+        \right]
 \end{equation}
 %
 where \(\bm\mu_\theta = m_\theta(\bm n)\), \(\bm K_\theta = k_\theta(\bm n, \bm n)\), and
