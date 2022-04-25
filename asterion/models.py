@@ -240,9 +240,8 @@ class GlitchModel(Model):
 
         # kernel = SquaredExponential(var, length)
         kernel = var * kernels.ExpSquared(length)
-        if nu_err is None:
-            nu_err = 0.0
-        gp = GaussianProcess(kernel, n, mean=mean, diag=nu_err**2 + 1e-6)
+        diag = 1e-6 if nu_err is None else nu_err**2  # No need for jitter
+        gp = GaussianProcess(kernel, n, mean=mean, diag=diag)
         # gp = GP(kernel, mean=mean)
 
         with dimension("n", n.shape[-1], coords=n):
