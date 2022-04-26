@@ -26,7 +26,7 @@
 %% does not need to be explicitly stated.
 %%
 %% using aastex version 6.3
-\documentclass[linenumbers,modern]{aastex631dm}
+\documentclass[linenumbers,modern,astrosymb,times]{aastex631dm}
 
 %% The default is a single spaced, 10 point font, single spaced article.
 %% There are 5 other style options available via an optional argument. They
@@ -89,6 +89,7 @@
 %% Note that in v6.3 "bookmarks" has been changed to "true" in hyperref
 %% to improve the accessibility of the compiled pdf file.
 %%
+
 %% Relax deluxtable's \tablenum command to allow siunitx to overwrite it
 \let\tablenum\relax  % Use \savetablenum instead with deluxtable
 
@@ -100,7 +101,7 @@
     }
 
 \usepackage{bm}
-\usepackage{amsmath}
+\usepackage{amsmath,amssymb}
 
 %% Colors
 \definecolor{todo}{rgb}{0.9, 0.1, 0.1}
@@ -126,6 +127,13 @@
 \newcommand{\todo}[1]{{\color{todo} \textbf{TODO:} #1}}
 \newcommand{\comment}[2]{{\color{comment} \textbf{#1:} #2}}
 \newcommand{\needcite}{\todo{citation needed}}
+
+%% Define figure width as a fraction of line width
+\ifmodern
+\newcommand{\figwidth}{0.6\linewidth}
+\else
+\newcommand{\figwidth}{1.0\linewidth}
+\fi
 
 %% Reintroduced the \received and \accepted commands from AASTeX v5.2
 %\received{March 1, 2021}
@@ -194,7 +202,11 @@
 %% where dimension is any recognized LaTeX dimension, e.g. pt, in, etc.
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\ifdarkmode
+\graphicspath{{./}{figures-dm/}}
+\else
 \graphicspath{{./}{figures/}}
+\fi
 %% This is the end of the preamble.  Indicate the beginning of the
 %% manuscript itself with \begin{document}.
 
@@ -369,6 +381,11 @@ polynomial with fewer free parameters. Furthermore, these parameters are priors
 over the flexibility of the function, such as a typical length scale or
 variance.
 
+\begin{figure}
+    \centering
+    \includegraphics[width=\figwidth]{example-figure}
+    \caption{Example caption}
+\end{figure}
 
 \section{Method}\label{sec:method}
 
@@ -383,8 +400,7 @@ A radial mode frequency is some function of radial order,
 \end{equation}
 %
 for array \(\bm n\) with some mean function, \(m(\bm n)\) and kernel function,
-\(k(\bm n, \bm n')\). In other words, the function \(f(\bm n)\) is drawn from a
-GP characterised by \(m\) and \(k\).
+\(k(\bm n, \bm n')\).
 
 The mean function comprises a background frequency as a function of \(n\),
 \(f_\bkg(n)\), and the glitches due to the second ionisation of helium,
@@ -515,13 +531,13 @@ amplitude of the mode curvature.
 
 The average amplitude of the glitches has been used in previous work as a proxy
 for the helium abundance in the star. The average amplitude between frequencies
-\(\nu_\mathrm{low}\) and \(\nu_\mathrm{high}\) is,
+\(x\) and \(y\) is,
 %
 \begin{equation}
     \langle A \rangle = \frac{
-        \int_{\nu_\mathrm{low}}^{\nu_\mathrm{high}} A(\nu) \, \dd \nu
+        \int_{x}^{y} A(\nu) \, \dd \nu
     }{
-        \int_{\nu_\mathrm{low}}^{\nu_\mathrm{high}} \dd \nu
+        \int_{x}^{y} \dd \nu
     }
 \end{equation}
 %
@@ -531,17 +547,17 @@ this for the helium glitch,
 \begin{equation}
     \langle A_\helium \rangle = \frac{
         a_\helium \left(
-        e^{- b_\helium \, \nu_\mathrm{low}}
-        - e^{- b_\helium \, \nu_\mathrm{high}}
+        e^{- b_\helium \, x}
+        - e^{- b_\helium \, y}
         \right)
-    }{2 b_\helium (\nu_\mathrm{high} - \nu_\mathrm{low})},
+    }{2 b_\helium (y - x)},
 \end{equation}
 %
 and BCZ glitch,
 %
 \begin{equation}
     \langle A_\bcz \rangle
-    = \frac{a_\bcz}{\nu_\mathrm{low} \, \nu_\mathrm{high}}.
+    = \frac{a_\bcz}{x \, y}.
 \end{equation}
 %
 We expect the average amplitude of the helium glitch to be greater than that of
@@ -559,7 +575,6 @@ The mean is chosen such that the mean lies where
 chosen such that \(\langle A_\helium \rangle < \langle A_\bcz \rangle\) and
 \(\langle A_\helium \rangle > 16 \langle A_\bcz \rangle\) \SI{5}{\percent} of
 the time.
-
 
 \subsection{The likelihood}
 
