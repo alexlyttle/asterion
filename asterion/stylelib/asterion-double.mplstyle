@@ -1,0 +1,7 @@
+figure.figsize: 7, 5.25
+figure.dpi: 300.0
+
+lines.linewidth: 1.     # line width in points
+
+savefig.bbox : tight
+savefig.pad_inches : 0.01

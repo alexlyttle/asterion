@@ -1,0 +1,35 @@
+figure.facecolor: none
+
+text.color: black
+
+# Color-blind friendly 6-color / 3-linestyle cycle
+axes.prop_cycle: cycler(color=['0C79DA', 'D65C9E', '59AC53', 'EBC247', 'AEADEB', 'F08A75'], linestyle=['-', '--', '-.', '-', '--', '-.'])
+axes.labelcolor: black
+axes.facecolor: E9EAED
+axes.edgecolor: .35
+axes.linewidth: 0
+axes.axisbelow: True
+
+grid.color: .35
+
+legend.frameon: True
+legend.numpoints: 1
+legend.edgecolor: .35
+legend.scatterpoints: 1
+
+xtick.direction: out
+xtick.color: .35
+xtick.labelcolor: black
+xtick.major.size: 4
+xtick.minor.size: 2
+
+ytick.direction: out
+ytick.color: .35
+ytick.labelcolor: black
+ytick.major.size: 4
+ytick.minor.size: 2
+
+lines.solid_capstyle: round
+lines.markersize: 4
+
+image.cmap: plasma
