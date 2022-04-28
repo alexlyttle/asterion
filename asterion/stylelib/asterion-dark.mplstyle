@@ -1,4 +1,8 @@
 figure.facecolor: none
+figure.figsize: 6.4, 4.8
+figure.dpi: 72.0
+
+font.size: 12
 
 text.color: white
 
@@ -9,6 +13,8 @@ axes.facecolor: 3B3E44
 axes.edgecolor: .85
 axes.linewidth: 0
 axes.axisbelow: True
+
+lines.linewidth: 1.5     # line width in points
 
 grid.color: .85
 
@@ -33,3 +39,6 @@ lines.solid_capstyle: round
 lines.markersize: 4
 
 image.cmap: plasma
+
+savefig.bbox : tight
+savefig.pad_inches : 0.01

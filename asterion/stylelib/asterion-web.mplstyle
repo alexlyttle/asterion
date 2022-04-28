@@ -1,8 +1,0 @@
-figure.figsize: 6.4, 4.8
-figure.dpi: 72.0
-
-font.size: 14
-lines.linewidth: 1.5     # line width in points
-
-savefig.bbox : tight
-savefig.pad_inches : 0.01
