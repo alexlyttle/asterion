@@ -26,7 +26,7 @@
 %% does not need to be explicitly stated.
 %%
 %% using aastex version 6.3
-\documentclass[linenumbers,modern,astrosymb,times]{aastex631dm}
+\documentclass[linenumbers,modern,astrosymb,times]{aastex631}
 
 %% The default is a single spaced, 10 point font, single spaced article.
 %% There are 5 other style options available via an optional argument. They
@@ -128,13 +128,6 @@
 \newcommand{\comment}[2]{{\color{comment} \textbf{#1:} #2}}
 \newcommand{\needcite}{\todo{citation needed}}
 
-%% Define figure width as a fraction of line width
-\ifmodern
-\newcommand{\figscale}{0.86}
-\else
-\newcommand{\figscale}{1.0}
-\fi
-
 %% Reintroduced the \received and \accepted commands from AASTeX v5.2
 %\received{March 1, 2021}
 %\revised{April 1, 2021}
@@ -202,10 +195,10 @@
 %% where dimension is any recognized LaTeX dimension, e.g. pt, in, etc.
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\ifdarkmode
-\graphicspath{{./}{figures-dm/}}
+\ifmodern
+\graphicspath{{./}{figures/modern/}}
 \else
-\graphicspath{{./}{figures/}}
+\graphicspath{{./}{figures/twocolumn/}}
 \fi
 %% This is the end of the preamble.  Indicate the beginning of the
 %% manuscript itself with \begin{document}.
