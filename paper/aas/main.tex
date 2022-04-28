@@ -130,9 +130,9 @@
 
 %% Define figure width as a fraction of line width
 \ifmodern
-\newcommand{\figwidth}{0.6\linewidth}
+\newcommand{\figscale}{0.86}
 \else
-\newcommand{\figwidth}{1.0\linewidth}
+\newcommand{\figscale}{1.0}
 \fi
 
 %% Reintroduced the \received and \accepted commands from AASTeX v5.2
@@ -383,7 +383,7 @@ variance.
 
 \begin{figure}
     \centering
-    \includegraphics[width=\figwidth]{example-figure}
+    \includegraphics{example-figure}
     \caption{Example caption}
 \end{figure}
 
