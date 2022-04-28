@@ -39,6 +39,3 @@ lines.solid_capstyle: round
 lines.markersize: 4
 
 image.cmap: plasma
-
-savefig.bbox : tight
-savefig.pad_inches : 0.01
