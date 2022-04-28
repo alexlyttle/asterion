@@ -1,1 +1,2 @@
-figure.figsize: 3.3, 2.5
+figure.figsize: 3.3, 2.5  # <-- to span one column of the AASTeX twocolumn style
+font.size: 9
