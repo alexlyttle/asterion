@@ -338,6 +338,12 @@
 
 \section{Introduction}\label{sec:intro}
 
+\begin{itemize}
+    \item We have known physical models
+    \item We have unknown terms in the model
+    \item Best way to account for this is with a GP
+\end{itemize}
+
 Glitches in the mode frequencies of solar-like oscillators arise due to sharp
 changes in the sound-speed profile of the star. These perturb the modes from
 their regular spacing \(\Delta\nu\) by some small amount of the order
@@ -444,29 +450,29 @@ apart. Therefore, we adopt the squared-exponential (or radial basis) kernel
 function,
 %
 \begin{equation}
-    k(\bm n, \bm n') = \sigma^2
+    k(\bm n, \bm n') = \alpha
     \exp\left(- \frac{\| \bm n - \bm n' \|^2}{2\lambda^2}\right),
 \end{equation}
 %
-where \(\sigma^2\) is the variance and \(\lambda\) is the length scale.
+where \(\alpha\) is the amplitude and \(\lambda\) is the length scale.
 
 The model described above comprises 11 parameters,
 
 \begin{equation}
     \bm\theta = [\Delta\nu, \epsilon, a_\helium, b_\helium, \tau_\helium,
-    \phi_\helium, a_\bcz, \tau_\bcz, \phi_\bcz, \sigma^2, \lambda].
+    \phi_\helium, a_\bcz, \tau_\bcz, \phi_\bcz, \alpha, \lambda].
 \end{equation}
 
 Using Bayes' theorem, we write the posterior probability density function for
-the model given some observation of radial mode frequencies \(\bm\nu_n\),
+the model given some observation of radial mode frequencies \(\bm\nu\),
 %
 \begin{equation}
-    p(\bm\theta \mid \bm\nu_n) \propto p(\bm\theta) \,
-    p(\bm\nu_n \mid \bm\theta),
+    p(\bm\theta \mid \bm\nu) \propto p(\bm\theta) \,
+    p(\bm\nu \mid \bm\theta),
 \end{equation}
 %
 where \(\Pi(\bm\theta)\) is the a priori probability of the model and
-\(\mathcal{L}(\bm\nu_n \mid \bm\theta)\) is the likelihood of the data given the
+\(\mathcal{L}(\bm\nu \mid \bm\theta)\) is the likelihood of the data given the
 model.
 
 
@@ -515,7 +521,7 @@ defined later in this section.
 
 \subsubsection{Kernel parameters}\label{sec:kernel-params}
 
-We chose to fix the kernel parameters to \(\lambda = 5.0\) and \(\sigma^2 =
+We chose to fix the kernel parameters to \(\lambda = 5.0\) and \(\alpha =
 0.1 \, \mu_{\Delta\nu}\). \todo{Explain why these values.} The length scale ensures that the
 GP does not fit to the glitch, and reflects the typical scale of curvature of
 the radial mode frequencies with respect to \(n\). The variance is fixed at
@@ -574,45 +580,47 @@ the time.
 
 \subsection{The likelihood}
 
-The GP likelihood of function for the true frequency \(\bm \nu_n = f(\bm n)\)
-given \(\bm\theta\) is a normal distribution,
+The GP likelihood for the true radial mode frequencies, \(\bm \nu = f(\bm n)\),
+given the model parameters, \(\bm\theta\), is a multivariate normal distribution,
 %
 \begin{equation}
-    \bm \nu_n \mid \bm\theta \sim
+    \bm \nu \mid \bm\theta \sim
     \mathcal{N}\left[m_\theta(\bm n), k_\theta(\bm n, \bm n)\right].
 \end{equation}
 %
-The likelihood of some noisy observation \(\bm \nu^\mathrm{obs}_n\) of
-\(\bm \nu_n\) is,
+The likelihood of some noisy observation \(\bm \nu_\mathrm{obs}\) of
+\(\bm \nu\) is,
 %
 \begin{equation}
-    \bm\nu^\mathrm{obs}_n \mid \bm \nu_n
-    \sim \mathcal{N}\left[\bm \nu_n, \mathrm{diag}(\bm\sigma_n^2)\right],
+    \bm\nu_\mathrm{obs} \mid \bm \nu
+    \sim \mathcal{N}\left(\bm \nu, \bm\sigma^2\right),
 \end{equation}
 %
-where \(\bm\sigma_n^2\) is the array of variances corresponding to
-each of \(\bm\nu^\mathrm{obs}_n\), characterising independent, Gaussian noise.
+where \(\bm\sigma^2\) is the array of variances corresponding to
+each of \(\bm\nu_\mathrm{obs}\), characterising independent, Gaussian noise.
 
-The marginal likelihood of \(\bm\nu^\mathrm{obs}_n\) given the model is thus,
+The marginal likelihood of \(\bm\nu_\mathrm{obs}\) given the model is thus,
 %
 \begin{equation}
-    \mathcal{L}(\bm\nu^\mathrm{obs}_n \mid \bm\theta)
-    = \int p(\bm\nu^\mathrm{obs}_n \mid \bm \nu_n, \bm\theta)
-    \, p(\bm \nu_n \mid \bm\theta) \, \dd \bm \nu_n
+    \mathcal{L}(\bm\nu_\mathrm{obs} \mid \bm\theta)
+    = \int p(\bm\nu_\mathrm{obs} \mid \bm \nu, \bm\theta)
+    \, p(\bm \nu \mid \bm\theta) \, \dd \bm \nu
 \end{equation}
 %
 which given equations above is,
 %
 \begin{equation}
-    \mathcal{L}(\bm\nu^\mathrm{obs}_n \mid \bm\theta) = \mathcal{N}\left[
+    \mathcal{L}(\bm\nu_\mathrm{obs} \mid \bm\theta) = \mathcal{N}\left[
         \bm\mu_\theta, \bm K_\theta
-        + \mathrm{diag}(\bm\sigma_n^2) + \delta
+        + \mathrm{diag}(\bm\sigma^2)
         \right]
 \end{equation}
 %
-where \(\bm\mu_\theta = m_\theta(\bm n)\), \(\bm K_\theta = k_\theta(\bm n, \bm n)\), and
-\(\delta = \num{1e-6}\) is some small value to ensure that the covariance is
-positive semidefinite.
+where \(\bm\mu_\theta = m_\theta(\bm n)\), and
+\(\bm K_\theta = k_\theta(\bm n, \bm n)\). In cases where
+\(\bm\sigma^2 = \bm 0\), for example when fitting to model frequencies, we
+set \(\sigma_n^2 = 1 \times 10^{-6}\) to ensure the covariance is positive
+semidefinite.
 
 See C. E. Rasmussen \& C. K. I. Williams for GP conditional
 % The conditional distribution for the GP at new radial orders \(\bm\npred\) is
@@ -642,7 +650,11 @@ See C. E. Rasmussen \& C. K. I. Williams for GP conditional
 
 \section{Results}\label{sec:results}
 
-
+\begin{itemize}
+    \item Does the model work with known truths?
+    \item Does the model work on model stars with and without noise?
+    \item Does the model work on real stars?
+\end{itemize}
 
 
 \subsection{Model stars}\label{sec:model-stars}
