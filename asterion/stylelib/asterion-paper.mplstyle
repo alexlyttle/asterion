@@ -1,7 +1,7 @@
 figure.dpi: 300
 figure.autolayout: True
 
-font.size: 10
+font.size: 9
 
 savefig.bbox : tight
 savefig.pad_inches : 0.01
