@@ -8,7 +8,7 @@ import astropy.units as u
 import jax.numpy as jnp
 
 from numpy.typing import ArrayLike
-from typing import Optional, Union
+from typing import Optional, Union, List, Tuple
 from jax import random
 from numpyro.infer import Predictive
 
@@ -38,6 +38,7 @@ class Model(Prior):
     not need to return anything during inference, but should have at least
     one observed sample sites.
     """
+    dense_mass: List[Tuple[str]]
 
     def __call__(self, n, nu=None, nu_err=None, n_pred=None):
         """Call the model during inference.
@@ -168,6 +169,13 @@ class GlitchModel(Model):
             # Inherit units from priors.
             self.units.update(prior.units)
             self.symbols.update(prior.symbols)
+        
+        self.dense_mass = [
+            ("log_a_he", "log_b_he"),
+            ("epsilon", "delta_nu"),
+            ("log_tau_he", "phi_he_unwrapped"),
+            ("log_tau_cz", "phi_cz_unwrapped"),
+        ]
 
     def _init_tau(self, rng_key, tau_prior, num_samples=5000):
         predictive = Predictive(tau_prior, num_samples=num_samples)

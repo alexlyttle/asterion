@@ -211,10 +211,14 @@ class Inference:
             sampler = sampler.lower()
             if sampler != "nuts":
                 raise ValueError(f"Sampler '{sampler}' not supported.")
-            target_accept_prob = sampler_kwargs.pop("target_accept_prob", 0.98)
+            target_accept_prob = sampler_kwargs.pop("target_accept_prob", 0.8)
             init_strategy = sampler_kwargs.pop(
                 "init_strategy",
-                lambda site=None: init_to_median(site=site, num_samples=100),
+                init_to_median(num_samples=50),
+            )
+            dense_mass = sampler_kwargs.pop(
+                "dense_mass",
+                self.model.dense_mass
             )
             step_size = sampler_kwargs.pop("step_size", 0.1)
             sampler = NUTS(
@@ -222,6 +226,7 @@ class Inference:
                 target_accept_prob=target_accept_prob,
                 init_strategy=init_strategy,
                 step_size=step_size,
+                dense_mass=dense_mass,
                 **sampler_kwargs,
             )
 
@@ -303,7 +308,7 @@ class Inference:
     def init_nested(
         self,
         model: Model,
-        num_live_points: int = 50,
+        # num_live_points: int = 50,
         max_samples: int = 50000,
         sampler: str = "multi_ellipsoid",
         **kwargs,
@@ -320,14 +325,28 @@ class Inference:
         Returns:
             numpyro.contrib.nested_sampling.NestedSampler: [description]
         """
-        depth = kwargs.pop("depth", 7)
+        sampler_kwargs = None
+        if sampler == "multi_ellipsoid":
+            sampler_kwargs = {"depth": 7}
+
+        constructor_kwargs = {
+            "sampler_name": sampler,
+            "max_samples": max_samples,
+            "num_parallel_samplers": kwargs.pop("num_parallel_samples", 1),
+            "samples_per_step": kwargs.pop("samples_per_step", None),
+            "sampler_kwargs": kwargs.pop("sampler_kwargs", sampler_kwargs),
+            "dynamic": kwargs.pop("dynamic", False),
+        }
+        
         return NestedSampler(
             model,
-            num_live_points=num_live_points,
-            max_samples=max_samples,
-            sampler_name=sampler,
-            depth=depth,
-            **kwargs,
+            # num_live_points=num_live_points,
+            constructor_kwargs=constructor_kwargs,
+            termination_kwargs=kwargs,
+            # max_samples=max_samples,
+            # sampler_name=sampler,
+            # depth=depth,
+            # **kwargs,
         )
 
     def run_nested(
@@ -369,32 +388,33 @@ class Inference:
         print(f"Completed in {end_time - start_time:.1f} seconds.")
 
         samples = nested_sampler.get_samples(key2, num_samples)
-        weighted_samples = nested_sampler.get_weighted_samples()[0]
+        weighted_samples, log_weights = nested_sampler.get_weighted_samples()
 
-        num_weighted_samples = nested_sampler._results.num_samples
-        logX = nested_sampler._results.log_X[:num_weighted_samples]
-        logL = nested_sampler._results.log_L_samples[:num_weighted_samples]
-        logp = nested_sampler._results.log_p[:num_weighted_samples]
-        eff = nested_sampler._results.sampler_efficiency[:num_weighted_samples]
+        # num_weighted_samples = nested_sampler._results.num_samples
+        # logX = nested_sampler._results.log_X[:num_weighted_samples]
+        # logL = nested_sampler._results.log_L_samples[:num_weighted_samples]
+        # logp = nested_sampler._results.log_p[:num_weighted_samples]
+        # eff = nested_sampler._results.sampler_efficiency[:num_weighted_samples]
 
         self.samples = self._expand_batch_dims(samples)
         self.weighted_samples = self._expand_batch_dims(weighted_samples)
         self.sample_metadata = {
             "method": "nested",
             "sampler": sampler,
-            "num_likelihood_evals": int(
-                nested_sampler._results.num_likelihood_evaluations
-            ),
-            "num_weighted_samples": int(num_weighted_samples),
-            "logZ": float(nested_sampler._results.logZ),  # evidence
-            "logZ_err": float(nested_sampler._results.logZerr),
-            "ESS": float(nested_sampler._results.ESS),
+            # "num_likelihood_evals": int(
+                # nested_sampler._results.num_likelihood_evaluations
+            # ),
+            # "num_weighted_samples": int(num_weighted_samples),
+            # "logZ": float(nested_sampler._results.logZ),  # evidence
+            # "logZ_err": float(nested_sampler._results.logZerr),
+            # "ESS": float(nested_sampler._results.ESS),
         }
         self.sample_stats = {
-            "logX": logX,
-            "logL": logL,
-            "lp": logp,  # log joint posterior (i.e. sample weights)
-            "sampler_efficiency": eff,
+            "log_weights": log_weights,
+            # "logX": logX,
+            # "logL": logL,
+            # "lp": logp,  # log joint posterior (i.e. sample weights)
+            # "sampler_efficiency": eff,
         }
 
     def _add_handlers_to_model(
@@ -461,6 +481,7 @@ class Inference:
     def find_map(
         self,
         num_steps: int = 10000,
+        step_size: float = 1e-3,
         handlers: Optional[list] = None,
         reparam: Union[str, hdl.reparam] = "auto",
         svi_kwargs: dict = {},
@@ -477,7 +498,7 @@ class Inference:
 
         guide = numpyro.infer.autoguide.AutoDelta(model)
 
-        optim = svi_kwargs.pop("optim", numpyro.optim.Minimize())
+        optim = svi_kwargs.pop("optim", numpyro.optim.Adam(step_size=step_size))
         loss = svi_kwargs.pop("loss", numpyro.infer.Trace_ELBO())
         map_svi = SVI(model, guide, optim, loss=loss, **svi_kwargs)
 
