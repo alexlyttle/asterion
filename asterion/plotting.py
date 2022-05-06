@@ -1,12 +1,13 @@
 """The plotting module contains functions for plotting inference data."""
 from __future__ import annotations
 
-import os
+import os, colorsys
 import numpy as np
 import arviz as az
 import matplotlib.pyplot as plt
+import matplotlib.colors as mc
 import astropy.units as u
-
+    
 from matplotlib.ticker import MaxNLocator
 from matplotlib.figure import Figure
 from matplotlib.pyplot import style
@@ -14,7 +15,7 @@ from corner import corner
 from arviz.labels import MapLabeller
 from typing import List, Optional, Union
 from .utils import PACKAGE_DIR
-
+    
 __all__ = [
     "plot_glitch",
     "plot_corner",
@@ -24,6 +25,25 @@ __all__ = [
 _asterion_style_path = os.path.join(PACKAGE_DIR, "stylelib")
 style.core.USER_LIBRARY_PATHS.append(_asterion_style_path)
 style.core.reload_library()
+
+def _lighten_color(color, amount):
+    """
+    Modified from source: https://stackoverflow.com/a/49601444
+
+    Lightens the given color by multiplying (1-luminosity) by the given amount.
+    Input can be matplotlib color string, hex string, or RGB tuple.
+
+    Examples:
+    >> lighten_color('g', 0.3)
+    >> lighten_color('#F034A3', 0.6)
+    >> lighten_color((.3,.55,.1), 0.5)
+    """
+    try:
+        c = mc.cnames[color]
+    except:
+        c = color
+    c = colorsys.rgb_to_hls(*mc.to_rgb(c))
+    return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
 
 def _validate_predictive_group(data: az.InferenceData, group: str):
     """Validate the predictive groups in data.
@@ -60,10 +80,12 @@ def _validate_predictive_group(data: az.InferenceData, group: str):
 
 def plot_glitch(
     data: az.InferenceData,
-    group="posterior",
+    group: str="posterior",
     kind: str = "full",
+    x_var: str = "n",
     quantiles: Optional[List[float]] = None,
     observed: Union[bool, str] = "auto",
+    use_alpha: bool = True,
     ax: plt.Axes = None,
     **kwargs,
 ) -> plt.Axes:
@@ -73,12 +95,16 @@ def plot_glitch(
     Args:
         data (arviz.InferenceData): Inference data object.
         group (str): One of ['posterior', 'prior'].
-        kind (str): Kind of glitch to plot. One of ['full', 'He', 'CZ'].
+        kind (str): Kind of glitch to plot. One of ['full', 'helium', 'BCZ'].
+        x_var (str): Variable name for x-axis. One of ['n', 'nu']. If 'nu', the
+            median value of 'nu' in ``data['group']`` is used.
         quantiles (iterable, optional): Quantiles to plot as confidence
             intervals. If None, defaults to the 68% confidence interval. Pass
             an empty list to plot no confidence intervals.
         observed (bool or str): Whether to plot observed data. Default is
             "auto" which will plot observed data when group is "posterior".
+        use_alpha (bool): Whether to use alpha channel for transparency. If
+            False, will shade with lightened solid color.
         ax (matplotlib.axes.Axes): Axis on which to plot the glitch.
         **kwargs: Keyword arguments to pass to :func:`matplotlib.pyplot.plot`.
 
@@ -88,6 +114,7 @@ def plot_glitch(
     Returns:
         matplotlib.axes.Axes: Axis on which the glitch is plot.
     """
+    dim = ("chain", "draw")  # dim over which to take stats
     predictive = _validate_predictive_group(data, group)
 
     if quantiles is None:
@@ -98,8 +125,15 @@ def plot_glitch(
 
     nu = data.observed_data.nu
     nu_err = data.constant_data.nu_err
-    n = predictive.n
-    n_pred = predictive.n_pred
+    
+    if x_var == "n":
+        x = predictive.n
+        x_pred = predictive.n_pred
+        xlabel = "n"
+    elif x_var == "nu":
+        x = predictive.nu.median(dim=dim)
+        x_pred = predictive.nu_pred.median(dim=dim)
+        xlabel = r"$\nu$ ($\mathrm{\mu Hz}$)"
 
     if ax is None:
         _, ax = plt.subplots()
@@ -108,24 +142,22 @@ def plot_glitch(
     if kindl == "full":
         dnu = predictive["dnu_he"] + predictive["dnu_cz"]
         dnu_pred = predictive["dnu_he_pred"] + predictive["dnu_cz_pred"]
-        # label = " + ".join(
-            # [
-                # predictive["dnu_he"].attrs.get("symbol", r"$\delta\nu_{He}$"),
-                # predictive["dnu_cz"].attrs.get("symbol", r"$\delta\nu_{BCZ}$"),
-            # ]
-        # )
-    elif kindl in {"he", "cz"}:
-        dnu_key = "dnu_" + kindl
+    else:
+        if kindl in {"helium", "he"}:
+            kind = "helium"  # Set to helium for consistency in legend label
+            dnu_key = "dnu_he"
+        elif kindl in {"bcz", "cz"}:
+            kind = "BCZ"  # Set to BCZ for consistency in legend label
+            dnu_key = "dnu_cz"
+        else:
+            # Raise error if kind is not valid
+            raise ValueError(
+                f"Kind '{kindl}' is not one of " + "['full', 'helium', 'BCZ']."
+            )
         dnu = predictive[dnu_key]
         dnu_pred = predictive[dnu_key + "_pred"]
         # label = dnu.attrs.get("symbol", r"$\delta\nu_{" + kind + "}$")
-    else:
-        raise ValueError(
-            f"Kind '{kindl}' is not one of " + "['full', 'he', 'cz']."
-        )
     label = f"{kind} glitch model"
-
-    dim = ("chain", "draw")  # dim over which to take stats
 
     if observed:
         # Plot observed - prior predictive should be independent of obs
@@ -136,7 +168,7 @@ def plot_glitch(
         #     glitch = "$($" + label + "$)$"
         # TODO: should we show model error on dnu_obs here?
         ax.errorbar(
-            n,
+            x,
             dnu_obs.median(dim=dim),
             yerr=nu_err,
             color="k",
@@ -147,26 +179,36 @@ def plot_glitch(
 
     dnu_med = dnu_pred.median(dim=dim)
     label = kwargs.pop("label", label)
-    (line,) = ax.plot(n_pred, dnu_med, label=label, **kwargs)
+    (line,) = ax.plot(x_pred, dnu_med, label=label, **kwargs)
 
     # Fill quantiles with alpha decreasing away from the median
     dnu_quant = dnu_pred.quantile(quantiles, dim=dim)
     num_quant = len(quantiles) // 2
-    alphas = np.linspace(0.1, 0.5, num_quant * 2 + 1)
+    num_alphas = num_quant * 2 + 1
+    alphas = np.linspace(0.1, 0.5, num_alphas)
+    base_color = line.get_color()
+
+    if use_alpha:
+        colors = [base_color] * num_alphas
+    else:
+        # Mimic alpha by lightening the base color
+        colors = [_lighten_color(base_color, 1.5*a) for a in alphas]
+        alphas = [None] * num_alphas  # reset alphas to None
+
     for i in range(num_quant):
         delta = quantiles[-i - 1] - quantiles[i]
         ax.fill_between(
-            n_pred,
+            x_pred,
             dnu_quant[i],
             dnu_quant[-i - 1],
-            color=line.get_color(),  # <-- same as model line color
+            color=colors[2 * i + 1],  # <-- same as model line color
             alpha=alphas[2 * i + 1],
             label=f"{delta:.1%} CI",
         )
 
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))  # integer x-ticks
-    # ax.set_xlabel(r"$n$")
-    ax.set_xlabel("radial order")
+    ax.set_xlabel(xlabel)
+    # ax.set_xlabel("radial order")
 
     # ylabel = [dnu.attrs.get("symbol", r"$\delta\nu$")]
     # ylabel = [r"$\delta\nu$"]
@@ -175,7 +217,10 @@ def plot_glitch(
         # ylabel.append(unit.to_string(format="latex_inline"))
 
     # ax.set_ylabel("/".join(ylabel))
-    ax.set_ylabel(f"glitch ({unit.to_string(format='latex_inline')})")
+    ax.set_ylabel(
+        r"$\delta\nu$ "
+        + f"({unit.to_string(format='latex_inline')})"
+    )
     ax.legend()
     return ax
 
@@ -187,6 +232,7 @@ def plot_echelle(
     delta_nu: Optional[float] = None,
     quantiles: Optional[List[float]] = None,
     observed: Union[bool, str] = "auto",
+    use_alpha: bool = True,
     ax: plt.Axes = None,
     **kwargs,
 ) -> plt.Axes:
@@ -202,12 +248,15 @@ def plot_echelle(
             'full' which plots the full model for nu. Use 'glitchless' to plot
             the model without the glitch components. Use 'background' to plot
             the background component of the model.
-        delta_nu (float, optional): _description_. Defaults to None.
+        delta_nu (float, optional): Large frequency separation to modulo by.
+            If None, the median value from ``data['group']`` is used.
         quantiles (iterable, optional): Quantiles to plot as confidence
             intervals. If None, defaults to the 68% confidence interval. Pass
             an empty list to plot no confidence intervals.
         observed (bool or str): Whether to plot observed data. Default is
             "auto" which will plot observed data when group is "posterior".
+        use_alpha (bool): Whether to use alpha channel for transparency. If
+            False, will shade with lightened solid color.
         ax (matplotlib.axes.Axes): Axis on which to plot the echelle.
         **kwargs: Keyword arguments to pass to :func:`matplotlib.pyplot.plot`.
 
@@ -248,7 +297,7 @@ def plot_echelle(
             color="k",
             marker="o",
             linestyle="none",
-            label=r"$\nu_\mathrm{obs}$",
+            label="observed",
         )
 
     # All mean function components for GP
@@ -291,14 +340,24 @@ def plot_echelle(
 
     y_mod_quant = y_mod.quantile(quantiles, dim=dim)
     num_quant = len(quantiles) // 2
-    alphas = np.linspace(0.1, 0.5, num_quant * 2 + 1)
+    num_alphas = num_quant * 2 + 1
+    alphas = np.linspace(0.1, 0.5, num_alphas)
+    base_color = line.get_color()
+
+    if use_alpha:
+        colors = [base_color] * num_alphas
+    else:
+        # Mimic alpha by lightening the base color
+        colors = [_lighten_color(base_color, 1.5*a) for a in alphas]
+        alphas = [None] * num_alphas  # reset alphas to None
+
     for i in range(num_quant):
         delta = quantiles[-i - 1] - quantiles[i]
         ax.fill_betweenx(
             y_med,
             y_mod_quant[i],
             y_mod_quant[-i - 1],
-            color=line.get_color(),
+            color=colors[2 * i + 1],
             alpha=alphas[2 * i + 1],
             label=f"{delta:.1%} CI",
         )
@@ -310,7 +369,7 @@ def plot_echelle(
     # ax.set_xlabel("/".join(xlabel))
 
     ax.set_xlabel(
-        f"frequency modulo {delta_nu:.2f} " 
+        r"$\nu$ modulo " + f"{delta_nu:.2f} " 
         + f"({unit.to_string(format='latex_inline')})"
     )
     # ylabel = [r"$\nu$"]
@@ -319,7 +378,7 @@ def plot_echelle(
         # ylabel.append(unit.to_string(format="latex_inline"))
     # ax.set_ylabel("/".join(ylabel))
     
-    ax.set_ylabel(f"frequency ({unit.to_string(format='latex_inline')})")
+    ax.set_ylabel(r"$\nu$ " + f"({unit.to_string(format='latex_inline')})")
     
     ax.legend()
 
