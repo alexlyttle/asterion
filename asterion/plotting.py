@@ -7,7 +7,7 @@ import arviz as az
 import matplotlib.pyplot as plt
 import matplotlib.colors as mc
 import astropy.units as u
-    
+
 from matplotlib.ticker import MaxNLocator
 from matplotlib.figure import Figure
 from matplotlib.pyplot import style
@@ -15,7 +15,7 @@ from corner import corner
 from arviz.labels import MapLabeller
 from typing import List, Optional, Union
 from .utils import PACKAGE_DIR
-    
+
 __all__ = [
     "plot_glitch",
     "plot_corner",
@@ -25,6 +25,7 @@ __all__ = [
 _asterion_style_path = os.path.join(PACKAGE_DIR, "stylelib")
 style.core.USER_LIBRARY_PATHS.append(_asterion_style_path)
 style.core.reload_library()
+
 
 def _lighten_color(color, amount):
     """
@@ -44,6 +45,7 @@ def _lighten_color(color, amount):
         c = color
     c = colorsys.rgb_to_hls(*mc.to_rgb(c))
     return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
+
 
 def _validate_predictive_group(data: az.InferenceData, group: str):
     """Validate the predictive groups in data.
@@ -80,7 +82,7 @@ def _validate_predictive_group(data: az.InferenceData, group: str):
 
 def plot_glitch(
     data: az.InferenceData,
-    group: str="posterior",
+    group: str = "posterior",
     kind: str = "full",
     x_var: str = "n",
     quantiles: Optional[List[float]] = None,
@@ -125,7 +127,7 @@ def plot_glitch(
 
     nu = data.observed_data.nu
     nu_err = data.constant_data.nu_err
-    
+
     if x_var == "n":
         x = predictive.n
         x_pred = predictive.n_pred
@@ -192,7 +194,7 @@ def plot_glitch(
         colors = [base_color] * num_alphas
     else:
         # Mimic alpha by lightening the base color
-        colors = [_lighten_color(base_color, 1.5*a) for a in alphas]
+        colors = [_lighten_color(base_color, 1.5 * a) for a in alphas]
         alphas = [None] * num_alphas  # reset alphas to None
 
     for i in range(num_quant):
@@ -214,12 +216,11 @@ def plot_glitch(
     # ylabel = [r"$\delta\nu$"]
     unit = u.Unit(dnu.attrs.get("unit", "uHz"))
     # if str(unit) != "":
-        # ylabel.append(unit.to_string(format="latex_inline"))
+    # ylabel.append(unit.to_string(format="latex_inline"))
 
     # ax.set_ylabel("/".join(ylabel))
     ax.set_ylabel(
-        r"$\delta\nu$ "
-        + f"({unit.to_string(format='latex_inline')})"
+        r"$\delta\nu$ " + f"({unit.to_string(format='latex_inline')})"
     )
     ax.legend()
     return ax
@@ -302,9 +303,9 @@ def plot_echelle(
 
     # All mean function components for GP
     # full_mu = [
-        # predictive["nu_bkg"].attrs.get("symbol", r"$\nu_\mathrm{bkg}$"),
-        # predictive["dnu_he"].attrs.get("symbol", r"$\delta\nu_{He}$"),
-        # predictive["dnu_cz"].attrs.get("symbol", r"$\delta\nu_{BCZ}$"),
+    # predictive["nu_bkg"].attrs.get("symbol", r"$\nu_\mathrm{bkg}$"),
+    # predictive["dnu_he"].attrs.get("symbol", r"$\delta\nu_{He}$"),
+    # predictive["dnu_cz"].attrs.get("symbol", r"$\delta\nu_{BCZ}$"),
     # ]
     kindl = kind.lower()
     if kindl == "full":
@@ -348,7 +349,7 @@ def plot_echelle(
         colors = [base_color] * num_alphas
     else:
         # Mimic alpha by lightening the base color
-        colors = [_lighten_color(base_color, 1.5*a) for a in alphas]
+        colors = [_lighten_color(base_color, 1.5 * a) for a in alphas]
         alphas = [None] * num_alphas  # reset alphas to None
 
     for i in range(num_quant):
@@ -365,21 +366,22 @@ def plot_echelle(
     # xlabel = [r"$\nu\,\mathrm{mod}.\,{" + f"{delta_nu:.2f}" + "}$"]
     unit = u.Unit(y.attrs.get("unit", ""))
     # if str(unit) != "":
-        # xlabel.append(unit.to_string(format="latex_inline"))
+    # xlabel.append(unit.to_string(format="latex_inline"))
     # ax.set_xlabel("/".join(xlabel))
 
     ax.set_xlabel(
-        r"$\nu$ modulo " + f"{delta_nu:.2f} " 
+        r"$\nu$ modulo "
+        + f"{delta_nu:.2f} "
         + f"({unit.to_string(format='latex_inline')})"
     )
     # ylabel = [r"$\nu$"]
     unit = u.Unit(nu.attrs.get("unit", "uHz"))
     # if str(unit) != "":
-        # ylabel.append(unit.to_string(format="latex_inline"))
+    # ylabel.append(unit.to_string(format="latex_inline"))
     # ax.set_ylabel("/".join(ylabel))
-    
+
     ax.set_ylabel(r"$\nu$ " + f"({unit.to_string(format='latex_inline')})")
-    
+
     ax.legend()
 
     return ax
