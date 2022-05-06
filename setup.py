@@ -46,7 +46,7 @@ setuptools.setup(
         'tests': tests_require,
     },
     package_data={
-        '': ['*.nc'],
+        '': ['*.nc', '*.mplstyle'],
     },
     include_package_data=True,
     python_requires='>=3.8',

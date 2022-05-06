@@ -1,6 +1,7 @@
 """The plotting module contains functions for plotting inference data."""
 from __future__ import annotations
 
+import os
 import numpy as np
 import arviz as az
 import matplotlib.pyplot as plt
@@ -8,9 +9,11 @@ import astropy.units as u
 
 from matplotlib.ticker import MaxNLocator
 from matplotlib.figure import Figure
+from matplotlib.pyplot import style
 from corner import corner
 from arviz.labels import MapLabeller
 from typing import List, Optional, Union
+from .utils import PACKAGE_DIR
 
 __all__ = [
     "plot_glitch",
@@ -18,6 +21,9 @@ __all__ = [
     "get_labeller",
 ]
 
+_asterion_style_path = os.path.join(PACKAGE_DIR, "stylelib")
+style.core.USER_LIBRARY_PATHS.append(_asterion_style_path)
+style.core.reload_library()
 
 def _validate_predictive_group(data: az.InferenceData, group: str):
     """Validate the predictive groups in data.
