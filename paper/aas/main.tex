@@ -499,14 +499,13 @@ distribution, \(\epsilon \sim \ln\mathcal{N}(\ln(1.4), 0.4)\).
 
 \subsubsection{Glitch parameters}\label{sec:glitch-params}
 
-The glitch parameters' priors must convey at least two things; the first is
+The glitch parameters' priors should encompass at least two things; the first is
 that the glitch amplitudes are approximately \SIrange{0.1}{1.0}{\micro\hertz},
-and the second is that the acoustic depths are in physically sensible places.
-The former comes from reviewing previous measurements of the glitches in the
-literature and can be enforced by inspecting the sensibility of a grid of
-glitch amplitude parameters as a function of \(\nu_\mathrm{max}\) (see
-Appendix \ldots) The latter is less straightforward to determine, and will be
-defined later in this section.
+and the second is that the acoustic depths are in physically sensible regions
+of the star. We determined the prior in two steps. The first was to give weakly
+informative priors on the parameters from physical intuition and scaling
+relations with global stellar parameters (nu max etc.). Subsequently, we update
+the prior by fitting to stellar model frequencies (\todo{add grid details}).
 
 \begin{itemize}
     \item Stellar model grid
