@@ -27,23 +27,22 @@ def test_echelle(kwargs):
             dnu = DATA[group]["delta_nu"].median().to_numpy()
 
     # Test axis labels
-    assert (ax.xaxis.label.get_text()
-            == "$\\nu\\,\\mathrm{mod}.\\,{" + f"{dnu:.2f}" + "}$/$\\mathrm{\\mu Hz}$")
+    assert f"{dnu:.2f}" in ax.xaxis.label.get_text()
     assert (ax.yaxis.label.get_text()
-            == "$\\nu$/$\\mathrm{\\mu Hz}$")
+            == "$\\nu$ ($\\mathrm{\\mu Hz}$)")
     
     # Test observed data pltot
     _, labels = ax.get_legend_handles_labels()
     if group == "posterior":
-        assert r"$\nu_\mathrm{obs}$" in labels
+        assert "observed" in labels
 
 @pytest.mark.parametrize(
     "kwargs", 
     [
         {},
         {"group": "prior"},
-        {"kind": "He"},
-        {"kind": "CZ"},
+        {"kind": "helium"},
+        {"kind": "BCZ"},
     ]
 )
 def test_glitch(kwargs):
@@ -51,15 +50,10 @@ def test_glitch(kwargs):
     ax = ast.plot_glitch(DATA, **kwargs)
     group = kwargs.get("group", "posterior")
 
-    # Test axis labels
-    assert (ax.xaxis.label.get_text() == "$n$")
+    # Test y-axis labels
     assert ax.yaxis.label.get_text().startswith("$\\delta\\nu$")
-    # assert ax.yaxis.label.get_text().endswith("\\mathrm{\\mu Hz}$")
     
     # Test observed data in plot
     _, labels = ax.get_legend_handles_labels()
     if group == "posterior":
-        r"$\nu_\mathrm{obs}$" in labels
-
-# def test_corner(kwargs):
-    
+        "observed" in labels
