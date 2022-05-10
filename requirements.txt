@@ -7,3 +7,4 @@ jaxlib
 jax
 jaxns<1.0
 numpyro<0.9.2
+tinygp

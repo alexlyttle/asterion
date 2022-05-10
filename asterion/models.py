@@ -11,10 +11,9 @@ from numpy.typing import ArrayLike
 from typing import Optional, Union
 from jax import random
 from numpyro.infer import Predictive
+from tinygp import kernels, GaussianProcess
 
 from .typing import DistLike
-from .gp import GP
-from .gp.kernels import SquaredExponential
 from .priors import (
     AsyFunction,
     CZGlitchFunction,
@@ -231,17 +230,24 @@ class GlitchModel(Model):
 
         # The mean function for the GP
         def mean(n):
-            nu_bkg = bkg_func(n)
+            nu_bkg = bkg_func(n)[0]  # shape of bkg_func is (1, num_orders)
             return nu_bkg + he_glitch_func(nu_bkg) + cz_glitch_func(nu_bkg)
 
         var = numpyro.param("kernel_var", self._kernel_var)
         length = numpyro.param("kernel_length", self._kernel_length)
 
-        kernel = SquaredExponential(var, length)
-        gp = GP(kernel, mean=mean)
+        # kernel = SquaredExponential(var, length)
+        kernel = var * kernels.ExpSquared(length)
+        diag = 1e-6 if nu_err is None else nu_err**2  # No need for jitter
+        gp = GaussianProcess(kernel, n, mean=mean, diag=diag)
+        # gp = GP(kernel, mean=mean)
 
         with dimension("n", n.shape[-1], coords=n):
-            nu = gp.sample("nu_obs", n, noise=nu_err, obs=nu)
+            nu = numpyro.sample("nu_obs", gp.numpyro_dist(), obs=nu)  # new nu!
+            # nu = gp.sample("nu_obs", n, noise=nu_err, obs=nu)
+
+            # if n_pred is not None:
+                # gp.predict("nu", n)  # prediction without noise
 
             nu_bkg = numpyro.deterministic("nu_bkg", bkg_func(n))
             numpyro.deterministic("dnu_he", he_glitch_func(nu_bkg))
@@ -249,9 +255,14 @@ class GlitchModel(Model):
 
         if n_pred is not None:
             with dimension("n", n.shape[-1], coords=n):
-                gp.predict("nu", n)  # prediction without noise
+                numpyro.sample("nu", gp.condition(nu, n).gp.numpyro_dist())
+            
             with dimension("n_pred", n_pred.shape[-1], coords=n_pred):
-                gp.predict("nu_pred", n_pred)
+                # gp.predict("nu_pred", n_pred)
+                numpyro.sample(
+                    "nu_pred",
+                    gp.condition(nu, n_pred).gp.numpyro_dist()
+                )
                 nu_bkg = numpyro.deterministic("nu_bkg_pred", bkg_func(n_pred))
                 numpyro.deterministic("dnu_he_pred", he_glitch_func(nu_bkg))
                 numpyro.deterministic("dnu_cz_pred", cz_glitch_func(nu_bkg))
@@ -331,7 +342,7 @@ class GlitchModelComparison(GlitchModel):
 
         symbols = {"log_k": r"$\log(k)$"}
 
-        null_vars = ["nu", "nu_pred", "nu_obs", "nu_bkg", "nu_bkg_pred"]
+        null_vars = ["nu", "nu_obs", "nu_bkg"]
         for var_name in null_vars:
             key = self._divider.join([self._prefix, var_name])
             units[key] = self.units[var_name]
@@ -360,8 +371,9 @@ class GlitchModelComparison(GlitchModel):
         # Same kernel function for both models
         var = numpyro.param("kernel_var", self._kernel_var)
         length = numpyro.param("kernel_length", self._kernel_length)
+        kernel = var * kernels.ExpSquared(length)
 
-        kernel = SquaredExponential(var, length)
+        diag = 1e-6 if nu_err is None else nu_err**2  # No need for jitter
 
         args = ("models", 2)
         with dimension(*args):
@@ -373,26 +385,30 @@ class GlitchModelComparison(GlitchModel):
         with numpyro.handlers.scope(prefix=self._prefix, divider="."):
             # Contain null model parameters in the null scope
             def mean0(n):
-                return bkg_func(n)[0]
+                return jnp.squeeze(bkg_func(n)[0])
 
-            gp0 = GP(kernel, mean=mean0)
-            dist0 = gp0.distribution(n, noise=nu_err)
+            # gp0 = GP(kernel, mean=mean0)
+            # dist0 = gp0.distribution(n, noise=nu_err)
+            gp0 = GaussianProcess(kernel, n, mean=mean0, diag=diag)
+            dist0 = gp0.numpyro_dist()
 
             with dimension("n", n.shape[-1], coords=n):
-                if nu is None:
-                    nu0 = numpyro.sample("nu_obs", dist0)
-                else:
-                    nu0 = nu
-
-                gp0.y = nu0
-
+                nu0 = numpyro.sample("nu_obs", dist0, obs=nu)
                 numpyro.deterministic("nu_bkg", bkg_func(n)[0])
 
             if n_pred is not None:
                 with dimension("n", n.shape[-1], coords=n):
-                    gp0.predict("nu", n)
+                    # gp0.predict("nu", n)
+                    numpyro.sample(
+                        "nu",
+                        gp0.condition(nu0, n).gp.numpyro_dist(),
+                    )
                 with dimension("n_pred", n_pred.shape[-1], coords=n_pred):
-                    gp0.predict("nu_pred", n_pred)
+                    # gp0.predict("nu_pred", n_pred)
+                    numpyro.sample(
+                        "nu_pred",
+                        gp0.condition(nu0, n_pred).gp.numpyro_dist()
+                    )
                     numpyro.deterministic("nu_bkg_pred", bkg_func(n_pred)[0])
 
         # MODEL 1
@@ -400,28 +416,31 @@ class GlitchModelComparison(GlitchModel):
         cz_glitch_func = self.cz_glitch()
 
         def mean(n):
-            nu_bkg = bkg_func(n)[1]
+            nu_bkg = jnp.squeeze(bkg_func(n)[1])
             return nu_bkg + he_glitch_func(nu_bkg) + cz_glitch_func(nu_bkg)
 
-        gp = GP(kernel, mean=mean)
-        dist = gp.distribution(n, noise=nu_err)
+        # gp = GP(kernel, mean=mean)
+        # dist = gp.distribution(n, noise=nu_err)
+        gp = GaussianProcess(kernel, n, mean=mean, diag=diag)
+        dist = gp.numpyro_dist()
 
         with dimension("n", n.shape[-1], coords=n):
 
-            if nu is None:
-                nu = numpyro.sample("nu_obs", dist)
-
-            gp.y = nu
-
+            nu = numpyro.sample("nu_obs", dist, obs=nu)  # redefines nu!
             nu_bkg = numpyro.deterministic("nu_bkg", bkg_func(n)[1])
             numpyro.deterministic("dnu_he", he_glitch_func(nu_bkg))
             numpyro.deterministic("dnu_cz", cz_glitch_func(nu_bkg))
 
         if n_pred is not None:
             with dimension("n", n.shape[-1], coords=n):
-                gp.predict("nu", n)
+                # gp.predict("nu", n)
+                numpyro.sample("nu", gp.condition(nu, n).gp.numpyro_dist())
             with dimension("n_pred", n_pred.shape[-1], coords=n_pred):
-                gp.predict("nu_pred", n_pred)
+                # gp.predict("nu_pred", n_pred)
+                numpyro.sample(
+                    "nu_pred",
+                    gp.condition(nu, n_pred).gp.numpyro_dist()
+                )
 
                 nu_bkg = numpyro.deterministic(
                     "nu_bkg_pred", bkg_func(n_pred)[1]
