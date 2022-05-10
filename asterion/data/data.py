@@ -1,7 +1,9 @@
 import os
 import arviz as az
+
 from numpy import array
 from ..utils import PACKAGE_DIR
+from netCDF4 import Dataset
 
 example_star = {
     "n": array([13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]),
@@ -178,3 +180,16 @@ def get_example_results() -> az.InferenceData:
     return az.from_netcdf(
         os.path.join(PACKAGE_DIR, "data", "example_results.nc")
     )
+
+
+def get_tau_prior_data():
+    """Returns tuple of tau prior data. The first is an (N, 2) array of 
+    nu_max, effective temperature, and the second is a (N, 2) array of
+    tau_he and tau_cz estimated from stellar evolutionary models.
+    """
+    filename = os.path.join(PACKAGE_DIR, "data", "tau_prior.nc")
+    with Dataset(filename, "r") as root:
+        x = array(root["training/x"][()])
+        y = array(root["training/y"][()])
+
+    return x, y
