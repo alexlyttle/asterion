@@ -320,7 +320,7 @@ class Inference:
         Returns:
             numpyro.contrib.nested_sampling.NestedSampler: [description]
         """
-        depth = kwargs.pop("depth", 7)
+        depth = kwargs.pop("depth", 5)
         return NestedSampler(
             model,
             num_live_points=num_live_points,
