@@ -283,9 +283,9 @@ class HeGlitchFunction(_GlitchFunction):
 
         log_numax = jnp.log10(distribution(nu_max).mean)
         # Attempt rough guess of glitch params
-        self.log_a: dist.Distribution = dist.Normal(-2.0, 0.3)
+        self.log_a: dist.Distribution = dist.Normal(-2.0, 0.5)
         self.log_b: dist.Distribution = dist.Normal(
-            -2.0 * log_numax + 0.5, 0.2
+            -2.0 * log_numax + 0.5, 0.5
         )
 
     def amplitude(self, nu: ArrayLike) -> jnp.ndarray:
@@ -386,7 +386,7 @@ class CZGlitchFunction(_GlitchFunction):
 
         log_numax = jnp.log10(distribution(nu_max).mean)
         # Rough guess of glitch params
-        self.log_a: dist.Distribution = dist.Normal(2.2 * log_numax - 2.1, 0.3)
+        self.log_a: dist.Distribution = dist.Normal(2.2 * log_numax - 2.1, 0.5)
 
     def amplitude(self, nu: ArrayLike) -> jnp.ndarray:
         """The amplitude of the glitch,

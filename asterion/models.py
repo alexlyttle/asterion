@@ -134,12 +134,12 @@ class GlitchModel(Model):
         log_numax = jnp.log10(nu_max[0])
         
         mu_he = - log_numax + 0.3
-        sigma_he = 0.05 + 0.05 * logistic(log_numax, 2.8, 20.0)
+        sigma_he = 0.08 + 0.05 * logistic(log_numax, 2.8, 20.0)
         log_tau_he = (mu_he, sigma_he)
         
         x0 = 2.9
         mu_cz = - 0.225 * logistic(log_numax, x0, 20.0) - 0.8 * log_numax + 0.35
-        sigma_cz = 0.05 + 0.1 * np.exp(- 0.5 * (log_numax - x0)**2/0.1**2)
+        sigma_cz = 0.08 + 0.1 * np.exp(- 0.5 * (log_numax - x0)**2/0.1**2)
         log_tau_cz = (mu_cz, sigma_cz)
         
         self.he_glitch: Prior = HeGlitchFunction(nu_max, log_tau=log_tau_he)
