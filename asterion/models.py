@@ -132,14 +132,13 @@ class GlitchModel(Model):
             return 1 / (1 + np.exp(-k * (x - x0)))
         
         log_numax = jnp.log10(nu_max[0])
-        
-        mu_he = - log_numax + 0.3
-        sigma_he = 0.08 + 0.05 * logistic(log_numax, 2.8, 20.0)
+        log_numax_err = nu_max[1]/nu_max[0]/jnp.log(10.0)
+        mu_he = 0.184 - 0.964 * log_numax
+        sigma_he = 0.085
         log_tau_he = (mu_he, sigma_he)
         
-        x0 = 2.9
-        mu_cz = - 0.225 * logistic(log_numax, x0, 20.0) - 0.8 * log_numax + 0.35
-        sigma_cz = 0.08 + 0.1 * np.exp(- 0.5 * (log_numax - x0)**2/0.1**2)
+        mu_cz = 0.449 - 0.909 * log_numax
+        sigma_cz = 0.14
         log_tau_cz = (mu_cz, sigma_cz)
         
         self.he_glitch: Prior = HeGlitchFunction(nu_max, log_tau=log_tau_he)
@@ -157,8 +156,8 @@ class GlitchModel(Model):
             "nu_bkg": u.microhertz,
             "dnu_he": u.microhertz,
             "dnu_cz": u.microhertz,
-            "he_nu_max": u.microhertz,
-            "cz_nu_max": u.microhertz,
+            # "he_nu_max": u.microhertz,
+            # "cz_nu_max": u.microhertz,
             "he_amplitude": u.microhertz,
             "cz_amplitude": u.microhertz,
             "nu_max": u.microhertz,
@@ -170,8 +169,8 @@ class GlitchModel(Model):
             "nu_bkg": r"$\nu_\mathrm{bkg}$",
             "dnu_he": r"$\delta\nu_\mathrm{He}$",
             "dnu_cz": r"$\delta\nu_\mathrm{BCZ}$",
-            "he_nu_max": r"$A_\mathrm{He}(\nu_\max)$",
-            "cz_nu_max": r"$A_\mathrm{BCZ}(\nu_\max)$",
+            # "he_nu_max": r"$A_\mathrm{He}(\nu_\max)$",
+            # "cz_nu_max": r"$A_\mathrm{BCZ}(\nu_\max)$",
             "he_amplitude": r"$\langle A_\mathrm{He} \rangle$",
             "cz_amplitude": r"$\langle A_\mathrm{BCZ} \rangle$",
             "nu_max": r"$\nu_\mathrm{max}$",
@@ -194,15 +193,15 @@ class GlitchModel(Model):
         )
 
     def _glitch_amplitudes(self, nu):
-        nu_max = numpyro.sample("nu_max", self._nu_max)
-        numpyro.deterministic("he_nu_max", self.he_glitch.amplitude(nu_max))
-        numpyro.deterministic("cz_nu_max", self.cz_glitch.amplitude(nu_max))
+        # nu_max = numpyro.sample("nu_max", self._nu_max)
+        # numpyro.deterministic("he_nu_max", self.he_glitch.amplitude(nu_max))
+        # numpyro.deterministic("cz_nu_max", self.cz_glitch.amplitude(nu_max))
 
         if self.window_width == "full":
             low, high = nu.min(), nu.max()
         else:
-            low = nu_max - self.window_width * self.background._delta_nu
-            high = nu_max + self.window_width * self.background._delta_nu
+            low = self._nu_max.mean - self.window_width * self.background._delta_nu
+            high = self._nu_max.mean + self.window_width * self.background._delta_nu
 
         he_amp = numpyro.deterministic(
             "he_amplitude", self.he_glitch._average_amplitude(low, high)
@@ -282,7 +281,8 @@ class GlitchModel(Model):
                 numpyro.deterministic("dnu_cz_pred", cz_glitch_func(nu_bkg))
 
         # Other deterministics
-        self._amplitude_prior(*self._glitch_amplitudes(nu))
+        self._glitch_amplitudes(nu)
+        # self._amplitude_prior(*self._glitch_amplitudes(nu))
 
 
 class GlitchModelComparison(GlitchModel):
