@@ -133,12 +133,22 @@ class GlitchModel(Model):
         
         log_numax = jnp.log10(nu_max[0])
         log_numax_err = nu_max[1]/nu_max[0]/jnp.log(10.0)
-        mu_he = 0.184 - 0.964 * log_numax
-        sigma_he = 0.085
+        
+        log_teff = jnp.log10(teff[0])
+        
+        # mu_he = 0.184 - 0.964 * log_numax
+        # mu_he = 4.981 - 1.334 * log_teff - 0.899 * log_numax  # from 50 stars
+        mu_he = 3.82 - 0.99 * log_teff - 0.93 * log_numax  # from models
+
+        # sigma_he = 0.085
+        sigma_he = 0.05
         log_tau_he = (mu_he, sigma_he)
         
-        mu_cz = 0.449 - 0.909 * log_numax
-        sigma_cz = 0.14
+        # mu_cz = 0.449 - 0.909 * log_numax
+        # mu_cz = 10.331 - 2.747 * log_teff - 0.774 * log_numax  # from 50 stars
+        mu_cz = 0.31 + (1.69 - 0.68 * log_teff) * log_numax  # from models
+        # sigma_cz = 0.14
+        sigma_cz = 0.08
         log_tau_cz = (mu_cz, sigma_cz)
         
         self.he_glitch: Prior = HeGlitchFunction(nu_max, log_tau=log_tau_he)
@@ -290,7 +300,7 @@ class GlitchModelComparison(GlitchModel):
     a glitchless model. The frequencies are modelled using a GP with the same
     kernel function but different mean functions.
 
-    The glitch model is the same as :class:`GlitchModel`. The glitcheless model
+    The glitch model is the same as :class:`GlitchModel`. The glitchless model
     is the same except that the mean function is,
 
     .. math::
