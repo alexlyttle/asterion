@@ -3,10 +3,6 @@
 Warning:
     This module is a work-in-progress, use with caution.
 """
-import numpyro
-
-numpyro.enable_x64()
-
 from .version import __version__
 from .models import GlitchModel, GlitchModelComparison
 from .inference import Inference

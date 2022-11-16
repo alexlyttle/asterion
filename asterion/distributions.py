@@ -1,9 +1,10 @@
-import tinygp
 import jax.numpy as jnp
 
 from jax import random
-from jax.scipy.stats import norm
+from jax.scipy.stats import norm, multivariate_normal
 from jaxns.prior_transforms import PriorChain, MVNPrior, NormalPrior, LogNormalPrior, UniformPrior
+
+from tinygp import GaussianProcess as TinyGaussianProcess
 
 
 class Distribution:
@@ -127,12 +128,19 @@ class JointDistribution(Distribution):
         return samples
 
 
-class GaussianProcess(tinygp.GaussianProcess, Distribution):
-    """Wrapper for tinygp Gaussian process which also inherits Distribution."""
-    def __init__(self, name, *args, **kwargs):
+class MVNormal(Distribution):
+    """Wrapper for tinygp Gaussian process which inherits Distribution."""
+    def __init__(self, name, loc, cov):
         # first argument is reserved for name
-        self.name = name
-        super().__init__(*args, **kwargs)
+        super().__init__(name)
+        self.loc = loc
+        self.covariance = cov
 
     def jaxns_dist(self):
-        return MVNPrior(self.name, self.mean, self.covariance)
+        return MVNPrior(self.name, self.loc, self.cov)
+
+    def sample(self, key, shape=()):
+        return random.multivariate_normal(key, self.loc, self.cov, shape=shape)
+
+    def log_probability(self, x):
+        return multivariate_normal.logpdf(x, self.loc, self.cov)
