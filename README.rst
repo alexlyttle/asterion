@@ -19,6 +19,8 @@ Asterion
     :target: https://github.com/alexlyttle/asterion/blob/main/LICENSE
     :alt: License
 
+**Note: Development of this project is on hold while I write up my PhD thesis.**
+
 Fit acoustic glitches present in the radial mode frequencies of solar-like oscillators.
 
 Do you have some asteroseismic mode frequencies for a particular star? Do you want to fit a model to those modes?
